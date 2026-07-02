@@ -9443,6 +9443,16 @@ components:
           format: date
         legalStatus:
           $ref: '#/components/schemas/LegalStatus'
+        sourcePrimary:
+          type: string
+          enum:
+            - USER
+            - ADMIN
+            - PROVIDER
+        ownerUserId:
+          $ref: '#/components/schemas/Uuid'
+        ownerClaimSource:
+          $ref: '#/components/schemas/PatentOwnerClaimSource'
         tradeMode:
           $ref: '#/components/schemas/TradeMode'
         licenseMode:

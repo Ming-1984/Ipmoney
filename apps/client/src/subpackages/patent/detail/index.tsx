@@ -26,6 +26,8 @@ import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui
 
 type Patent = components['schemas']['Patent'];
 type PatentTradeSnapshot = components['schemas']['PatentTradeSnapshot'];
+type PatentClaimRequest = components['schemas']['PatentClaimRequest'];
+type PagedPatentClaimRequest = components['schemas']['PagedPatentClaimRequest'];
 type PatentMediaItem = components['schemas']['PatentMedia'];
 type Conversation = { id: string };
 
@@ -55,6 +57,19 @@ function sourcePrimaryLabel(source?: Patent['sourcePrimary']): string {
 
 function isPlatformUnifiedPatent(source?: Patent['sourcePrimary']): boolean {
   return source === 'ADMIN' || source === 'PROVIDER';
+}
+
+function hasHumanPatentOwner(patent?: Patent | null, platformOwnerId?: string): boolean {
+  const ownerUserId = String(patent?.ownerUserId || '').trim();
+  if (!ownerUserId) return false;
+  if (patent?.ownerClaimSource === 'PLATFORM_IMPORT') return false;
+  if (platformOwnerId && ownerUserId === platformOwnerId) return false;
+  return true;
+}
+
+function isPlatformTradeSnapshot(snapshot?: PatentTradeSnapshot | null): boolean {
+  const sellerName = String(snapshot?.seller?.displayName || snapshot?.seller?.nickname || '').trim().toLowerCase();
+  return sellerName === 'ipmoney';
 }
 
 function supplyTypeLabel(type?: string | null): string {
@@ -103,10 +118,14 @@ export default function PatentDetailOverviewPage() {
   const [data, setData] = useState<Patent | null>(initialCachedData);
   const [favoritedState, setFavoritedState] = useState(false);
   const [currentUserId, setCurrentUserId] = useState('');
+  const [pageShowRevision, setPageShowRevision] = useState(0);
+  const [claimStatus, setClaimStatus] = useState<PatentClaimRequest['status'] | ''>('');
+  const [claimStatusLoading, setClaimStatusLoading] = useState(false);
   const patentIdRef = useRef(patentId);
 
   useDidShow(() => {
     pageVisibleRef.current = true;
+    setPageShowRevision((value) => value + 1);
   });
 
   useDidHide(() => {
@@ -187,6 +206,34 @@ export default function PatentDetailOverviewPage() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    const currentPatentId = String(data?.id || patentId || '').trim();
+    if (!currentPatentId || !getToken()) {
+      setClaimStatus('');
+      setClaimStatusLoading(false);
+      return;
+    }
+    let alive = true;
+    setClaimStatusLoading(true);
+    apiGet<PagedPatentClaimRequest>('/me/patent-claims', { page: 1, pageSize: 20, patentId: currentPatentId })
+      .then((res) => {
+        if (!alive) return;
+        const matched = Array.isArray(res.items) ? res.items.find((item) => item.patentId === currentPatentId) : null;
+        setClaimStatus(matched?.status || '');
+      })
+      .catch(() => {
+        if (!alive) return;
+        setClaimStatus('');
+      })
+      .finally(() => {
+        if (!alive) return;
+        setClaimStatusLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [data?.id, patentId, pageShowRevision]);
+
 const tradeSnapshot = data?.tradeSnapshot ?? null;
   const sellerDisplayName = displayUserName(tradeSnapshot?.seller, '');
   const sellerDisplayInitial = displayInitial(sellerDisplayName, '供');
@@ -202,8 +249,12 @@ const tradeSnapshot = data?.tradeSnapshot ?? null;
       ? `订金 ￥${fenToYuan(depositAmountFen)}`
       : '暂未配置订金';
   const hasTrade = Boolean(tradeSnapshot);
-  const claimEnabled = Boolean(data && isPlatformUnifiedPatent(data.sourcePrimary) && !data.ownerUserId);
-  const claimBlockedReason = data?.ownerUserId ? '该专利已归属个人，不支持认领' : '';
+  const platformOwnerId = isPlatformTradeSnapshot(tradeSnapshot) ? String(tradeSnapshot?.seller?.id || '').trim() : '';
+  const claimEnabled = Boolean(data && isPlatformUnifiedPatent(data.sourcePrimary) && !hasHumanPatentOwner(data, platformOwnerId));
+  const claimBlockedReason = hasHumanPatentOwner(data, platformOwnerId) ? '该专利已归属个人，不支持认领' : '';
+  const claimActionText =
+    claimStatus === 'PENDING' ? '已提交认领申请' : claimStatus === 'APPROVED' ? '已完成认领' : '我要认领';
+  const claimActionDisabled = !claimEnabled || claimStatus === 'PENDING' || claimStatus === 'APPROVED';
 
   const mediaList = useMemo(() => ((Array.isArray(data?.media) ? data?.media : []) as PatentMediaItem[]), [data?.media]);
   const coverUrl = useMemo(() => mediaList.find((item) => item?.type === 'COVER' && item?.url)?.url ?? null, [mediaList]);
@@ -235,12 +286,20 @@ const tradeSnapshot = data?.tradeSnapshot ?? null;
       if (claimBlockedReason) toast(claimBlockedReason);
       return;
     }
+    if (claimStatus === 'PENDING') {
+      toast('你已提交认领申请，请等待审核');
+      return;
+    }
+    if (claimStatus === 'APPROVED') {
+      toast('该专利已完成你的认领，无需重复提交');
+      return;
+    }
     Taro.navigateTo({
       url: `/subpackages/patent-claims/index?patentId=${encodeURIComponent(patentId)}&title=${encodeURIComponent(
         patentTitleText,
-      )}`,
+      )}${platformOwnerId ? `&platformOwnerId=${encodeURIComponent(platformOwnerId)}` : ''}`,
     });
-  }, [claimBlockedReason, claimEnabled, patentId, patentTitleText]);
+  }, [claimBlockedReason, claimEnabled, claimStatus, patentId, patentTitleText, platformOwnerId]);
 
   const startConsult = useCallback(async () => {
     if (!listingId) {
@@ -619,8 +678,8 @@ const tradeSnapshot = data?.tradeSnapshot ?? null;
                 <SectionHeader title="专利认领" density="compact" />
                 <Surface className="detail-section-card patent-claim-card">
                   <Text className="patent-claim-desc">该专利为平台统一发布。如你为权利主体，可提交认领并上传权属证明。</Text>
-                  <Button variant="primary" onClick={openClaimPage}>
-                    我要认领
+                  <Button variant="primary" disabled={claimActionDisabled || claimStatusLoading} onClick={openClaimPage}>
+                    {claimActionText}
                   </Button>
                 </Surface>
               </View>

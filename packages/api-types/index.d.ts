@@ -4067,6 +4067,10 @@ export interface components {
             /** Format: date */
             grantDate?: string;
             legalStatus?: components["schemas"]["LegalStatus"];
+            /** @enum {string} */
+            sourcePrimary?: "USER" | "ADMIN" | "PROVIDER";
+            ownerUserId?: components["schemas"]["Uuid"];
+            ownerClaimSource?: components["schemas"]["PatentOwnerClaimSource"];
             tradeMode: components["schemas"]["TradeMode"];
             licenseMode?: components["schemas"]["LicenseMode"];
             priceType: components["schemas"]["PriceType"];

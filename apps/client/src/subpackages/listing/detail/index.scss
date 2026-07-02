@@ -173,3 +173,17 @@
 .listing-detail-tabs .detail-tab.is-active::after {
   background: var(--c-primary);
 }
+
+.listing-claim-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+  margin-top: 20rpx;
+  margin-bottom: 24rpx;
+}
+
+.listing-claim-desc {
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: var(--c-text);
+}

@@ -438,6 +438,32 @@ export class PatentsService {
     return raw as PatentClaimStatus;
   }
 
+  private hasHumanPatentOwner(
+    patent: { ownerUserId?: string | null; ownerClaimSource?: PatentOwnerClaimSource | null } | null | undefined,
+    platformOwnerId?: string | null,
+  ): boolean {
+    const ownerUserId = String(patent?.ownerUserId || '').trim();
+    if (!ownerUserId) return false;
+    if (patent?.ownerClaimSource === 'PLATFORM_IMPORT') return false;
+    if (platformOwnerId && ownerUserId === platformOwnerId) return false;
+    return true;
+  }
+
+  private async resolvePlatformPatentOwnerId(patentId: string): Promise<string> {
+    const listing = await this.prisma.listing.findFirst({
+      where: {
+        patentId,
+        status: 'ACTIVE',
+        auditStatus: 'APPROVED',
+        source: { in: ['ADMIN', 'PLATFORM'] as any },
+        consultationRouting: 'PLATFORM',
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { sellerUserId: true },
+    });
+    return String(listing?.sellerUserId || '').trim();
+  }
+
   private normalizeListingTradeMode(value: unknown): ListingTradeMode | undefined {
     const raw = String(value || '').trim().toUpperCase();
     if (raw === 'ASSIGNMENT' || raw === 'LICENSE') return raw as ListingTradeMode;
@@ -2162,8 +2188,12 @@ export class PatentsService {
     }
     const patent = await this.prisma.patent.findUnique({ where: { id: patentId } });
     if (!patent) throw new NotFoundException({ code: 'NOT_FOUND', message: 'patent not found' });
-    if (String(patent.ownerUserId || '') === applicantUserId) {
+    const platformOwnerId = await this.resolvePlatformPatentOwnerId(patentId);
+    if (this.hasHumanPatentOwner(patent, platformOwnerId) && String(patent.ownerUserId || '') === applicantUserId) {
       throw new ConflictException({ code: 'CONFLICT', message: 'patent already belongs to current user' });
+    }
+    if (this.hasHumanPatentOwner(patent, platformOwnerId) && String(patent.ownerUserId || '') !== applicantUserId) {
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'patent already belongs to another user' });
     }
     const existingPending = await this.prisma.patentClaimRequest.findFirst({
       where: { patentId, applicantUserId, status: 'PENDING' },

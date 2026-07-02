@@ -19,6 +19,24 @@ type AuthTokenResponse = components['schemas']['AuthTokenResponse'];
 type VerificationStatus = components['schemas']['VerificationStatus'];
 type VerificationType = components['schemas']['VerificationType'];
 
+function buildQuery(params?: Record<string, any>): string {
+  if (!params) return '';
+  const parts: string[] = [];
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null || value === '') continue;
+    parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
+  }
+  return parts.join('&');
+}
+
+function getPageUrl(page: any): string {
+  const route = String(page?.route || page?.__route__ || '').trim();
+  if (!route) return '';
+  const path = route.startsWith('/') ? route : `/${route}`;
+  const query = buildQuery(page?.options || {});
+  return query ? `${path}?${query}` : path;
+}
+
 export default function LoginPage() {
   const env = useMemo(() => Taro.getEnv(), []);
   const canWechatLogin = env === Taro.ENV_TYPE.WEAPP;
@@ -117,6 +135,12 @@ export default function LoginPage() {
         const canGoBack = pages.length > 1;
 
         if (safeRedirectUrl && !safeRedirectUrl.startsWith('/subpackages/login/index')) {
+          const previousPage = pages[pages.length - 2] as any;
+          const previousUrl = normalizePageUrl(getPageUrl(previousPage));
+          if (previousUrl === safeRedirectUrl) {
+            Taro.navigateBack();
+            return;
+          }
           if (isTabPageUrl(safeRedirectUrl)) {
             Taro.switchTab({ url: safeRedirectUrl });
             return;

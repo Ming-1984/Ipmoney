@@ -10,6 +10,7 @@ import { getToken } from '../../lib/auth';
 import { apiGet, apiPost } from '../../lib/api';
 import { displayInfoOrPlaceholder, displayTitleWithSecondary, normalizeDisplayText } from '../../lib/displayText';
 import { ensureApproved, usePageAccess } from '../../lib/guard';
+import { parseUuidParam } from '../../lib/params';
 import { useRouteStringParam, useRouteUuidParam } from '../../lib/routeParams';
 import { usePagedList } from '../../lib/usePagedList';
 import { chooseImageFiles, uploadFileToApi } from '../../lib/upload';
@@ -20,6 +21,7 @@ import { PageHeader, Spacer, Surface, TipBanner } from '../../ui/layout';
 import { Button, PullToRefresh, TextArea, confirm, toast } from '../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard } from '../../ui/StateCards';
 import iconUpload from '../../assets/icons/icon-image-gray.svg';
+import iconShield from '../../assets/icons/icon-shield-orange.svg';
 
 type Patent = components['schemas']['Patent'];
 type PatentClaimRequest = components['schemas']['PatentClaimRequest'];
@@ -73,9 +75,17 @@ function isPlatformUnifiedPatent(patent?: Patent | null): boolean {
   return source === 'ADMIN' || source === 'PROVIDER';
 }
 
-function getClaimDisabledReason(patent?: Patent | null): string {
+function hasHumanPatentOwner(patent?: Patent | null, platformOwnerId?: string): boolean {
+  const ownerUserId = String(patent?.ownerUserId || '').trim();
+  if (!ownerUserId) return false;
+  if (patent?.ownerClaimSource === 'PLATFORM_IMPORT') return false;
+  if (platformOwnerId && ownerUserId === platformOwnerId) return false;
+  return true;
+}
+
+function getClaimDisabledReason(patent?: Patent | null, platformOwnerId?: string): string {
   if (!patent) return '专利信息加载中';
-  if (patent.ownerUserId) return '该专利已归属个人，不支持认领';
+  if (hasHumanPatentOwner(patent, platformOwnerId)) return '该专利已归属个人，不支持认领';
   if (!isPlatformUnifiedPatent(patent)) return '仅平台统一发布的专利支持认领';
   return '';
 }
@@ -83,6 +93,7 @@ function getClaimDisabledReason(patent?: Patent | null): string {
 export default function PatentClaimsPage() {
   const patentId = useRouteUuidParam('patentId') || '';
   const patentTitleFromRoute = useRouteStringParam('title') || '';
+  const platformOwnerId = parseUuidParam(useRouteStringParam('platformOwnerId')) || '';
   const claimMode = Boolean(patentId);
   const loadedOnceRef = useRef(false);
   const statusFilterMountedRef = useRef(false);
@@ -195,7 +206,29 @@ export default function PatentClaimsPage() {
     await refresh();
   }, [access.state, claimMode, loadPatent, refresh]);
 
+  const pendingClaim = useMemo(
+    () => items.find((item) => item.status === 'PENDING' && (!claimMode || item.patentId === patentId)),
+    [claimMode, items, patentId],
+  );
+  const approvedClaim = useMemo(
+    () => items.find((item) => item.status === 'APPROVED' && (!claimMode || item.patentId === patentId)),
+    [claimMode, items, patentId],
+  );
+
+  const disabledReason = useMemo(() => {
+    if (!claimMode) return '';
+    const patentReason = getClaimDisabledReason(patent, platformOwnerId);
+    if (patentReason) return patentReason;
+    if (pendingClaim) return '你已提交认领申请，请等待审核';
+    if (approvedClaim) return '该专利已完成你的认领，无需重复提交';
+    return '';
+  }, [approvedClaim, claimMode, patent, pendingClaim, platformOwnerId]);
+
   const removeEvidence = useCallback(async (fileId: string) => {
+    if (disabledReason) {
+      toast(disabledReason);
+      return;
+    }
     const ok = await confirm({
       title: '移除证明材料',
       content: '确定移除这份材料？',
@@ -204,11 +237,15 @@ export default function PatentClaimsPage() {
     });
     if (!ok) return;
     setEvidenceFiles((prev) => prev.filter((it) => it.id !== fileId));
-  }, []);
+  }, [disabledReason]);
 
   const uploadEvidence = useCallback(async () => {
     if (uploading) return;
     if (!ensureApproved()) return;
+    if (disabledReason) {
+      toast(disabledReason);
+      return;
+    }
     if (evidenceFiles.length >= MAX_EVIDENCE_COUNT) {
       toast(`最多上传 ${MAX_EVIDENCE_COUNT} 份材料`);
       return;
@@ -251,25 +288,7 @@ export default function PatentClaimsPage() {
     } finally {
       setUploading(false);
     }
-  }, [evidenceFiles.length, uploading]);
-
-  const pendingClaim = useMemo(
-    () => items.find((item) => item.status === 'PENDING' && (!claimMode || item.patentId === patentId)),
-    [claimMode, items, patentId],
-  );
-  const approvedClaim = useMemo(
-    () => items.find((item) => item.status === 'APPROVED' && (!claimMode || item.patentId === patentId)),
-    [claimMode, items, patentId],
-  );
-
-  const disabledReason = useMemo(() => {
-    if (!claimMode) return '';
-    const patentReason = getClaimDisabledReason(patent);
-    if (patentReason) return patentReason;
-    if (pendingClaim) return '你已提交认领申请，请等待审核';
-    if (approvedClaim) return '该专利已完成你的认领，无需重复提交';
-    return '';
-  }, [approvedClaim, claimMode, patent, pendingClaim]);
+  }, [disabledReason, evidenceFiles.length, uploading]);
 
   const submitClaim = useCallback(async () => {
     if (!claimMode) return;
@@ -314,7 +333,7 @@ export default function PatentClaimsPage() {
 
   return (
     <PullToRefresh type="primary" disabled={refreshing} onRefresh={handleRefresh}>
-      <View className="container patent-claims-page">
+      <View className={`container patent-claims-page ${claimMode ? 'is-claim-mode' : 'is-record-mode'}`}>
         <PageHeader title={title} subtitle={subtitle} />
         <Spacer />
 
@@ -332,11 +351,11 @@ export default function PatentClaimsPage() {
                     <Text className="claim-target-title clamp-2">{modeTitle}</Text>
                     <View className="claim-target-meta">
                       <Text className="claim-target-pill">{sourcePrimaryLabel(patent.sourcePrimary)}</Text>
-                      {patent.ownerUserId ? <Text className="claim-target-pill is-owner">已归属个人</Text> : null}
+                      {hasHumanPatentOwner(patent, platformOwnerId) ? <Text className="claim-target-pill is-owner">已归属个人</Text> : null}
+                      <Text className="claim-target-number">
+                        申请号：{displayInfoOrPlaceholder(patent.applicationNoDisplay || patent.applicationNoNorm, '待确认')}
+                      </Text>
                     </View>
-                    <Text className="claim-target-number">
-                      申请号：{displayInfoOrPlaceholder(patent.applicationNoDisplay || patent.applicationNoNorm, '待确认')}
-                    </Text>
                     {disabledReason ? (
                       <TipBanner tone="warning" title={disabledReason}>
                         请在“我的专利认领记录”里查看历史申请。
@@ -347,128 +366,155 @@ export default function PatentClaimsPage() {
 
                 <Spacer size={12} />
 
-                <Surface className="claim-form-card">
-                  <Text className="claim-form-title">提交认领申请</Text>
-                  <Text className="claim-form-tip">请上传真实可核验的权属证明材料，平台会进行审核。</Text>
-
-                  <View className="claim-form-block">
-                    <Text className="claim-form-label">认领说明（可选）</Text>
-                    <TextArea
-                      value={claimReason}
-                      onChange={setClaimReason}
-                      rows={4}
-                      maxLength={300}
-                      placeholder="补充你与该专利的关系说明、授权链路等信息"
-                    />
+                <Surface className="claim-form-card" padding="none">
+                  <View className="claim-form-head">
+                    <View className="claim-form-title-row">
+                      <Image className="claim-form-head-icon" src={iconShield} svg mode="aspectFit" />
+                      <Text className="claim-form-title">提交认领申请</Text>
+                    </View>
+                    <Text className="claim-form-tip">请上传真实可核验的权属证明材料，平台会进行审核。</Text>
                   </View>
 
-                  <View className="claim-form-block">
-                    <View className="claim-evidence-head">
-                      <Text className="claim-form-label">证明材料</Text>
-                      <Text className="claim-evidence-count">
-                        {evidenceFiles.length}/{MAX_EVIDENCE_COUNT}
-                      </Text>
-                    </View>
-                    <View className="claim-upload-box" onClick={() => void uploadEvidence()}>
-                      <Image className="claim-upload-icon" src={iconUpload} svg mode="aspectFit" />
-                      <Text className="claim-upload-title">{uploading ? '上传中...' : '上传证明材料'}</Text>
-                      <Text className="claim-upload-subtitle">支持图片，至少 1 份</Text>
-                    </View>
-                    {evidenceFiles.length ? (
-                      <View className="claim-evidence-list">
-                        {evidenceFiles.map((file, idx) => (
-                          <View key={file.id} className="claim-evidence-item">
-                            <View className="claim-evidence-main">
-                              <Text className="claim-evidence-name">材料 {idx + 1}</Text>
-                              <Text className="claim-evidence-desc">{evidenceFileDisplayText(file)}</Text>
-                            </View>
-                            <Text className="claim-evidence-remove" onClick={() => void removeEvidence(file.id)}>
-                              删除
-                            </Text>
-                          </View>
-                        ))}
+                  <View className="claim-form-body">
+                    <View className="claim-form-block">
+                      <View className="claim-label-row">
+                        <Text className="claim-form-label">认领说明</Text>
+                        <Text className="claim-form-label-optional">（可选）</Text>
                       </View>
-                    ) : null}
+                      <TextArea
+                        value={claimReason}
+                        onChange={setClaimReason}
+                        rows={4}
+                        maxLength={300}
+                        placeholder="补充您与该专利的关系说明、授权链路等信息"
+                      />
+                      <Text className="claim-field-count">{claimReason.length}/300</Text>
+                    </View>
+
+                    <View className="claim-form-block">
+                      <View className="claim-evidence-head">
+                        <Text className="claim-form-label">证明材料</Text>
+                        <Text className="claim-evidence-count">
+                          {evidenceFiles.length}/{MAX_EVIDENCE_COUNT}
+                        </Text>
+                      </View>
+                      <View
+                        className={`claim-upload-box ${uploading || Boolean(disabledReason) ? 'is-disabled' : ''}`}
+                        onClick={() => void uploadEvidence()}
+                      >
+                        <View className="claim-upload-icon-wrap">
+                          <Image className="claim-upload-icon" src={iconUpload} svg mode="aspectFit" />
+                        </View>
+                        <Text className="claim-upload-title">{uploading ? '上传中...' : '上传证明材料'}</Text>
+                        <Text className="claim-upload-subtitle">支持图片，至少 1 份</Text>
+                      </View>
+                      {evidenceFiles.length ? (
+                        <View className="claim-evidence-list">
+                          {evidenceFiles.map((file, idx) => (
+                            <View key={file.id} className="claim-evidence-item">
+                              {file.localPath ? <Image className="claim-evidence-thumb" src={file.localPath} mode="aspectFill" /> : null}
+                              <View className="claim-evidence-main">
+                                <Text className="claim-evidence-name">材料 {idx + 1}</Text>
+                                <Text className="claim-evidence-desc">{evidenceFileDisplayText(file)}</Text>
+                              </View>
+                              <Text className="claim-evidence-remove" onClick={() => void removeEvidence(file.id)}>
+                                删除
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+                      ) : null}
+                    </View>
                   </View>
 
-                  <Button
-                    variant="primary"
-                    loading={submitting}
-                    disabled={submitting || uploading || Boolean(disabledReason)}
-                    onClick={() => void submitClaim()}
-                  >
-                    提交认领申请
-                  </Button>
+                  <View className="claim-form-footer">
+                    <Button
+                      className="claim-submit-button"
+                      variant="primary"
+                      loading={submitting}
+                      disabled={submitting || uploading || Boolean(disabledReason) || !evidenceFiles.length}
+                      onClick={() => void submitClaim()}
+                    >
+                      提交认领申请
+                    </Button>
+                    {!evidenceFiles.length ? <Text className="claim-submit-hint">请至少上传 1 份证明材料</Text> : null}
+                  </View>
                 </Surface>
 
                 <Spacer size={12} />
               </>
             ) : null}
 
-            <Surface className="claim-filter-card" padding="sm">
-              <CategoryControl value={statusFilter} options={CLAIM_STATUS_OPTIONS} onChange={setStatusFilter} />
-            </Surface>
+            {!claimMode ? (
+              <>
+                <Surface className="claim-filter-card" padding="sm">
+                  <CategoryControl value={statusFilter} options={CLAIM_STATUS_OPTIONS} onChange={setStatusFilter} />
+                </Surface>
 
-            <Spacer size={12} />
+                <Spacer size={12} />
+              </>
+            ) : null}
 
-            {showInitialLoading ? (
-              <LoadingCard text="正在加载认领记录..." />
-            ) : error ? (
-              <ErrorCard message={error} onRetry={() => void reload()} />
-            ) : items.length ? (
-              <View className="claim-list">
-                {items.map((item) => (
-                  <Surface key={item.id} className="claim-record-card">
-                    <View className="claim-record-head">
-                      <Text className="claim-record-id">认领申请记录</Text>
-                      <Text className={`claim-status ${claimStatusClass(item.status)}`}>{claimStatusLabel(item.status)}</Text>
-                    </View>
-                    <View className="claim-record-row">
-                      <Text className="claim-record-label">关联专利</Text>
-                      <Text className="claim-record-value">可在下方查看专利详情</Text>
-                    </View>
-                    <View className="claim-record-row">
-                      <Text className="claim-record-label">提交时间</Text>
-                      <Text className="claim-record-value">
-                        {displayInfoOrPlaceholder(item.submittedAt?.slice(0, 19).replace('T', ' '), '待确认')}
-                      </Text>
-                    </View>
-                    {normalizeDisplayText(item.claimReason) ? (
-                      <View className="claim-record-row">
-                        <Text className="claim-record-label">认领说明</Text>
-                        <Text className="claim-record-value">{normalizeDisplayText(item.claimReason)}</Text>
-                      </View>
-                    ) : null}
-                    {normalizeDisplayText(item.reviewComment) ? (
-                      <View className="claim-record-row">
-                        <Text className="claim-record-label">审核意见</Text>
-                        <Text className="claim-record-value">{normalizeDisplayText(item.reviewComment)}</Text>
-                      </View>
-                    ) : null}
-                    <View className="claim-record-foot">
-                      <Text className="claim-record-evidence">材料数：{item.evidenceFileIds?.length || 0}</Text>
-                      {!claimMode ? (
-                        <Button
-                          size="small"
-                          variant="ghost"
-                          block={false}
-                          onClick={() =>
-                            Taro.navigateTo({ url: `/subpackages/patent/detail/index?patentId=${encodeURIComponent(item.patentId)}` })
-                          }
-                        >
-                          查看专利
-                        </Button>
-                      ) : null}
-                    </View>
-                  </Surface>
-                ))}
-              </View>
-            ) : (
-              <EmptyCard message={claimMode ? '暂无该专利的认领记录' : '暂无认领记录'} />
-            )}
+            {!claimMode ? (
+              <>
+                {showInitialLoading ? (
+                  <LoadingCard text="正在加载认领记录..." />
+                ) : error ? (
+                  <ErrorCard message={error} onRetry={() => void reload()} />
+                ) : items.length ? (
+                  <View className="claim-list">
+                    {items.map((item) => (
+                      <Surface key={item.id} className="claim-record-card">
+                        <View className="claim-record-head">
+                          <Text className="claim-record-id">认领申请记录</Text>
+                          <Text className={`claim-status ${claimStatusClass(item.status)}`}>{claimStatusLabel(item.status)}</Text>
+                        </View>
+                        <View className="claim-record-row">
+                          <Text className="claim-record-label">关联专利</Text>
+                          <Text className="claim-record-value">可在下方查看专利详情</Text>
+                        </View>
+                        <View className="claim-record-row">
+                          <Text className="claim-record-label">提交时间</Text>
+                          <Text className="claim-record-value">
+                            {displayInfoOrPlaceholder(item.submittedAt?.slice(0, 19).replace('T', ' '), '待确认')}
+                          </Text>
+                        </View>
+                        {normalizeDisplayText(item.claimReason) ? (
+                          <View className="claim-record-row">
+                            <Text className="claim-record-label">认领说明</Text>
+                            <Text className="claim-record-value">{normalizeDisplayText(item.claimReason)}</Text>
+                          </View>
+                        ) : null}
+                        {normalizeDisplayText(item.reviewComment) ? (
+                          <View className="claim-record-row">
+                            <Text className="claim-record-label">审核意见</Text>
+                            <Text className="claim-record-value">{normalizeDisplayText(item.reviewComment)}</Text>
+                          </View>
+                        ) : null}
+                        <View className="claim-record-foot">
+                          <Text className="claim-record-evidence">材料数：{item.evidenceFileIds?.length || 0}</Text>
+                          <Button
+                            size="small"
+                            variant="ghost"
+                            block={false}
+                            onClick={() =>
+                              Taro.navigateTo({ url: `/subpackages/patent/detail/index?patentId=${encodeURIComponent(item.patentId)}` })
+                            }
+                          >
+                            查看专利
+                          </Button>
+                        </View>
+                      </Surface>
+                    ))}
+                  </View>
+                ) : (
+                  <EmptyCard message="暂无认领记录" />
+                )}
 
-            {!claimMode && items.length ? (
-              <ListFooter loadingMore={loadingMore} hasMore={hasMore} onLoadMore={() => void loadMore()} />
+                {items.length ? (
+                  <ListFooter loadingMore={loadingMore} hasMore={hasMore} onLoadMore={() => void loadMore()} />
+                ) : null}
+              </>
             ) : null}
           </>
         )}

@@ -840,6 +840,14 @@ scroll-view {
   min-width: 0;
 }
 
+.tip-banner .text-strong {
+  color: var(--c-text);
+}
+
+.tip-banner .text-caption {
+  color: var(--c-muted);
+}
+
 .tip-banner-info {
   background: rgba(255, 106, 0, 0.06);
   border-color: rgba(255, 106, 0, 0.18);
@@ -857,6 +865,14 @@ scroll-view {
 .tip-banner-warning {
   background: rgba(245, 158, 11, 0.1);
   border-color: rgba(245, 158, 11, 0.22);
+}
+
+.tip-banner-warning .text-strong {
+  color: #78350f;
+}
+
+.tip-banner-warning .text-caption {
+  color: #92400e;
 }
 
 .tip-banner-warning .tip-banner-accent {

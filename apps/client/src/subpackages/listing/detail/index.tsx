@@ -8,7 +8,7 @@ import type { components } from '@ipmoney/api-types';
 import { Heart, HeartFill, Share2 } from '../../../ui/icons';
 
 import { apiGet, apiPost } from '../../../lib/api';
-import { getToken } from '../../../lib/auth';
+import { getToken, onAuthChanged } from '../../../lib/auth';
 import { displayInfoOrPlaceholder, displayInitial, displayTitleOrFallback, displayTitleWithSecondary, displayUserName, normalizeDisplayText } from '../../../lib/displayText';
 import { favorite, isFavorited, syncFavorites, unfavorite } from '../../../lib/favorites';
 import { ensureApproved } from '../../../lib/guard';
@@ -30,6 +30,8 @@ import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui
 
 type ListingPublic = components['schemas']['ListingPublic'];
 type Patent = components['schemas']['Patent'];
+type PatentClaimRequest = components['schemas']['PatentClaimRequest'];
+type PagedPatentClaimRequest = components['schemas']['PagedPatentClaimRequest'];
 type PatentMediaItem = components['schemas']['PatentMedia'];
 
 type Conversation = { id: string };
@@ -58,6 +60,28 @@ function patentTermLabel(patentType?: Patent['patentType']): string {
   return '待确认';
 }
 
+type PatentOwnershipLike = Pick<Patent, 'ownerUserId' | 'ownerClaimSource'>;
+
+function isPlatformUnifiedPatent(source?: Patent['sourcePrimary'] | ListingPublic['sourcePrimary']): boolean {
+  return source === 'ADMIN' || source === 'PROVIDER';
+}
+
+function hasHumanPatentOwner(patent?: PatentOwnershipLike | null, platformOwnerId?: string): boolean {
+  const ownerUserId = String(patent?.ownerUserId || '').trim();
+  if (!ownerUserId) return false;
+  if (patent?.ownerClaimSource === 'PLATFORM_IMPORT') return false;
+  if (platformOwnerId && ownerUserId === platformOwnerId) return false;
+  return true;
+}
+
+function isPlatformBrandedListing(listing?: ListingPublic | null): boolean {
+  const source = String(listing?.source || '').toUpperCase();
+  const consultationRouting = String(listing?.consultationRouting || '').toUpperCase();
+  const sellerName = String(listing?.seller?.displayName || listing?.seller?.nickname || '').trim().toLowerCase();
+  const platformSource = source === 'ADMIN' || source === 'PLATFORM';
+  return platformSource && (consultationRouting === 'PLATFORM' || sellerName === 'ipmoney');
+}
+
 export default function ListingDetailPage() {
   const listingId = useRouteUuidParam('listingId');
   const listingIdRef = useRef(listingId);
@@ -77,6 +101,10 @@ export default function ListingDetailPage() {
   const tabsOffsetTopRef = useRef<number | null>(null);
   const stickyTopRef = useRef<number>(0);
   const [currentUserId, setCurrentUserId] = useState('');
+  const [authRevision, setAuthRevision] = useState(0);
+  const [pageShowRevision, setPageShowRevision] = useState(0);
+  const [claimStatus, setClaimStatus] = useState<PatentClaimRequest['status'] | ''>('');
+  const [claimStatusLoading, setClaimStatusLoading] = useState(false);
 
   const tabs = useMemo(
     () => [
@@ -90,6 +118,7 @@ export default function ListingDetailPage() {
 
   useDidShow(() => {
     pageVisibleRef.current = true;
+    setPageShowRevision((value) => value + 1);
   });
 
   useDidHide(() => {
@@ -98,6 +127,15 @@ export default function ListingDetailPage() {
   });
 
   useEffect(() => {
+    const off = onAuthChanged(() => setAuthRevision((value) => value + 1));
+    return () => off();
+  }, []);
+
+  useEffect(() => {
+    if (!getToken()) {
+      setCurrentUserId('');
+      return;
+    }
     let alive = true;
     apiGet<{ id: string }>('/me')
       .then((me) => {
@@ -111,7 +149,7 @@ export default function ListingDetailPage() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [authRevision]);
 
   const scrollToTab = useCallback((id: string) => {
     setActiveTab(id);
@@ -280,7 +318,35 @@ export default function ListingDetailPage() {
     return () => {
       alive = false;
     };
-  }, [data?.patentId]);
+  }, [authRevision, data?.patentId]);
+
+  useEffect(() => {
+    const patentId = String(data?.patentId || patentData?.id || '').trim();
+    if (!patentId || !getToken()) {
+      setClaimStatus('');
+      setClaimStatusLoading(false);
+      return;
+    }
+    let alive = true;
+    setClaimStatusLoading(true);
+    apiGet<PagedPatentClaimRequest>('/me/patent-claims', { page: 1, pageSize: 20, patentId })
+      .then((res) => {
+        if (!alive) return;
+        const matched = Array.isArray(res.items) ? res.items.find((item) => item.patentId === patentId) : null;
+        setClaimStatus(matched?.status || '');
+      })
+      .catch(() => {
+        if (!alive) return;
+        setClaimStatus('');
+      })
+      .finally(() => {
+        if (!alive) return;
+        setClaimStatusLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [authRevision, data?.patentId, patentData?.id, pageShowRevision]);
 
   useEffect(() => {
     if (!listingId) return;
@@ -366,6 +432,46 @@ export default function ListingDetailPage() {
     : !hasValidDepositAmount
       ? '暂未配置订金'
       : `订金 ￥${fenToYuan(data?.depositAmountFen)}`;
+  const platformSellerId = isPlatformBrandedListing(data) ? String(data?.seller?.id || '').trim() : '';
+  const claimTarget = patentData || data || null;
+  const claimEnabled = Boolean(
+    data?.patentId &&
+      claimTarget &&
+      (isPlatformUnifiedPatent(claimTarget.sourcePrimary) || isPlatformBrandedListing(data)) &&
+      !hasHumanPatentOwner(claimTarget, platformSellerId),
+  );
+  const claimActionText =
+    claimStatus === 'PENDING' ? '已提交认领申请' : claimStatus === 'APPROVED' ? '已完成认领' : '我要认领';
+  const claimActionDisabled = !claimEnabled || claimStatus === 'PENDING' || claimStatus === 'APPROVED';
+
+  const openClaimPage = useCallback(() => {
+    const patentId = data?.patentId || patentData?.id || '';
+    if (!patentId) return;
+    if (!ensureApproved()) return;
+    const target = patentData || data || null;
+    const platformOwnerId = isPlatformBrandedListing(data) ? String(data?.seller?.id || '').trim() : '';
+    if (hasHumanPatentOwner(target, platformOwnerId)) {
+      toast('该专利已归属个人，不支持认领');
+      return;
+    }
+    if (!target || (!isPlatformUnifiedPatent(target.sourcePrimary) && !isPlatformBrandedListing(data))) {
+      toast('仅平台统一发布的专利支持认领');
+      return;
+    }
+    if (claimStatus === 'PENDING') {
+      toast('你已提交认领申请，请等待审核');
+      return;
+    }
+    if (claimStatus === 'APPROVED') {
+      toast('该专利已完成你的认领，无需重复提交');
+      return;
+    }
+    Taro.navigateTo({
+      url: `/subpackages/patent-claims/index?patentId=${encodeURIComponent(patentId)}&title=${encodeURIComponent(
+        displayTitleOrFallback(data?.title || patentData?.title, '待认领专利'),
+      )}${platformOwnerId ? `&platformOwnerId=${encodeURIComponent(platformOwnerId)}` : ''}`,
+    });
+  }, [claimStatus, data, patentData, platformSellerId]);
 
 
   if (!listingId) {
@@ -530,6 +636,14 @@ export default function ListingDetailPage() {
                 </View>
               ))}
             </View>
+            {claimEnabled ? (
+              <Surface className="detail-section-card listing-claim-card">
+                <Text className="listing-claim-desc">该专利为平台统一发布。如你为权利主体，可提交认领并上传权属证明。</Text>
+                <Button variant="primary" disabled={claimActionDisabled || claimStatusLoading} onClick={openClaimPage}>
+                  {claimActionText}
+                </Button>
+              </Surface>
+            ) : null}
           </View>
 
           <Surface className="detail-section listing-detail-block" id="listing-summary">
