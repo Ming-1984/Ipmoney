@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AchievementsService } from '../src/modules/achievements/achievements.service';
@@ -24,6 +24,9 @@ describe('AchievementsService admin update suite', () => {
       achievementMedia: {
         deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
         createMany: vi.fn().mockResolvedValue({ count: 0 }),
+      },
+      file: {
+        findMany: vi.fn().mockResolvedValue([]),
       },
       user: {
         findMany: vi.fn().mockResolvedValue([
@@ -346,6 +349,42 @@ describe('AchievementsService admin update suite', () => {
         status: 'ACTIVE',
       },
     });
+  });
+
+  it('blocks approval while referenced media moderation is not approved', async () => {
+    prisma.achievement.findUnique.mockResolvedValueOnce({
+      id: ACHIEVEMENT_ID,
+      coverFileId: COVER_ID,
+      media: [{ fileId: '44444444-4444-4444-8444-444444444444' }],
+    });
+    prisma.file.findMany.mockResolvedValueOnce([
+      { id: COVER_ID, moderationStatus: 'APPROVED' },
+      { id: '44444444-4444-4444-8444-444444444444', moderationStatus: 'PENDING' },
+    ]);
+
+    await expect(service.approve(ACHIEVEMENT_ID, 'admin-1', 'ok')).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.achievement.update).not.toHaveBeenCalled();
+  });
+
+  it('approves achievement when referenced media is approved or not required', async () => {
+    prisma.achievement.findUnique.mockResolvedValueOnce({
+      id: ACHIEVEMENT_ID,
+      coverFileId: COVER_ID,
+      media: [],
+    });
+    prisma.file.findMany.mockResolvedValueOnce([{ id: COVER_ID, moderationStatus: 'APPROVED' }]);
+    prisma.achievement.update.mockResolvedValueOnce({
+      id: ACHIEVEMENT_ID,
+      auditStatus: 'APPROVED',
+    });
+
+    const result = await service.approve(ACHIEVEMENT_ID, 'admin-1', 'ok');
+
+    expect(prisma.achievement.update).toHaveBeenCalledWith({
+      where: { id: ACHIEVEMENT_ID },
+      data: { auditStatus: 'APPROVED' },
+    });
+    expect(result).toMatchObject({ id: ACHIEVEMENT_ID, auditStatus: 'APPROVED' });
   });
 
   it('listAdmin prioritizes strong title and publisher matches before weaker summary matches', async () => {

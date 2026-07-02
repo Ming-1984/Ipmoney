@@ -802,6 +802,7 @@ describe('ListingsService write flow suite', () => {
     await expect(service.adminPublish(ADMIN_REQ, LISTING_ID)).rejects.toBeInstanceOf(BadRequestException);
 
     prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ auditStatus: 'APPROVED' }));
+    prisma.file.findMany.mockResolvedValueOnce([{ id: 'file-1', moderationStatus: 'APPROVED' }]);
     prisma.listing.update.mockResolvedValueOnce(buildListing({ status: 'ACTIVE', auditStatus: 'APPROVED' }));
     const published = await service.adminPublish(ADMIN_REQ, LISTING_ID);
     expect(published).toMatchObject({ id: LISTING_ID, status: 'ACTIVE', auditStatus: 'APPROVED' });
@@ -818,9 +819,15 @@ describe('ListingsService write flow suite', () => {
     const offShelved = await service.adminOffShelf(ADMIN_REQ, LISTING_ID);
     expect(offShelved).toMatchObject({ id: LISTING_ID, status: 'OFF_SHELF' });
 
-    prisma.listing.update.mockRejectedValueOnce({ code: 'P2025' });
+    prisma.listing.findUnique.mockResolvedValueOnce(null);
     await expect(service.approve(LISTING_ID, 'admin-reviewer', 'ok')).rejects.toBeInstanceOf(NotFoundException);
 
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ proofFileIdsJson: ['file-1'] }));
+    prisma.file.findMany.mockResolvedValueOnce([{ id: 'file-1', moderationStatus: 'PENDING' }]);
+    await expect(service.approve(LISTING_ID, 'admin-reviewer', 'ok')).rejects.toBeInstanceOf(ConflictException);
+
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ proofFileIdsJson: ['file-1'] }));
+    prisma.file.findMany.mockResolvedValueOnce([{ id: 'file-1', moderationStatus: 'APPROVED' }]);
     prisma.listing.update.mockResolvedValueOnce(buildListing({ auditStatus: 'APPROVED', sellerUserId: USER_ID }));
     const approved = await service.approve(LISTING_ID, 'admin-reviewer', 'ok');
     expect(approved).toMatchObject({ id: LISTING_ID, auditStatus: 'APPROVED' });

@@ -858,7 +858,7 @@ export default function ChatPage() {
     <View className="container chat-page" onClick={closeEmojiPanel}>
       <View className="chat-header">
         <View className="chat-header-left" onClick={() => void safeNavigateBack()}>
-          <Text className="chat-header-back">←</Text>
+          <Text className="chat-header-back">{'<'}</Text>
         </View>
         <Text className="chat-header-title">{displayName}</Text>
         <View className="chat-header-right">

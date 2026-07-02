@@ -76,6 +76,11 @@
   width: 100%;
 }
 
+.publish-input-wrap {
+  position: relative;
+  width: 100%;
+}
+
 .publish-patent-page .nut-input,
 .publish-patent-page .nut-textarea {
   border: 1rpx solid #e5e7eb;
@@ -88,6 +93,38 @@
   padding: 16rpx 18rpx;
   font-size: 24rpx;
   line-height: 1.4;
+}
+
+.publish-patent-page .publish-input-has-clear .nut-input-inner {
+  padding-right: 76rpx;
+}
+
+.publish-input-clear {
+  position: absolute;
+  top: 50%;
+  right: 6rpx;
+  z-index: 2;
+  width: 64rpx;
+  height: 64rpx;
+  margin-top: -32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.publish-input-clear-hover {
+  opacity: 0.72;
+}
+
+.publish-input-clear-icon {
+  width: 34rpx;
+  height: 34rpx;
+  border-radius: 999rpx;
+  background: #d1d5db;
+  color: #ffffff;
+  font-size: 30rpx;
+  line-height: 30rpx;
+  text-align: center;
 }
 
 .publish-patent-page .nut-input,
@@ -121,21 +158,50 @@
 }
 
 .publish-patent-page .nut-textarea {
-  padding: 16rpx 18rpx;
-  min-height: 180rpx;
+  padding: 16rpx 18rpx 40rpx;
+  min-height: 224rpx;
   background: #f6f7f9;
+  box-sizing: border-box;
 }
 
-.publish-patent-page .nut-textarea textarea {
-  font-size: 24rpx !important;
-  line-height: 1.4;
-}
-
+.publish-patent-page .nut-textarea textarea,
+.publish-patent-page .nut-textarea .taro-textarea,
 .publish-patent-page .nut-textarea-textarea,
-.publish-patent-page .nut-textarea-textarea .taro-textarea,
-.publish-patent-page .taro-textarea {
+.publish-patent-page .nut-textarea-textarea .taro-textarea {
+  width: 100%;
+  min-height: 168rpx;
+  height: 168rpx;
   font-size: 24rpx !important;
   line-height: 1.4;
+  color: #111827;
+  box-sizing: border-box;
+}
+
+.publish-patent-page .publish-textarea .nut-textarea,
+.publish-patent-page .publish-textarea.nut-textarea {
+  min-height: 224rpx;
+}
+
+.publish-patent-page .nut-textarea-limit {
+  position: absolute;
+  right: 18rpx;
+  bottom: 14rpx;
+  margin-top: 0;
+  font-size: 20rpx;
+  line-height: 1.4;
+  color: #9ca3af;
+}
+
+.publish-form-error {
+  display: block;
+  margin-top: 10rpx;
+  padding: 12rpx 14rpx;
+  border-radius: 12rpx;
+  background: #fff7ed;
+  border: 1rpx solid #fed7aa;
+  color: #ea580c;
+  font-size: 22rpx;
+  line-height: 1.45;
 }
 
 .form-select {

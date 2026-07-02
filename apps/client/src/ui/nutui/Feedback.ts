@@ -51,6 +51,13 @@ export function toast(content: unknown, options?: { duration?: number; icon?: 's
   });
 }
 
+const WEAPP_MODAL_ACTION_TEXT_MAX_LENGTH = 4;
+
+function normalizeWeappModalActionText(text: string | undefined, fallback: string): string {
+  const value = String(text || fallback).trim() || fallback;
+  return Array.from(value).slice(0, WEAPP_MODAL_ACTION_TEXT_MAX_LENGTH).join('');
+}
+
 export function confirm(options: {
   title: string;
   content: string;
@@ -64,12 +71,15 @@ export function confirm(options: {
     return Taro.showModal({
       title: options.title,
       content: options.content,
-      confirmText: options.confirmText ?? '确定',
-      cancelText: options.cancelText ?? '取消',
+      confirmText: normalizeWeappModalActionText(options.confirmText, '确定'),
+      cancelText: normalizeWeappModalActionText(options.cancelText, '取消'),
       showCancel: true,
     })
       .then((res) => Boolean(res.confirm))
-      .catch(() => false);
+      .catch(() => {
+        void Taro.showToast({ title: '确认框打开失败', icon: 'none' }).catch(() => undefined);
+        return false;
+      });
   }
   return new Promise((resolve) => {
     let resolved = false;

@@ -171,6 +171,31 @@ export class AchievementsService {
     }
   }
 
+  private async assertFilesReadyForApproval(fileIds: string[], label: string) {
+    const normalizedFileIds = Array.from(new Set(normalizeStringArray(fileIds)));
+    if (!normalizedFileIds.length) return;
+
+    const files = await this.prisma.file.findMany({
+      where: { id: { in: normalizedFileIds } },
+      select: { id: true, moderationStatus: true },
+    });
+    if (files.length !== normalizedFileIds.length) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${label} is invalid` });
+    }
+
+    const blocked = files.filter((file: any) => {
+      const status = String(file?.moderationStatus || 'NOT_REQUIRED').toUpperCase();
+      return status !== 'NOT_REQUIRED' && status !== 'APPROVED';
+    });
+    if (blocked.length) {
+      throw new BadRequestException({
+        code: 'BAD_REQUEST',
+        message: `${label} media moderation is not approved`,
+        fileIds: blocked.map((file: any) => file.id),
+      });
+    }
+  }
+
   private buildPublisherFallback(userId: string) {
     return {
       userId,
@@ -1021,8 +1046,22 @@ export class AchievementsService {
 
   async adminPublish(req: any, achievementId: string) {
     this.ensureAdmin(req);
-    const it = await this.prisma.achievement.findUnique({ where: { id: achievementId } });
+    const it = await this.prisma.achievement.findUnique({
+      where: { id: achievementId },
+      select: {
+        id: true,
+        coverFileId: true,
+        media: { select: { fileId: true } },
+      },
+    });
     if (!it) throw new NotFoundException({ code: 'NOT_FOUND', message: 'achievement not found' });
+    await this.assertFilesReadyForApproval(
+      [
+        ...(it.coverFileId ? [it.coverFileId] : []),
+        ...((it.media || []).map((item: any) => String(item.fileId || ''))),
+      ],
+      'achievement media',
+    );
     return await this.prisma.achievement.update({
       where: { id: achievementId },
       data: { status: 'ACTIVE', auditStatus: 'APPROVED' },
@@ -1040,6 +1079,25 @@ export class AchievementsService {
   }
 
   async approve(achievementId: string, reviewerId: string | null, reason?: string) {
+    const existing = await this.prisma.achievement.findUnique({
+      where: { id: achievementId },
+      select: {
+        id: true,
+        coverFileId: true,
+        media: { select: { fileId: true } },
+      },
+    });
+    if (!existing) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'achievement not found' });
+    }
+    await this.assertFilesReadyForApproval(
+      [
+        ...(existing.coverFileId ? [existing.coverFileId] : []),
+        ...((existing.media || []).map((item: any) => String(item.fileId || ''))),
+      ],
+      'achievement media',
+    );
+
     let it: any;
     try {
       it = await this.prisma.achievement.update({

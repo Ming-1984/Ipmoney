@@ -28,6 +28,7 @@ import {
 } from '../lib/homeLandingConfig';
 import { auditStatusLabel, listingStatusLabel, tradeModeLabel } from '../lib/labels';
 import { RequestErrorAlert } from '../ui/RequestState';
+import { confirmActionWithReason } from '../ui/confirm';
 
 type AuditStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 type ListingStatus = 'DRAFT' | 'ACTIVE' | 'OFF_SHELF' | 'SOLD';
@@ -452,6 +453,68 @@ export function ListingsAuditPage() {
     [loadBatchJobs, loadListings, selectedListingIds],
   );
 
+  const approveListing = useCallback(
+    async (row: Listing) => {
+      const title = normalizeUserFacingText(row.title) || row.id;
+      const { ok, reason } = await confirmActionWithReason({
+        title: '确认通过挂牌审核？',
+        content: `挂牌：${title}`,
+        okText: '通过',
+        reasonLabel: '审核备注（可选）',
+        reasonPlaceholder: '可填写通过原因或备注，便于审计和后续对账。',
+      });
+      if (!ok) return;
+
+      try {
+        await apiPost(
+          `/admin/listings/${row.id}/approve`,
+          { reason: reason || undefined },
+          { idempotencyKey: `admin-listing-approve-${row.id}-${Date.now()}` },
+        );
+        message.success('挂牌已通过审核');
+        setSelectedRowKeys((prev) => prev.filter((key) => String(key) !== row.id));
+        await loadListings();
+      } catch (e: any) {
+        message.error(e?.message || '通过审核失败');
+      }
+    },
+    [loadListings],
+  );
+
+  const rejectListing = useCallback(
+    async (row: Listing) => {
+      const title = normalizeUserFacingText(row.title) || row.id;
+      const { ok, reason } = await confirmActionWithReason({
+        title: '确认驳回挂牌审核？',
+        content: `挂牌：${title}`,
+        okText: '驳回',
+        reasonRequired: true,
+        reasonLabel: '驳回原因',
+        reasonPlaceholder: '请填写驳回原因，便于用户修改后重新提交。',
+        danger: true,
+      });
+      if (!ok) return;
+      if (!reason) {
+        message.error('驳回必须填写原因');
+        return;
+      }
+
+      try {
+        await apiPost(
+          `/admin/listings/${row.id}/reject`,
+          { reason },
+          { idempotencyKey: `admin-listing-reject-${row.id}-${Date.now()}` },
+        );
+        message.success('挂牌已驳回');
+        setSelectedRowKeys((prev) => prev.filter((key) => String(key) !== row.id));
+        await loadListings();
+      } catch (e: any) {
+        message.error(e?.message || '驳回审核失败');
+      }
+    },
+    [loadListings],
+  );
+
   const openBatchJobItems = useCallback(async (job: BatchJob) => {
     setBatchDrawerOpen(true);
     setActiveBatchJob(job);
@@ -800,6 +863,25 @@ export function ListingsAuditPage() {
                 dataIndex: 'createdAt',
                 width: 180,
                 render: (v) => formatTimeSmart(v),
+              },
+              {
+                title: '操作',
+                key: 'actions',
+                width: 170,
+                fixed: 'right',
+                render: (_, row) =>
+                  row.auditStatus === 'PENDING' ? (
+                    <Space>
+                      <Button size="small" type="primary" onClick={() => void approveListing(row)}>
+                        通过
+                      </Button>
+                      <Button size="small" danger onClick={() => void rejectListing(row)}>
+                        驳回
+                      </Button>
+                    </Space>
+                  ) : (
+                    <Typography.Text type="secondary">已处理</Typography.Text>
+                  ),
               },
             ]}
           />

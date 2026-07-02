@@ -170,6 +170,9 @@ export class ContractsService {
 
     const file = await this.prisma.file.findUnique({ where: { id: contractFileId } });
     if (!file) throw new BadRequestException({ code: 'BAD_REQUEST', message: '合同文件不存在' });
+    if (String(file.ownerId || '') !== sellerUserId) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'contractFileId is invalid' });
+    }
     if (String(file.mimeType || '') !== 'application/pdf') {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: '仅支持上传 PDF 合同' });
     }

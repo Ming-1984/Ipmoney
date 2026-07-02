@@ -58,6 +58,18 @@ function FilterTabs<T extends string>(props: { value: T; options: FilterOption<T
   );
 }
 
+function listingCardStatusLabel(status: ListingStatus, auditStatus: AuditStatus): string {
+  if (status === 'DRAFT') return listingStatusLabel(status);
+  if (auditStatus !== 'APPROVED') return auditStatusLabel(auditStatus);
+  return listingStatusLabel(status);
+}
+
+function listingCardStatusClass(status: ListingStatus, auditStatus: AuditStatus): string {
+  if (status === 'DRAFT') return 'tag';
+  if (auditStatus !== 'APPROVED') return auditStatusTagClass(auditStatus);
+  return status === 'ACTIVE' ? 'tag tag-success' : 'tag';
+}
+
 export default function MyListingsPage() {
   const routeStatus = useRouteStringParam('status');
   const routeMixed = useRouteStringParam('mixed');
@@ -433,9 +445,13 @@ export default function MyListingsPage() {
                     <View className="list-card-head-main">
                       <Text className="list-card-title clamp-2">{title}</Text>
                       <View className="list-card-tags">
-                        <Text className="tag">{isAchievementDraft ? contentStatusLabel(it.status) : listingStatusLabel(it.status)}</Text>
+                        <Text className={isAchievementDraft ? 'tag' : listingCardStatusClass(it.status, it.auditStatus)}>
+                          {isAchievementDraft ? contentStatusLabel(it.status) : listingCardStatusLabel(it.status, it.auditStatus)}
+                        </Text>
                         {isMixedDraftCenter ? <Text className="tag">{isAchievementDraft ? '专利成果' : '专利交易'}</Text> : null}
-                        {!isDraftCenter && !isAchievementDraft ? <Text className={auditStatusTagClass(it.auditStatus)}>{auditStatusLabel(it.auditStatus)}</Text> : null}
+                        {!isDraftCenter && !isAchievementDraft && it.auditStatus === 'APPROVED' ? (
+                          <Text className={auditStatusTagClass(it.auditStatus)}>{auditStatusLabel(it.auditStatus)}</Text>
+                        ) : null}
                         {!isAchievementDraft && normalizeDisplayText(it.applicationNoDisplay) ? (
                           <Text className="tag">{normalizeDisplayText(it.applicationNoDisplay)}</Text>
                         ) : null}
@@ -464,7 +480,7 @@ export default function MyListingsPage() {
                         <Button
                           className="my-listings-off-shelf-button"
                           variant="ghost"
-                          disabled={it.status !== 'ACTIVE'}
+                          disabled={it.status !== 'ACTIVE' || it.auditStatus !== 'APPROVED'}
                           onClick={() => void handleOffShelf(it)}
                         >
                           下架

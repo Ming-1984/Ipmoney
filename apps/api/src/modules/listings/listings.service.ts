@@ -550,6 +550,31 @@ export class ListingsService {
     );
   }
 
+  private async assertFilesReadyForApproval(fileIds: string[], label: string) {
+    const normalizedFileIds = this.normalizeFileIds(fileIds);
+    if (!normalizedFileIds.length) return;
+
+    const files = await this.prisma.file.findMany({
+      where: { id: { in: normalizedFileIds } },
+      select: { id: true, moderationStatus: true },
+    });
+    if (files.length !== normalizedFileIds.length) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${label} is invalid` });
+    }
+
+    const blocked = files.filter((file: any) => {
+      const status = String(file?.moderationStatus || 'NOT_REQUIRED').toUpperCase();
+      return status !== 'NOT_REQUIRED' && status !== 'APPROVED';
+    });
+    if (blocked.length) {
+      throw new ConflictException({
+        code: 'CONFLICT',
+        message: `${label} media moderation is not approved`,
+        fileIds: blocked.map((file: any) => file.id),
+      });
+    }
+  }
+
   private normalizeListingTopics(input: unknown): ListingTopic[] {
     return Array.from(
       new Set(
@@ -2373,6 +2398,7 @@ export class ListingsService {
       throw new ConflictException({ code: 'CONFLICT', message: 'listing is sold' });
     }
     this.assertRegionCodeRequiredForActiveStatus(listing.regionCode, 'ACTIVE');
+    await this.assertFilesReadyForApproval(this.normalizeFileIds((listing as any).proofFileIdsJson), 'proofFileIds');
     const updated = await this.prisma.listing.update({
       where: { id: listingId },
       data: { status: 'ACTIVE' },
@@ -2972,6 +2998,12 @@ export class ListingsService {
   }
 
   async approve(listingId: string, reviewerId: string | null, reason?: string) {
+    const existing = await this.prisma.listing.findUnique({ where: { id: listingId } });
+    if (!existing) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
+    }
+    await this.assertFilesReadyForApproval(this.normalizeFileIds((existing as any).proofFileIdsJson), 'proofFileIds');
+
     let it: any;
     try {
       it = await this.prisma.listing.update({

@@ -96,6 +96,28 @@ describe('ContractsService upload suite', () => {
     );
   });
 
+  it('rejects contract file that is not owned by the seller', async () => {
+    const req = { auth: { userId: 'seller-1' } };
+    prisma.order.findUnique.mockResolvedValueOnce({
+      id: ORDER_ID,
+      listing: { sellerUserId: 'seller-1', title: 'Listing A', seller: { nickname: 'Seller', verifications: [] } },
+      buyer: { nickname: 'Buyer', verifications: [] },
+      contract: null,
+      createdAt: new Date('2026-03-13T00:00:00.000Z'),
+    });
+    prisma.file.findUnique.mockResolvedValueOnce({
+      id: CONTRACT_FILE_ID,
+      ownerId: 'other-user',
+      mimeType: 'application/pdf',
+      url: 'https://example.com/contract.pdf',
+    });
+
+    await expect(service.upload(req as any, ORDER_ID, { contractFileId: CONTRACT_FILE_ID })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(prisma.contract.upsert).not.toHaveBeenCalled();
+  });
+
   it('upserts contract with WAIT_CONFIRM status and prefixed contract id output', async () => {
     const req = { auth: { userId: 'seller-1' } };
     prisma.order.findUnique.mockResolvedValueOnce({
@@ -107,6 +129,7 @@ describe('ContractsService upload suite', () => {
     });
     prisma.file.findUnique.mockResolvedValueOnce({
       id: CONTRACT_FILE_ID,
+      ownerId: 'seller-1',
       mimeType: 'application/pdf',
       url: 'https://example.com/contract.pdf',
     });

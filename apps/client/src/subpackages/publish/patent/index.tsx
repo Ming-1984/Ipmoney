@@ -202,6 +202,10 @@ function mergePublishClassName(className?: string): string {
   return className ? `publish-control ${className}` : 'publish-control';
 }
 
+function mergePublishInputWrapClassName(className?: string): string {
+  return className ? `publish-input-wrap ${className}` : 'publish-input-wrap';
+}
+
 function pickProofFileName(file: UploadedFile, index: number): string {
   const raw = String(file.fileName || '').trim();
   if (raw) return raw;
@@ -218,13 +222,35 @@ function isSubmittedListing(status?: ListingStatus | null, auditStatus?: AuditSt
 }
 
 function PublishInput(props: React.ComponentProps<typeof Input>) {
+  const { className, clearable, disabled, onChange, placeholderClass, placeholderStyle, value, ...inputProps } = props;
+  const inputValue = value == null ? '' : String(value);
+  const canClear = Boolean(clearable && inputValue && !disabled);
+
   return (
-    <Input
-      {...props}
-      className={mergePublishClassName(props.className)}
-      placeholderClass={mergePlaceholderClass(props.placeholderClass)}
-      placeholderStyle={mergePlaceholderStyle(props.placeholderStyle)}
-    />
+    <View className={mergePublishInputWrapClassName(className)}>
+      <Input
+        {...inputProps}
+        value={value}
+        disabled={disabled}
+        onChange={onChange}
+        clearable={false}
+        className={mergePublishClassName(canClear ? 'publish-input-has-clear' : undefined)}
+        placeholderClass={mergePlaceholderClass(placeholderClass)}
+        placeholderStyle={mergePlaceholderStyle(placeholderStyle)}
+      />
+      {canClear ? (
+        <View
+          className="publish-input-clear"
+          hoverClass="publish-input-clear-hover"
+          onClick={(event) => {
+            event.stopPropagation();
+            onChange?.('');
+          }}
+        >
+          <Text className="publish-input-clear-icon">×</Text>
+        </View>
+      ) : null}
+    </View>
   );
 }
 
@@ -232,6 +258,7 @@ function PublishTextArea(props: React.ComponentProps<typeof TextArea>) {
   return (
     <TextArea
       {...props}
+      rows={props.rows ?? 5}
       className={mergePublishClassName(props.className)}
       placeholderClass={mergePlaceholderClass(props.placeholderClass)}
       placeholderStyle={mergePlaceholderStyle(props.placeholderStyle)}
@@ -290,6 +317,13 @@ export default function PublishPatentPage() {
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [pickerOpen, setPickerOpen] = useState<PickerKey | null>(null);
+  const [formError, setFormError] = useState('');
+
+  const reportFormError = useCallback((message: string): null => {
+    setFormError(message);
+    toast(message);
+    return null;
+  }, []);
 
   useDidShow(() => {
     pageVisibleRef.current = true;
@@ -368,6 +402,7 @@ export default function PublishPatentPage() {
     setIpcCodesInput('');
     setLocCodesInput('');
     setProofFiles([]);
+    setFormError('');
   }, []);
 
   const uploadProof = useCallback(async (source: ProofUploadSource) => {
@@ -540,24 +575,19 @@ export default function PublishPatentPage() {
     (mode: 'save' | 'submit'): ListingCreateRequest | null => {
       const raw = patentNumberRaw.trim();
       if (mode === 'submit' && !raw) {
-        toast('请输入专利号/申请号');
-        return null;
+        return reportFormError('请输入专利号/申请号');
       }
       if (mode === 'submit' && !patentType) {
-        toast('请选择专利类型');
-        return null;
+        return reportFormError('请选择专利类型');
       }
       if (mode === 'submit' && !tradeMode) {
-        toast('请选择交易方式');
-        return null;
+        return reportFormError('请选择交易方式');
       }
       if (mode === 'submit' && tradeMode === 'LICENSE' && !licenseMode) {
-        toast('请选择许可方式');
-        return null;
+        return reportFormError('请选择许可方式');
       }
       if (mode === 'submit' && !priceType) {
-        toast('请选择价格类型');
-        return null;
+        return reportFormError('请选择价格类型');
       }
 
       const effectiveTradeMode = (tradeMode || 'ASSIGNMENT') as TradeMode;
@@ -572,19 +602,19 @@ export default function PublishPatentPage() {
 
       const priceAmountFen = effectivePriceType === 'FIXED' ? parseMoneyFen(priceYuan) : null;
       if (effectivePriceType === 'FIXED' && priceAmountFen === null) {
-        toast('请填写一口价（元）');
-        return null;
+        return reportFormError('请填写一口价（元）');
       }
 
       const depositAmountFen = parseMoneyFen(depositYuan);
       if (depositYuan.trim() && depositAmountFen === null) {
-        toast('订金金额格式不正确');
-        return null;
+        return reportFormError('订金金额格式不正确');
+      }
+      if (depositYuan.trim() && depositAmountFen !== null && depositAmountFen <= 0) {
+        return reportFormError('订金需大于 0；不设置订金请留空');
       }
 
       if (mode === 'submit' && !proofFiles.length) {
-        toast('请上传权属材料/证明');
-        return null;
+        return reportFormError('请上传权属材料/证明');
       }
 
       const summaryValue = mergeSummary(summary, {
@@ -633,6 +663,7 @@ export default function PublishPatentPage() {
       priceYuan,
       proofFiles,
       regionCode,
+      reportFormError,
       summary,
       title,
       tradeMode,
@@ -644,24 +675,19 @@ export default function PublishPatentPage() {
       if (!listingId) return null;
       const raw = patentNumberRaw.trim();
       if (mode === 'submit' && !raw) {
-        toast('请输入专利号/申请号');
-        return null;
+        return reportFormError('请输入专利号/申请号');
       }
       if (mode === 'submit' && !patentType) {
-        toast('请选择专利类型');
-        return null;
+        return reportFormError('请选择专利类型');
       }
       if (mode === 'submit' && !tradeMode) {
-        toast('请选择交易方式');
-        return null;
+        return reportFormError('请选择交易方式');
       }
       if (mode === 'submit' && tradeMode === 'LICENSE' && !licenseMode) {
-        toast('请选择许可方式');
-        return null;
+        return reportFormError('请选择许可方式');
       }
       if (mode === 'submit' && !priceType) {
-        toast('请选择价格类型');
-        return null;
+        return reportFormError('请选择价格类型');
       }
 
       const effectiveTradeMode = (tradeMode || 'ASSIGNMENT') as TradeMode;
@@ -675,19 +701,19 @@ export default function PublishPatentPage() {
       }
       const priceAmountFen = effectivePriceType === 'FIXED' ? parseMoneyFen(priceYuan) : null;
       if (effectivePriceType === 'FIXED' && priceAmountFen === null) {
-        toast('请填写一口价（元）');
-        return null;
+        return reportFormError('请填写一口价（元）');
       }
 
       const depositAmountFen = parseMoneyFen(depositYuan);
       if (depositYuan.trim() && depositAmountFen === null) {
-        toast('订金金额格式不正确');
-        return null;
+        return reportFormError('订金金额格式不正确');
+      }
+      if (depositYuan.trim() && depositAmountFen !== null && depositAmountFen <= 0) {
+        return reportFormError('订金需大于 0；不设置订金请留空');
       }
 
       if (mode === 'submit' && !proofFiles.length) {
-        toast('请上传权属材料/证明');
-        return null;
+        return reportFormError('请上传权属材料/证明');
       }
 
       const summaryValue = mergeSummary(summary, {
@@ -738,6 +764,7 @@ export default function PublishPatentPage() {
       priceYuan,
       proofFiles,
       regionCode,
+      reportFormError,
       summary,
       title,
       tradeMode,
@@ -749,13 +776,14 @@ export default function PublishPatentPage() {
     if (!ensureApproved()) return;
     const targetListingId = listingRouteIdRef.current || '';
     const seq = ++saveSeqRef.current;
+    setFormError('');
     setSaving(true);
     try {
       let res: Listing;
       if (!listingId) {
         const req = validateAndBuildCreate('save');
         if (!req) {
-          toast('请检查草稿内容');
+          setFormError((prev) => prev || '请检查草稿内容');
           return;
         }
         const idempotencyKey = req.patentNumberRaw
@@ -767,7 +795,7 @@ export default function PublishPatentPage() {
       } else {
         const req = buildUpdate('save');
         if (!req) {
-          toast('请检查草稿内容');
+          setFormError((prev) => prev || '请检查草稿内容');
           return;
         }
         res = await apiPatch<Listing>(`/listings/${listingId}`, req, { idempotencyKey: `listing-patch-${listingId}` });
@@ -784,7 +812,9 @@ export default function PublishPatentPage() {
       toast('草稿已保存，可在草稿箱查看', { icon: 'success' });
     } catch (e: any) {
       if (seq !== saveSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
-      toast(e?.message || '保存失败');
+      const message = e?.message || '保存失败';
+      setFormError(message);
+      toast(message);
     } finally {
       if (seq === saveSeqRef.current && pageVisibleRef.current && listingRouteIdRef.current === targetListingId) {
         setSaving(false);
@@ -796,11 +826,17 @@ export default function PublishPatentPage() {
     if (saving || submitting) return;
     if (!ensureApproved()) return;
 
+    setFormError('');
+    const prebuiltCreateReq = listingId ? null : validateAndBuildCreate('submit');
+    if (!listingId && !prebuiltCreateReq) return;
+    const prebuiltUpdateReq = listingId ? buildUpdate('submit') : null;
+    if (listingId && !prebuiltUpdateReq) return;
+
     const ok = await confirm({
       title: '提交审核',
       content: '提交后将进入“审核中”，审核通过后对外展示；合同线下签署，尾款走平台支付。',
       confirmText: '提交',
-      cancelText: '再检查一下',
+      cancelText: '检查',
     });
     if (!ok) return;
 
@@ -810,7 +846,7 @@ export default function PublishPatentPage() {
     try {
       let id = listingId;
       if (!id) {
-        const req = validateAndBuildCreate('submit');
+        const req = prebuiltCreateReq;
         if (!req) return;
         const created = await apiPost<Listing>('/listings', req, { idempotencyKey: `listing-create-${req.patentNumberRaw}` });
         if (seq !== submitSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
@@ -823,7 +859,7 @@ export default function PublishPatentPage() {
             Boolean(created.applicationNoDisplay || created.publicationNoDisplay || created.patentNoDisplay || created.grantPublicationNoDisplay),
         );
       } else {
-        const req = buildUpdate('submit');
+        const req = prebuiltUpdateReq;
         if (!req) return;
         const updated = await apiPatch<Listing>(`/listings/${id}`, req, { idempotencyKey: `listing-patch-${id}` });
         if (seq !== submitSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
@@ -843,7 +879,9 @@ export default function PublishPatentPage() {
       toast('已提交审核', { icon: 'success' });
     } catch (e: any) {
       if (seq !== submitSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
-      toast(e?.message || '提交失败');
+      const message = e?.message || '提交失败';
+      setFormError(message);
+      toast(message);
     } finally {
       if (seq === submitSeqRef.current && pageVisibleRef.current && listingRouteIdRef.current === targetListingId) {
         setSubmitting(false);
@@ -1265,6 +1303,7 @@ export default function PublishPatentPage() {
                 }`
               : '未保存'}
           </Text>
+          {formError ? <Text className="publish-form-error">{formError}</Text> : null}
         </Surface>
       </View>
 
