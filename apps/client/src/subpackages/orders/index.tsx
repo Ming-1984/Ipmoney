@@ -95,7 +95,7 @@ function orderProgressHint(order: Order): string {
   if (order.status === 'DEPOSIT_PAID') return '订金已支付，平台客服将介入跟单';
   if (order.status === 'WAIT_FINAL_PAYMENT') return '合同已确认，可支付尾款';
   if (order.status === 'FINAL_PAID_ESCROW') return '尾款已托管，等待权属变更';
-  if (order.status === 'READY_TO_SETTLE') return '权属变更完成，等待结算放款';
+  if (order.status === 'READY_TO_SETTLE') return '权属变更完成，等待款项处理';
   if (order.status === 'COMPLETED') return '订单已完成';
   if (order.status === 'CANCELLED') {
     if (order.dealAmountFen == null && order.finalAmountFen == null) return '订单已取消，交易金额尚未确认';

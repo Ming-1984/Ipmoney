@@ -17,7 +17,7 @@ type InventorRankingItem = components['schemas']['InventorRankingItem'];
 type PagedInventorRanking = components['schemas']['PagedInventorRanking'];
 
 const LABEL_PATENT_COUNT = '专利数';
-const LABEL_LISTING_COUNT = '关联上架';
+const LABEL_LISTING_COUNT = '关联展示';
 const LABEL_EMPTY = '暂无数据';
 const LABEL_REFRESH = '刷新';
 

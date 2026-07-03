@@ -115,15 +115,15 @@ export function auditStatusTagClass(status: AuditStatus): string {
 
 export function contentStatusLabel(status: ContentStatus): string {
   if (status === 'DRAFT') return '草稿';
-  if (status === 'ACTIVE') return '已上架';
-  if (status === 'OFF_SHELF') return '已下架';
+  if (status === 'ACTIVE') return '展示中';
+  if (status === 'OFF_SHELF') return '已取消展示';
   return '状态待确认';
 }
 
 export function listingStatusLabel(status: ListingStatus): string {
   if (status === 'DRAFT') return '草稿';
-  if (status === 'ACTIVE') return '已上架';
-  if (status === 'OFF_SHELF') return '已下架';
+  if (status === 'ACTIVE') return '展示中';
+  if (status === 'OFF_SHELF') return '已取消展示';
   if (status === 'SOLD') return '已成交';
   return '状态待确认';
 }
@@ -132,8 +132,8 @@ export function artworkStatusLabel(status?: ArtworkStatus | null, options?: { em
   const empty = options?.empty ?? '-';
   if (!status) return empty;
   if (status === 'DRAFT') return '草稿';
-  if (status === 'ACTIVE') return '已上架';
-  if (status === 'OFF_SHELF') return '已下架';
+  if (status === 'ACTIVE') return '展示中';
+  if (status === 'OFF_SHELF') return '已取消展示';
   if (status === 'SOLD') return '已成交';
   return '状态待确认';
 }

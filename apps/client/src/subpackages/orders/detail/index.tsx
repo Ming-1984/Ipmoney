@@ -41,15 +41,15 @@ const ORDER_CASE_CACHE_SCOPE = 'order-case';
 const ORDER_REFUNDS_CACHE_SCOPE = 'order-refunds';
 const REFUND_REASON_OPTIONS: Array<{ label: string; value: RefundReasonCode }> = [
   { label: '改主意', value: 'BUYER_CHANGED_MIND' },
-  { label: '卖家材料', value: 'SELLER_MISSING_MATERIALS' },
+  { label: '权利方材料', value: 'SELLER_MISSING_MATERIALS' },
   { label: '协商一致', value: 'MUTUAL_AGREEMENT' },
   { label: '风控', value: 'RISK_CONTROL' },
   { label: '其他', value: 'OTHER' },
 ];
 
 function reasonLabel(code: RefundReasonCode): string {
-  if (code === 'BUYER_CHANGED_MIND') return '买家改变主意';
-  if (code === 'SELLER_MISSING_MATERIALS') return '卖家无法提供材料';
+  if (code === 'BUYER_CHANGED_MIND') return '意向方改变主意';
+  if (code === 'SELLER_MISSING_MATERIALS') return '权利方无法提供材料';
   if (code === 'MUTUAL_AGREEMENT') return '双方协商一致';
   if (code === 'RISK_CONTROL') return '风控/合规原因';
   return '其他';
@@ -61,7 +61,7 @@ function milestoneNameLabel(name?: string | null): string {
   if (name === 'TRANSFER_SUBMITTED') return '权属提交';
   if (name === 'TRANSFER_COMPLETED') return '权属变更完成';
   if (name === 'SETTLEMENT_READY') return '结算准备';
-  if (name === 'SETTLEMENT_PAID') return '结算放款';
+  if (name === 'SETTLEMENT_PAID') return '款项处理完成';
   return '里程碑待确认';
 }
 
@@ -708,7 +708,7 @@ export default function OrderDetailPage() {
               </Button>
             </View>
             <View style={{ height: '10rpx' }} />
-            <Text className="muted">发票由平台财务线下开具（仅平台服务费/佣金）；开具后可在发票中心下载。</Text>
+            <Text className="muted">发票由平台财务线下开具（仅平台服务费）；开具后可在发票中心下载。</Text>
           </Surface>
           <View style={{ height: '16rpx' }} />
         </View>

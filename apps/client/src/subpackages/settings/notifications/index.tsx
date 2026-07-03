@@ -36,7 +36,7 @@ export default function NotificationSettingsPage() {
         <View className="settings-row">
           <View className="settings-meta">
             <Text className="settings-title">审核结果通知</Text>
-            <Text className="settings-desc">认证、上架审核结果提醒</Text>
+            <Text className="settings-desc">认证、展示审核结果提醒</Text>
           </View>
           <Segmented value={auditNotify} options={TOGGLE_OPTIONS} onChange={(v) => setAuditNotify(v as ToggleValue)} />
         </View>

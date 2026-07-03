@@ -200,7 +200,7 @@ export default defineAppConfig({
     backgroundColor: '#f5f6f8',
     backgroundTextStyle: 'light',
     navigationBarBackgroundColor: '#ffffff',
-    navigationBarTitleText: '首页-IPMONEY聚智诚知识产权服务平台',
+    navigationBarTitleText: '首页-IPMONEY聚智诚知识产权服务',
     navigationBarTextStyle: 'black',
   },
   tabBar: {
@@ -222,7 +222,7 @@ export default defineAppConfig({
       },
       {
         pagePath: 'pages/publish/index',
-        text: '发布',
+        text: '提交',
         iconPath: 'assets/tabbar/publish.png',
         selectedIconPath: 'assets/tabbar/publish-active.png',
       },

@@ -626,7 +626,7 @@ export default function SearchPage() {
         <CategoryControl
           value={tab}
           options={[
-            { label: '专利交易', value: 'LISTING' },
+            { label: '专利信息', value: 'LISTING' },
             { label: '专利成果', value: 'ACHIEVEMENT' },
           ]}
           onChange={(value) => setTab(value as 'LISTING' | 'ACHIEVEMENT')}

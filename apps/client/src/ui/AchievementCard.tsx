@@ -18,7 +18,7 @@ export function AchievementCard(props: {
   const it = props.item;
   const title = displayTitleOrFallback(it.title, '成果标题待确认');
   const cover = it.coverUrl || '';
-  const publisher = displayUserName(it.publisher, '平台认证发布方');
+  const publisher = displayUserName(it.publisher, '认证提交方');
   const region = it.regionCode ? regionDisplayName(it.regionCode) : '';
   const maturity = achievementMaturityLabel(it.maturity);
   const stats = it.stats as { viewCount?: number; favoriteCount?: number } | undefined;
@@ -58,7 +58,7 @@ export function AchievementCard(props: {
             <Text className="list-card-title clamp-2">{title}</Text>
           </View>
         </View>
-        <Text className="list-card-subinfo clamp-1">发布方：{publisher}</Text>
+        <Text className="list-card-subinfo clamp-1">提交方：{publisher}</Text>
         {normalizeDisplayText(it.summary) ? (
           <Text className="list-card-desc clamp-2">{normalizeDisplayText(it.summary)}</Text>
         ) : null}

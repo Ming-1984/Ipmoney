@@ -32,29 +32,29 @@ type OrgFilters = {
 };
 
 const TEXT = {
-  title: '\u673a\u6784\u5c55\u793a',
-  subtitle: '\u5c55\u793a\u5df2\u5ba1\u6838\u901a\u8fc7\u7684\u4f01\u4e1a\u3001\u79d1\u7814\u9662\u6821\u4e0e\u673a\u6784\u4e3b\u4f53',
+  title: '服务资源',
+  subtitle: '展示已审核通过的知识产权相关主体基础资料',
   searchTitle: '\u641c\u7d22',
-  searchPlaceholder: '\u641c\u7d22\u673a\u6784\u540d\u79f0\u6216\u5173\u952e\u8bcd',
+  searchPlaceholder: '搜索服务资源名称或关键词',
   searchAction: '\u67e5\u8be2',
   sortLabel: '\u7efc\u5408\u6392\u5e8f',
   filterButton: '\u7b5b\u9009',
   typeCountPrefix: '\u7c7b\u578b ',
   clear: '\u6e05\u7a7a',
-  emptyMessage: '\u6682\u65e0\u673a\u6784\u6570\u636e\u3002',
+  emptyMessage: '暂无服务资源数据。',
   refresh: '\u5237\u65b0',
   regionTitle: '\u5730\u533a',
   regionDescription: '\u7528\u4e8e\u5730\u533a\u5c55\u793a\u4e0e\u68c0\u7d22\u8fc7\u6ee4',
   unlimited: '\u4e0d\u9650',
   clearRegion: '\u6e05\u9664\u5730\u533a',
-  typeTitle: '\u673a\u6784\u7c7b\u578b',
-  typeHint: '\u4e0d\u9009\u62e9\u7c7b\u578b\u65f6\u9ed8\u8ba4\u5c55\u793a\u5168\u90e8\u673a\u6784\u3002',
-  filterTitle: '\u7b5b\u9009\u673a\u6784',
+  typeTitle: '资源类型',
+  typeHint: '不选择类型时默认展示全部服务资源。',
+  filterTitle: '筛选服务资源',
   company: '\u4f01\u4e1a',
   academy: '\u79d1\u7814\u9662\u6821',
   government: '\u653f\u5e9c\u673a\u6784',
   association: '\u534f\u4f1a\u5b66\u4f1a',
-  listings: '\u4e0a\u67b6',
+  listings: '展示',
   patents: '\u4e13\u5229',
 } as const;
 
@@ -198,7 +198,7 @@ export default function OrganizationsPage() {
               const logo = item.logoUrl && !item.logoUrl.includes('example.com') ? item.logoUrl : '';
               const location = item.regionCode ? regionDisplayName(item.regionCode) : '';
               const orgType = asOrganizationVerificationType(item.verificationType);
-              const titleText = displayTitleOrFallback(item.displayName, '平台认证机构');
+              const titleText = displayTitleOrFallback(item.displayName, '认证服务资源');
               const introText = normalizeDisplayText(item.intro);
               return (
                 <View

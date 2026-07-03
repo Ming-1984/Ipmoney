@@ -33,14 +33,14 @@ const TYPES: IdentityOption[] = [
     title: '企业',
     icon: '企',
     badge: 'blue',
-    steps: ['提交资料', '审核通过', '入驻展示'],
+    steps: ['提交资料', '审核通过', '资料展示'],
   },
   {
     type: 'ACADEMY',
     title: '科研院校',
     icon: '校',
     badge: 'green',
-    steps: ['提交资料', '审核通过', '入驻展示'],
+    steps: ['提交资料', '审核通过', '资料展示'],
   },
   {
     type: 'GOVERNMENT',
@@ -152,7 +152,7 @@ export default function ChooseIdentityPage() {
       <View className="identity-tip">
         <Text className="identity-tip-title">提示</Text>
         <Text className="identity-tip-text">
-          企业/科研院校审核通过后，会在「机构展示」中对外展示，可在「我的 &gt; 身份/认证」查看审核进度。
+          企业/科研院校审核通过后，会在「服务资源」中展示基础资料，可在「我的 &gt; 身份/认证」查看审核进度。
         </Text>
       </View>
     </View>

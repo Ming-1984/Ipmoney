@@ -152,7 +152,7 @@ export default function TechManagersPage() {
       <View className="consult-tabs">
         {[
           { id: 'TECH', label: '技术经理人' },
-          { id: 'ORG', label: '机构' },
+          { id: 'ORG', label: '服务资源' },
         ].map((tab) => (
           <View
             key={tab.id}
@@ -170,7 +170,7 @@ export default function TechManagersPage() {
           <View className="consult-search">
             <SearchEntry
               value={techQInput}
-              placeholder="搜索专家姓名、领域或机构"
+              placeholder="搜索专家姓名、领域或单位"
               actionText="查询"
               onChange={(value) => {
                 setTechQInput(value);
@@ -252,7 +252,7 @@ export default function TechManagersPage() {
           <View className="consult-search">
             <SearchEntry
               value={orgQInput}
-              placeholder="搜索机构名称/关键词"
+              placeholder="搜索服务资源名称/关键词"
               actionText="查询"
               onChange={(value) => {
                 setOrgQInput(value);
@@ -274,7 +274,7 @@ export default function TechManagersPage() {
               <View className="consult-list">
                 {orgItems.map((it: OrganizationSummary) => {
                   const logo = it.logoUrl && !it.logoUrl.includes('example.com') ? it.logoUrl : '';
-                  const displayName = displayTitleOrFallback(it.displayName, '平台认证机构');
+                  const displayName = displayTitleOrFallback(it.displayName, '认证服务资源');
                   const location = it.regionCode ? regionDisplayName(it.regionCode) : '';
                   const introText = normalizeDisplayText(it.intro);
                   return (
@@ -309,7 +309,7 @@ export default function TechManagersPage() {
                 })}
               </View>
             ) : (
-              <EmptyCard message="暂无机构" actionText="刷新" onAction={orgList.reload} />
+              <EmptyCard message="暂无服务资源" actionText="刷新" onAction={orgList.reload} />
             )}
 
             {!showOrgInitialLoading && orgItems.length ? (

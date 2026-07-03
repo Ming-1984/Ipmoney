@@ -484,9 +484,9 @@ export default function ListingDetailPage() {
 
   const regionLabel = data ? normalizeDisplayText(regionDisplayName(data.regionCode)) : '';
   const sellerDisplayName = displayUserName(data?.seller, '');
-  const sellerDisplayInitial = displayInitial(sellerDisplayName, '供');
+  const sellerDisplayInitial = displayInitial(sellerDisplayName, '权');
   const visibleIndustryTags = sanitizeIndustryTagNames(data?.industryTags || []);
-  const sellerTitle = sellerDisplayName || '平台认证供给方';
+  const sellerTitle = sellerDisplayName || '认证权利方';
   const transferCount = typeof data?.transferCount === 'number' ? data.transferCount : null;
   const mediaList = (Array.isArray(patentData?.media) ? patentData.media : []) as PatentMediaItem[];
   const coverUrl = mediaList.find((item) => item?.type === 'COVER' && item?.url)?.url ?? null;
@@ -503,7 +503,7 @@ export default function ListingDetailPage() {
 
   return (
     <View className={`container detail-page-compact has-sticky${tabsStuck ? ' detail-tabs-stuck' : ''}`}>
-      <PageHeader weapp back title="挂牌详情" subtitle="公开可见；咨询需登录且审核通过。" />
+      <PageHeader weapp back title="专利展示详情" subtitle="公开可见；咨询需登录且审核通过。" />
       <Spacer />
 
       {loading ? (
@@ -559,7 +559,7 @@ export default function ListingDetailPage() {
               ) : null}
               {data.createdAt ? (
                 <View className="detail-compact-meta-item">
-                  <Text>发布 {formatTimeSmart(data.createdAt)}</Text>
+                  <Text>展示 {formatTimeSmart(data.createdAt)}</Text>
                 </View>
               ) : null}
             </View>
@@ -593,7 +593,7 @@ export default function ListingDetailPage() {
           <Spacer size={12} />
 
           <Surface className="detail-section detail-seller-card">
-            <Text className="detail-section-title">供给方</Text>
+            <Text className="detail-section-title">权利方</Text>
             <View className="detail-seller-row">
               <View className="detail-seller-left">
                 <Avatar
@@ -620,7 +620,7 @@ export default function ListingDetailPage() {
           </Surface>
 
           <View className="detail-section" id="listing-info">
-            <SectionHeader title="挂牌信息" density="compact" />
+            <SectionHeader title="展示信息" density="compact" />
             <View className="detail-field-list">
               {[
                 { label: '交易方式', value: tradeModeLabel(data.tradeMode) },

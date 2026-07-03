@@ -834,7 +834,7 @@ export default function PublishPatentPage() {
 
     const ok = await confirm({
       title: '提交审核',
-      content: '提交后将进入“审核中”，审核通过后对外展示；合同线下签署，尾款走平台支付。',
+      content: '提交后将进入“审核中”，审核通过后对外展示；合同线下签署，尾款按平台流程支付。',
       confirmText: '提交',
       cancelText: '检查',
     });
@@ -944,7 +944,7 @@ export default function PublishPatentPage() {
 
   return (
     <View className="container has-sticky publish-patent-page">
-      <PageHeader title="发布专利" brand={false} />
+      <PageHeader title="提交专利信息" brand={false} />
       <View className="publish-form">
         {submitted ? (
           <Surface className="publish-card publish-status-card" padding="none">
@@ -952,7 +952,7 @@ export default function PublishPatentPage() {
             <Text className="form-hint">
               {'\u8d44\u6599\u5df2\u63d0\u4ea4\uff0c\u5ba1\u6838\u901a\u8fc7\u540e\u5c06\u81ea\u52a8\u4e0a\u67b6\uff0c\u8bf7\u7559\u610f\u6d88\u606f\u901a\u77e5\u3002'}
             </Text>
-            <Text className="form-hint">资料已生成挂牌草稿，审核通过后将自动上架。</Text>
+            <Text className="form-hint">资料已生成展示草稿，审核通过后将对外展示。</Text>
           </Surface>
         ) : null}
 
@@ -970,7 +970,7 @@ export default function PublishPatentPage() {
               data-testid="patent-number"
               disabled={patentNumberLocked}
             />
-            {patentNumberLocked ? <Text className="form-hint">专利号已锁定，如需修改请新建发布。</Text> : null}
+            {patentNumberLocked ? <Text className="form-hint">专利号已锁定，如需修改请新建提交。</Text> : null}
           </View>
 
           <View className="form-field">
@@ -1290,7 +1290,7 @@ export default function PublishPatentPage() {
               type="digit"
               clearable
             />
-            <Text className="form-hint">订金用于锁定买家意向</Text>
+            <Text className="form-hint">订金用于锁定意向办理流程</Text>
           </View>
         </Surface>
 

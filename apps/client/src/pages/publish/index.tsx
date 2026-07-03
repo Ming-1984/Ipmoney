@@ -103,7 +103,7 @@ export default function PublishPage() {
     () => [
       {
         key: 'patent',
-        title: '发布专利交易',
+        title: '提交专利信息',
         desc: '发明 / 实用 / 外观',
         icon: PUBLISH_PATENT_ICON,
         tone: 'tone-orange',
@@ -113,7 +113,7 @@ export default function PublishPage() {
       },
       {
         key: 'achievement',
-        title: '发布专利成果',
+        title: '提交专利成果',
         desc: '成果展示 / 案例',
         icon: PUBLISH_ACHIEVEMENT_ICON,
         tone: 'tone-orange',
@@ -162,7 +162,7 @@ export default function PublishPage() {
           {access.state === 'need-login' ? (
             <View className="publish-locked">
               <Image className="publish-locked-ill" src={publishLockedArt} mode="aspectFit" />
-              <Text className="publish-locked-text">登录IPMONEY，发布专利赚金豆！</Text>
+              <Text className="publish-locked-text">登录IPMONEY，提交专利信息</Text>
             </View>
           ) : (
             <AccessGate access={access} />
@@ -170,7 +170,7 @@ export default function PublishPage() {
         </View>
       ) : (
         <View className="publish-content">
-          <Text className="publish-subtitle">选择您要发布的类型</Text>
+          <Text className="publish-subtitle">选择您要提交的类型</Text>
 
           <View className="publish-auth-banner">
             <View className="publish-auth-left">
@@ -212,7 +212,7 @@ export default function PublishPage() {
 
           <Surface className="publish-manage-card" padding="md">
             <View className="publish-section-header">
-              <Text className="publish-section-title">发布管理</Text>
+              <Text className="publish-section-title">信息管理</Text>
             </View>
             <View className="publish-manage-grid">
               {manageItems.map((item) => (
@@ -227,9 +227,9 @@ export default function PublishPage() {
           </Surface>
 
           <Text className="publish-footnote">
-            发布即代表您同意
+            提交即代表您同意
             <Text className="publish-footnote-link">《平台知识产权保护公约》</Text>
-            。严禁发布虚假、侵权或违法违规内容。
+            。严禁提交虚假、侵权或违法违规内容。
           </Text>
         </View>
       )}

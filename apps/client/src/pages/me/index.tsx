@@ -498,8 +498,8 @@ export default function MePage() {
 
   const orderManageItems = useMemo<IconItem[]>(
     () => [
-      { key: 'buyer', label: '买家订单', icon: iconOrderBuyer, onClick: () => Taro.navigateTo({ url: buildOrderUrl('BUYER') }) },
-      { key: 'seller', label: '卖家订单', icon: iconOrderSeller, onClick: () => Taro.navigateTo({ url: buildOrderUrl('SELLER') }) },
+      { key: 'buyer', label: '意向订单', icon: iconOrderBuyer, onClick: () => Taro.navigateTo({ url: buildOrderUrl('BUYER') }) },
+      { key: 'seller', label: '权利方订单', icon: iconOrderSeller, onClick: () => Taro.navigateTo({ url: buildOrderUrl('SELLER') }) },
       { key: 'contract', label: '合同中心', icon: iconContractCenter, onClick: () => Taro.navigateTo({ url: '/subpackages/contracts/index' }) },
       { key: 'invoice', label: '发票管理', icon: iconInvoiceCenter, onClick: () => Taro.navigateTo({ url: '/subpackages/invoices/index' }) },
     ],
@@ -585,7 +585,7 @@ export default function MePage() {
       },
       {
         key: 'rules',
-        label: '交易规则',
+        label: '服务规则',
         icon: iconMeTradeRules,
         onClick: () => Taro.navigateTo({ url: '/subpackages/trade-rules/index' }),
       },
@@ -610,8 +610,8 @@ export default function MePage() {
             <Image className="me-login-ill" src={brandLogoPng} mode="aspectFit" />
             <Text className="me-login-title">登录解锁专利点金台</Text>
             <View className="me-login-desc">
-              <Text className="me-login-desc-line">登录后可收藏、咨询、下单</Text>
-              <Text className="me-login-desc-line">主体需审核通过后可交易</Text>
+              <Text className="me-login-desc-line">登录后可收藏、咨询、办理</Text>
+              <Text className="me-login-desc-line">主体需审核通过后可提交信息</Text>
             </View>
           </View>
 
@@ -780,7 +780,7 @@ export default function MePage() {
                 {orderTab === 'orders' ? <View className="me-order-indicator" /> : null}
               </View>
               <View className={`me-order-tab ${orderTab === 'publish' ? 'active' : ''}`} onClick={() => setOrderTab('publish')}>
-                <Text>发布管理</Text>
+                <Text>信息管理</Text>
                 {orderTab === 'publish' ? <View className="me-order-indicator" /> : null}
               </View>
             </View>

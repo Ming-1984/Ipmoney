@@ -468,7 +468,7 @@ export default function ChatPage() {
         } else if (summary.contentType === 'ACHIEVEMENT') {
           const achievement = await apiGet<AchievementPublic>(`/public/achievements/${summary.contentId}`);
           title = displayTitleOrFallback(achievement.title, title);
-          tag = displayUserName(achievement.publisher, '平台认证发布方');
+          tag = displayUserName(achievement.publisher, '认证提交方');
           thumbUrl = achievement.coverUrl || '';
         } else if (String(summary.contentType || '').toUpperCase() === 'DISPUTE') {
           const order = await apiGet<OrderDetail>(`/orders/${summary.contentId}`);

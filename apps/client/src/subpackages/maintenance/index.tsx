@@ -879,7 +879,7 @@ export default function MaintenancePage() {
             <Surface className="maintenance-direct-card">
               <View className="maintenance-direct-head">
                 <View className="maintenance-direct-main">
-                  <Text className="maintenance-apply-kicker">未上架专利也可申请</Text>
+                  <Text className="maintenance-apply-kicker">未展示专利也可申请</Text>
                   <Text className="maintenance-direct-title">添加专利申请年费代缴</Text>
                   <Text className="maintenance-direct-desc">
                     仅用于后台核验和年费代缴服务，不会发布到市场，也不会公开展示或售卖。

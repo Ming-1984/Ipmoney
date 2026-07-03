@@ -1,4 +1,4 @@
 export default definePageConfig({
-  navigationBarTitleText: '机构详情',
+  navigationBarTitleText: '服务资源详情',
   navigationStyle: 'custom',
 });

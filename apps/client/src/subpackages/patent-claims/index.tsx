@@ -64,8 +64,8 @@ function claimStatusClass(status?: PatentClaimStatus): string {
 
 function sourcePrimaryLabel(value?: Patent['sourcePrimary']): string {
   if (value === 'ADMIN') return '平台统一发布';
-  if (value === 'PROVIDER') return '平台数据导入';
-  if (value === 'USER') return '用户自主发布';
+  if (value === 'PROVIDER') return '数据导入';
+  if (value === 'USER') return '用户自主提交';
   return '来源待确认';
 }
 

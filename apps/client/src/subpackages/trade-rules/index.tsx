@@ -114,7 +114,7 @@ export default function TradeRulesPage() {
 
   return (
     <View className="container trade-rules-page">
-      <PageHeader title="交易规则" subtitle="订金、佣金、退款窗口等关键规则以平台配置为准" />
+      <PageHeader title="服务规则" subtitle="订金、服务费、退款窗口等关键规则以平台配置为准" />
       <Spacer />
 
       {loading ? (
@@ -126,7 +126,7 @@ export default function TradeRulesPage() {
           <View className="summary-banner">
             <Text className="summary-banner__label">规则摘要</Text>
             <Text className="summary-banner__text">
-              订金按成交价比例计算（含上/下限）；佣金由卖家承担；尾款由平台托管，默认在「权属变更完成确认」后放款。
+              订金按成交价比例计算（含上/下限）；服务费由权利方承担；尾款由平台托管，默认在「权属变更完成确认」后放款。
             </Text>
             <View className="summary-stats">
               <View className="summary-stat-item">
@@ -135,7 +135,7 @@ export default function TradeRulesPage() {
               </View>
               <View className="summary-stat-item">
                 <Text className="summary-stat-item__value">{percent(data.commissionRate)}</Text>
-                <Text className="summary-stat-item__label">佣金比例</Text>
+                <Text className="summary-stat-item__label">服务费比例</Text>
               </View>
               <View className="summary-stat-item">
                 <Text className="summary-stat-item__value">{data.autoRefundWindowMinutes}min</Text>
@@ -167,10 +167,10 @@ export default function TradeRulesPage() {
           <Spacer size={12} />
 
           <Surface>
-            <RuleHeader index="03" title="佣金" tag="卖家承担" />
+            <RuleHeader index="03" title="服务费" tag="权利方承担" />
             <View className="trade-rules-section-body">
-              <RuleRow label="佣金比例" value={percent(data.commissionRate)} highlight />
-              <RuleRow label="佣金区间" value={`${yuan(data.commissionMinFen)} - ${yuan(data.commissionMaxFen)}`} />
+              <RuleRow label="服务费比例" value={percent(data.commissionRate)} highlight />
+              <RuleRow label="服务费区间" value={`${yuan(data.commissionMinFen)} - ${yuan(data.commissionMaxFen)}`} />
               <RuleRow label="扣除方式" value="随结算自动扣除" />
             </View>
           </Surface>
@@ -195,7 +195,7 @@ export default function TradeRulesPage() {
 
           <Surface>
             <Text className="text-caption break-word">
-              说明：合同线下签署完成后回到平台支付尾款；默认需“权属变更完成确认”后才放款给卖家。实际执行以平台配置与合同约定为准。
+              说明：合同线下签署完成后回到平台支付尾款；默认需“权属变更完成确认”后才向权利方放款。实际执行以平台配置与合同约定为准。
             </Text>
           </Surface>
         </View>

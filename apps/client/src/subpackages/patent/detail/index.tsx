@@ -51,7 +51,7 @@ function sourcePrimaryLabel(source?: Patent['sourcePrimary']): string {
   if (!source) return '来源待确认';
   if (source === 'USER') return '用户提交';
   if (source === 'ADMIN') return '后台录入';
-  if (source === 'PROVIDER') return '服务商导入';
+  if (source === 'PROVIDER') return '数据导入';
   return '来源待确认';
 }
 
@@ -236,8 +236,8 @@ export default function PatentDetailOverviewPage() {
 
 const tradeSnapshot = data?.tradeSnapshot ?? null;
   const sellerDisplayName = displayUserName(tradeSnapshot?.seller, '');
-  const sellerDisplayInitial = displayInitial(sellerDisplayName, '供');
-  const sellerTitle = sellerDisplayName || '平台认证供给方';
+  const sellerDisplayInitial = displayInitial(sellerDisplayName, '权');
+  const sellerTitle = sellerDisplayName || '认证权利方';
   const listingId = tradeSnapshot?.listingId || '';
   const depositAmountFen = tradeSnapshot?.depositAmountFen ?? null;
   const canTrade = Boolean(listingId);
@@ -303,7 +303,7 @@ const tradeSnapshot = data?.tradeSnapshot ?? null;
 
   const startConsult = useCallback(async () => {
     if (!listingId) {
-      toast('暂无可咨询的挂牌', { icon: 'fail' });
+      toast('暂无可咨询的展示信息', { icon: 'fail' });
       return;
     }
     if (!ensureApproved()) return;
@@ -364,7 +364,7 @@ const tradeSnapshot = data?.tradeSnapshot ?? null;
 
   const toggleFavorite = useCallback(async () => {
     if (!listingId) {
-      toast('暂无可收藏的挂牌', { icon: 'fail' });
+      toast('暂无可收藏的展示信息', { icon: 'fail' });
       return;
     }
     if (!ensureApproved()) return;
@@ -476,7 +476,7 @@ const tradeSnapshot = data?.tradeSnapshot ?? null;
           <Spacer size={12} />
 
           <View className="patent-card-stack">
-            <SectionHeader title="供给方信息" density="compact" />
+            <SectionHeader title="权利方信息" density="compact" />
             <Surface className="detail-section-card patent-provider-card">
               {hasTrade ? (
                 <View className="patent-provider-row">
@@ -508,7 +508,7 @@ const tradeSnapshot = data?.tradeSnapshot ?? null;
                   </Button>
                 </View>
               ) : (
-                <Text className="muted">当前暂未公开供给方信息。</Text>
+                <Text className="muted">当前暂未公开权利方信息。</Text>
               )}
             </Surface>
           </View>
@@ -615,7 +615,7 @@ const tradeSnapshot = data?.tradeSnapshot ?? null;
             <>
               <Spacer size={12} />
               <View id="patent-trade" className="patent-card-stack">
-                <SectionHeader title="交易信息" density="compact" />
+                <SectionHeader title="办理信息" density="compact" />
                 <View className="detail-field-list">
                   <View className="detail-field-row">
                     <Text className="detail-field-label">价格方式</Text>
@@ -638,7 +638,7 @@ const tradeSnapshot = data?.tradeSnapshot ?? null;
                     </Text>
                   </View>
                   <View className="detail-field-row">
-                    <Text className="detail-field-label">供给方类型</Text>
+                    <Text className="detail-field-label">权利方类型</Text>
                     <Text className="detail-field-value">
                       {tradeSnapshot?.supplyType || tradeSnapshot?.seller?.orgCategory
                         ? supplyTypeLabel(tradeSnapshot?.supplyType || tradeSnapshot?.seller?.orgCategory)
@@ -646,7 +646,7 @@ const tradeSnapshot = data?.tradeSnapshot ?? null;
                     </Text>
                   </View>
                   <View className="detail-field-row">
-                    <Text className="detail-field-label">供给方</Text>
+                    <Text className="detail-field-label">权利方</Text>
                     <Text className="detail-field-value">
                       {sellerTitle}
                       {tradeSnapshot?.seller?.verificationType
@@ -666,7 +666,7 @@ const tradeSnapshot = data?.tradeSnapshot ?? null;
               <CommentsSection contentId={listingId} title="互动留言" />
             ) : (
               <Surface className="detail-section-card">
-                <Text className="muted">暂无关联挂牌，无法展示评论。</Text>
+                <Text className="muted">暂无关联展示信息，无法展示评论。</Text>
               </Surface>
             )}
           </View>

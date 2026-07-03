@@ -596,7 +596,7 @@ export default function HomePage() {
       { key: 'design-patent', label: '外观专利', icon: homeIconDesignPatent, onClick: goDesignPatents },
       { key: 'invention-patent', label: '发明专利', icon: homeIconInventionPatent, onClick: goInventionPatents },
       { key: 'utility-patent', label: '实用新型', icon: homeIconUtilityPatent, onClick: goUtilityPatents },
-      { key: 'organization', label: '机构', icon: homeIconOrganization, onClick: goOrganizations },
+      { key: 'organization', label: '服务资源', icon: homeIconOrganization, onClick: goOrganizations },
       { key: 'inventor', label: '发明人榜', icon: homeIconInventors, onClick: goInventors },
       { key: 'patent-map', label: '专利地图', icon: iconMapGreen, onClick: goPatentMap },
       { key: 'tech-manager', label: '技术经理', icon: homeIconTechManager, onClick: goTechManagers },
@@ -640,7 +640,7 @@ export default function HomePage() {
             </View>
             <View className="home-hero-text">
               <Text className="home-hero-title">IPMONEY</Text>
-              <Text className="home-hero-subtitle">专利 & 商标交易</Text>
+              <Text className="home-hero-subtitle">知识产权服务</Text>
             </View>
           </View>
         </View>
@@ -741,7 +741,7 @@ export default function HomePage() {
 
         {recommendFallback ? (
           <View className="home-recommend-tip">
-            <Text className="home-recommend-tip-text">个性化推荐暂不可用，当前为最新上架内容。</Text>
+            <Text className="home-recommend-tip-text">个性化推荐暂不可用，当前为最新展示内容。</Text>
           </View>
         ) : null}
 
@@ -756,7 +756,7 @@ export default function HomePage() {
             <ErrorCard message={error} onRetry={() => load('load')} />
           ) : !items.length ? (
             <EmptyCard
-              message={recommendMode === 'RECOMMEND' ? '当前暂无匹配推荐专利' : '当前暂无最新上架专利'}
+              message={recommendMode === 'RECOMMEND' ? '当前暂无匹配推荐专利' : '当前暂无最新展示专利'}
               actionText="重新加载"
               onAction={() => load('load')}
             />

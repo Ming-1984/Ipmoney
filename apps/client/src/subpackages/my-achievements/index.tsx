@@ -28,7 +28,7 @@ type FilterOption<T extends string> = {
 };
 
 const PAGE_TITLE = '我的专利成果';
-const PAGE_SUBTITLE = '发布后查看、编辑、下架自己发布的成果展示信息';
+const PAGE_SUBTITLE = '提交后查看、编辑、取消展示自己的成果展示信息';
 
 async function openPage(url: string) {
   await safeOpenPage(url);
@@ -222,14 +222,14 @@ export default function MyAchievementsPage() {
             {showContentStatusFilter ? (
               <>
                 <View style={{ height: '14rpx' }} />
-                <Text className="text-strong">上架状态</Text>
+                <Text className="text-strong">展示状态</Text>
                 <View style={{ height: '10rpx' }} />
                 <FilterTabs
                   value={status}
                   options={[
                     { label: '全部', value: '' },
-                    { label: '上架', value: 'ACTIVE' },
-                    { label: '下架', value: 'OFF_SHELF' },
+                    { label: '展示中', value: 'ACTIVE' },
+                    { label: '已取消', value: 'OFF_SHELF' },
                   ]}
                   onChange={handleContentStatusChange}
                 />
@@ -290,17 +290,17 @@ export default function MyAchievementsPage() {
                           try {
                             await apiPost<components['schemas']['AchievementRecord']>(
                               `/achievements/${it.id}/off-shelf`,
-                              { reason: '发布方下架' },
+                              { reason: '提交方取消展示' },
                               { idempotencyKey: `off-ach-${it.id}` },
                             );
-                            toast('已下架', { icon: 'success' });
+                            toast('已取消展示', { icon: 'success' });
                             void reload();
                           } catch (e: any) {
                             toast(e?.message || '操作失败');
                           }
                         }}
                       >
-                        下架
+                        取消展示
                       </Button>
                     ) : null}
                   </View>

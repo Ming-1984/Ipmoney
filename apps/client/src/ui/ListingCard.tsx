@@ -28,7 +28,7 @@ export function ListingCard(props: {
   });
   const cover = it.coverUrl || '';
   const seller = (it.seller ?? null) as ListingSeller | null;
-  const supplier = displayUserName(seller, '平台认证供给方');
+  const supplier = displayUserName(seller, '认证权利方');
   const region = it.regionCode ? regionDisplayName(it.regionCode) : '';
   const priceLabel = it.priceType === 'NEGOTIABLE' ? '面议' : `￥${fenToYuan(it.priceAmountFen)}`;
   const stats = it.stats as { viewCount?: number; favoriteCount?: number; transferCount?: number } | undefined;
@@ -91,7 +91,7 @@ export function ListingCard(props: {
             <Text className="list-card-title clamp-2">{title}</Text>
           </View>
         </View>
-        <Text className="list-card-subinfo clamp-1">供给方：{supplier}</Text>
+        <Text className="list-card-subinfo clamp-1">权利方：{supplier}</Text>
         <View className="list-card-footer listing-footer-stacked">
           <View className="list-card-price-block">
             <Text className="list-card-price">

@@ -1,4 +1,3 @@
 export default definePageConfig({
-  navigationBarTitleText: '交易规则',
+  navigationBarTitleText: '服务规则',
 });
-

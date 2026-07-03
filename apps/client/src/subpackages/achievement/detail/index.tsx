@@ -202,7 +202,7 @@ export default function AchievementDetailPage() {
             <Text className="detail-compact-title">{displayTitleOrFallback(data.title, '成果标题待确认')}</Text>
             <View className="detail-compact-subline">
               <Text>发布时间 {formatTimeSmart(data.createdAt)}</Text>
-              <Text>发布方：{displayUserName(data.publisher, '平台认证发布方')}</Text>
+              <Text>提交方：{displayUserName(data.publisher, '认证提交方')}</Text>
             </View>
             <View className="detail-compact-tags">
               {achievementMaturityLabel(data.maturity) ? (

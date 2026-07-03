@@ -623,7 +623,7 @@ export default function PublishAchievementPage() {
           {access.state === 'need-login' ? (
             <View className="publish-locked">
               <Image className="publish-locked-ill" src={publishLockedArt} mode="aspectFit" />
-              <Text className="publish-locked-text">登录 IPMONEY 后即可发布成果展示</Text>
+              <Text className="publish-locked-text">登录 IPMONEY 后即可提交成果展示</Text>
             </View>
           ) : (
             <AccessGate access={access} />
@@ -631,7 +631,7 @@ export default function PublishAchievementPage() {
         </View>
       ) : (
         <View>
-          <PageHeader title="发布专利成果" subtitle="成果展示面向全平台可见" />
+          <PageHeader title="提交专利成果" subtitle="成果展示面向全平台可见" />
           <Spacer />
 
           <View className="publish-form">
@@ -836,7 +836,7 @@ export default function PublishAchievementPage() {
                 </View>
               </View>
               {auditStatus ? <Text className="form-hint">当前审核状态：{auditStatusLabel(auditStatus)}</Text> : null}
-              {contentStatus ? <Text className="form-hint">当前上架状态：{contentStatusLabel(contentStatus)}</Text> : null}
+              {contentStatus ? <Text className="form-hint">当前展示状态：{contentStatusLabel(contentStatus)}</Text> : null}
             </Surface>
           </View>
         </View>

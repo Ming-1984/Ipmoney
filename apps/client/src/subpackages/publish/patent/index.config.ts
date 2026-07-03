@@ -1,3 +1,3 @@
 export default definePageConfig({
-  navigationBarTitleText: '发布专利交易',
+  navigationBarTitleText: '提交专利信息',
 });

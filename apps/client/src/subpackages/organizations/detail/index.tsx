@@ -80,7 +80,7 @@ export default function OrganizationDetailPage() {
   }, [load]);
 
   useShareAppMessage(() => ({
-    title: displayTitleOrFallback(data?.displayName, '机构详情'),
+    title: displayTitleOrFallback(data?.displayName, '服务资源详情'),
     path: orgUserId ? `/subpackages/organizations/detail/index?orgUserId=${orgUserId}` : '/pages/home/index',
     imageUrl: data?.logoUrl || undefined,
   }));
@@ -106,8 +106,8 @@ export default function OrganizationDetailPage() {
 
   const displayName = normalizeDisplayText(data?.displayName);
   const regionText = normalizeDisplayText(regionDisplayName(data?.regionCode));
-  const titleText = displayTitleOrFallback(data?.displayName, '平台认证机构');
-  const introText = displayInfoOrPlaceholder(data?.intro, displayName ? `${displayName}暂未公开简介` : '机构暂未公开简介');
+  const titleText = displayTitleOrFallback(data?.displayName, '认证服务资源');
+  const introText = displayInfoOrPlaceholder(data?.intro, displayName ? `${displayName}暂未公开简介` : '服务资源暂未公开简介');
 
   if (!orgUserId) {
     return (
@@ -119,7 +119,7 @@ export default function OrganizationDetailPage() {
 
   return (
     <View className="container detail-page-compact">
-      <PageHeader weapp title="机构详情" brand={false} />
+      <PageHeader weapp title="服务资源详情" brand={false} />
       <Spacer />
 
       {loading ? (
@@ -141,7 +141,7 @@ export default function OrganizationDetailPage() {
                     {verificationTypeLabel(data.verificationType)}
                   </Text>
                   {regionText ? <Text className="detail-compact-tag">地区：{regionText}</Text> : null}
-                  <Text className="detail-compact-tag">挂牌：{data.stats?.listingCount ?? 0}</Text>
+                  <Text className="detail-compact-tag">展示：{data.stats?.listingCount ?? 0}</Text>
                   <Text className="detail-compact-tag">专利：{data.stats?.patentCount ?? 0}</Text>
                 </View>
               </View>
@@ -167,7 +167,7 @@ export default function OrganizationDetailPage() {
           <View id="org-intro" className="detail-section-card">
             <View className="detail-field-list">
               <View className="detail-field-row">
-                <Text className="detail-field-label">机构简介</Text>
+                <Text className="detail-field-label">资源简介</Text>
                 <Text className="detail-field-value break-word">{introText}</Text>
               </View>
             </View>
@@ -176,7 +176,7 @@ export default function OrganizationDetailPage() {
           <Spacer size={12} />
 
           <TipBanner id="org-note" tone="info" title="说明">
-            机构信息由账号主体提交，并经平台审核后对外展示。
+            资料由账号主体提交，并经平台审核后对外展示。
           </TipBanner>
 
           <Spacer size={12} />

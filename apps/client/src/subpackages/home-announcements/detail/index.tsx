@@ -102,7 +102,7 @@ export default function HomeAnnouncementDetailPage() {
         error={error}
         empty={showEmpty}
         emptyTitle="未找到公告"
-        emptyMessage="公告可能已被下架或不存在。"
+        emptyMessage="公告可能已不可见或不存在。"
         onRetry={() => void loadDetail()}
       >
         {item ? (

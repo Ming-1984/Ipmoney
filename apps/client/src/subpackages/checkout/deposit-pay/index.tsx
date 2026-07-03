@@ -358,7 +358,7 @@ export default function DepositPayPage() {
             <Text className="pay-note">
               订金支付后平台将启动合同/材料核验与权属变更流程。退款与争议处理以平台规则与人工审核为准。
             </Text>
-            {isOwnListing ? <Text className="pay-note">当前账号是该专利的发布方，不能对自己的挂牌发起订金支付。</Text> : null}
+            {isOwnListing ? <Text className="pay-note">当前账号是该专利的提交方，不能对自己的展示信息发起订金支付。</Text> : null}
             {!hasValidDepositAmount ? <Text className="pay-note">当前挂牌尚未配置有效订金，请先补全挂牌定金后再支付。</Text> : null}
           </Surface>
 

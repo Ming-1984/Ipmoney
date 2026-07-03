@@ -253,19 +253,19 @@ export default function MyListingsPage() {
   const handleOffShelf = useCallback(
     async (listing: Listing) => {
       const ok = await confirm({
-        title: '确认下架专利',
-        content: '下架后该专利将不再对外展示，确认要下架吗？',
-        confirmText: '确认下架',
+        title: '确认取消展示',
+        content: '取消展示后该专利将不再对外展示，确认继续吗？',
+        confirmText: '确认取消',
         cancelText: '取消',
       });
       if (!ok) return;
       try {
         await apiPost<Listing>(
           `/listings/${listing.id}/off-shelf`,
-          { reason: '卖家下架', confirmOffShelf: true },
+          { reason: '权利方取消展示', confirmOffShelf: true },
           { idempotencyKey: `off-${listing.id}` },
         );
-        toast('已下架', { icon: 'success' });
+        toast('已取消展示', { icon: 'success' });
         void reload();
       } catch (e: any) {
         toast(e?.message || '操作失败');
@@ -275,24 +275,24 @@ export default function MyListingsPage() {
   );
   const pageTitle = isDraftCenter ? '草稿箱' : '我的专利';
   const pageSubtitle = isMixedDraftCenter
-    ? '集中查看未提交的专利交易和专利成果草稿'
+    ? '集中查看未提交的专利信息和专利成果草稿'
     : isDraftCenter
-      ? '仅展示未提交的专利交易草稿'
-      : '查看、编辑、下架自己发布的专利交易信息';
+      ? '仅展示未提交的专利信息草稿'
+      : '查看、编辑、取消展示自己提交的专利信息';
   const showListingStatusFilter = !auditStatusFilter || auditStatusFilter === 'APPROVED';
   const isFilteredEmpty = !isDraftCenter && Boolean(status || auditStatusFilter);
   const emptyMessage = isDraftCenter
     ? '暂无草稿'
     : isFilteredEmpty
       ? '暂无符合条件的专利'
-      : '暂无上架记录';
+      : '暂无展示记录';
 
   if (access.state === 'need-login') {
     return (
       <View className="container my-listings-page">
         <PageHeader title={pageTitle} subtitle={pageSubtitle} />
         <Spacer />
-        <PermissionCard title="需要登录" message="登录后才能查看上架信息。" actionText="去登录" onAction={goLogin} />
+        <PermissionCard title="需要登录" message="登录后才能查看展示信息。" actionText="去登录" onAction={goLogin} />
       </View>
     );
   }
@@ -310,7 +310,7 @@ export default function MyListingsPage() {
       <View className="container my-listings-page">
         <PageHeader title={pageTitle} subtitle={pageSubtitle} />
         <Spacer />
-        <AuditPendingCard title="资料审核中" message="审核通过后才能发布与管理上架信息。" actionText="查看进度" onAction={goOnboarding} />
+        <AuditPendingCard title="资料审核中" message="审核通过后才能提交与管理展示信息。" actionText="查看进度" onAction={goOnboarding} />
       </View>
     );
   }
@@ -356,14 +356,14 @@ export default function MyListingsPage() {
             {showListingStatusFilter ? (
               <>
                 <View style={{ height: '14rpx' }} />
-                <Text className="text-strong">上架状态</Text>
+                <Text className="text-strong">展示状态</Text>
                 <View style={{ height: '10rpx' }} />
                 <FilterTabs
                   value={status}
                   options={[
                     { label: '全部', value: '' },
-                    { label: '上架', value: 'ACTIVE' },
-                    { label: '下架', value: 'OFF_SHELF' },
+                    { label: '展示中', value: 'ACTIVE' },
+                    { label: '已取消', value: 'OFF_SHELF' },
                     { label: '成交', value: 'SOLD' },
                   ]}
                   onChange={handleListingStatusChange}
@@ -373,7 +373,7 @@ export default function MyListingsPage() {
             <View style={{ height: '12rpx' }} />
             <View className="my-listings-actions">
               <Button variant="primary" onClick={goCreate}>
-                发布新的专利上架
+                提交新的专利信息
               </Button>
               <Button variant="ghost" onClick={goDraftBox}>
                 草稿箱
@@ -419,7 +419,7 @@ export default function MyListingsPage() {
                         <Text className="draft-card-title clamp-2">{title}</Text>
                         <View className="draft-card-tags">
                           <Text className="draft-card-tag">草稿</Text>
-                          <Text className="draft-card-tag">{isAchievementDraft ? '专利成果' : '专利交易'}</Text>
+                          <Text className="draft-card-tag">{isAchievementDraft ? '专利成果' : '专利信息'}</Text>
                         </View>
                       </View>
                     </View>
@@ -448,7 +448,7 @@ export default function MyListingsPage() {
                         <Text className={isAchievementDraft ? 'tag' : listingCardStatusClass(it.status, it.auditStatus)}>
                           {isAchievementDraft ? contentStatusLabel(it.status) : listingCardStatusLabel(it.status, it.auditStatus)}
                         </Text>
-                        {isMixedDraftCenter ? <Text className="tag">{isAchievementDraft ? '专利成果' : '专利交易'}</Text> : null}
+                        {isMixedDraftCenter ? <Text className="tag">{isAchievementDraft ? '专利成果' : '专利信息'}</Text> : null}
                         {!isDraftCenter && !isAchievementDraft && it.auditStatus === 'APPROVED' ? (
                           <Text className={auditStatusTagClass(it.auditStatus)}>{auditStatusLabel(it.auditStatus)}</Text>
                         ) : null}
@@ -483,7 +483,7 @@ export default function MyListingsPage() {
                           disabled={it.status !== 'ACTIVE' || it.auditStatus !== 'APPROVED'}
                           onClick={() => void handleOffShelf(it)}
                         >
-                          下架
+                          取消展示
                         </Button>
                       </>
                     ) : null}
