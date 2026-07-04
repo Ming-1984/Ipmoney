@@ -2048,10 +2048,12 @@ export class ListingsService {
     const regionCode = hasRegionCode ? this.parseRegionCodeFilterStrict(query?.regionCode, 'regionCode') : '';
     const hasAuditStatus = this.hasOwn(query, 'auditStatus');
     const hasStatus = this.hasOwn(query, 'status');
+    const hasExcludeStatus = this.hasOwn(query, 'excludeStatus');
     const hasSource = this.hasOwn(query, 'source');
     const hasListingTopic = this.hasOwn(query, 'listingTopic');
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(query?.auditStatus, 'auditStatus') : undefined;
     const status = hasStatus ? this.parseListingStatusStrict(query?.status, 'status') : undefined;
+    const excludeStatus = hasExcludeStatus ? this.parseListingStatusStrict(query?.excludeStatus, 'excludeStatus') : undefined;
     const source = hasSource ? this.parseContentSourceStrict(query?.source, 'source') : undefined;
     const listingTopics = this.normalizeListingTopics(query?.listingTopic);
     if (hasListingTopic && listingTopics.length === 0 && String(query?.listingTopic ?? '').trim()) {
@@ -2065,6 +2067,8 @@ export class ListingsService {
     if (regionCode) where.regionCode = regionCode;
     if (auditStatus) where.auditStatus = auditStatus;
     if (status) where.status = status;
+    else if (excludeStatus) where.status = { not: excludeStatus };
+    else where.status = { not: 'DRAFT' };
     if (source) where.source = source;
     if (listingTopics.length > 0) {
       where.AND = listingTopics.map((topic) => ({ listingTopicsJson: { array_contains: [topic] } }));

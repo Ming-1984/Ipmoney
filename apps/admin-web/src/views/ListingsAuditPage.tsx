@@ -6,6 +6,7 @@
   Form,
   Input,
   InputNumber,
+  Segmented,
   Row,
   Select,
   Space,
@@ -225,6 +226,7 @@ export function ListingsAuditPage() {
   const [appliedListingTopic, setAppliedListingTopic] = useState<ListingTopic | ''>('');
   const [appliedSource, setAppliedSource] = useState<ContentSource | ''>('');
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [viewMode, setViewMode] = useState<'REVIEW' | 'DRAFTS'>('REVIEW');
 
   const [batchJobsLoading, setBatchJobsLoading] = useState(false);
   const [batchJobs, setBatchJobs] = useState<Paged<BatchJob> | null>(null);
@@ -277,6 +279,7 @@ export function ListingsAuditPage() {
     () => selectedListings.some((row) => row.status === 'DRAFT' || row.auditStatus !== 'APPROVED'),
     [selectedListings],
   );
+  const isDraftMode = viewMode === 'DRAFTS';
 
   const loadListings = useCallback(async () => {
     setLoading(true);
@@ -286,8 +289,9 @@ export function ListingsAuditPage() {
         page,
         pageSize,
         q: appliedQ.trim() || undefined,
-        auditStatus: appliedAuditStatus || undefined,
-        status: appliedStatus || undefined,
+        auditStatus: isDraftMode ? undefined : appliedAuditStatus || undefined,
+        status: isDraftMode ? 'DRAFT' : appliedStatus || undefined,
+        excludeStatus: isDraftMode ? undefined : !appliedStatus ? 'DRAFT' : undefined,
         source: appliedSource || undefined,
         listingTopic: appliedListingTopic || undefined,
       });
@@ -299,7 +303,7 @@ export function ListingsAuditPage() {
     } finally {
       setLoading(false);
     }
-  }, [appliedAuditStatus, appliedListingTopic, appliedQ, appliedSource, appliedStatus, page, pageSize]);
+  }, [appliedAuditStatus, appliedListingTopic, appliedQ, appliedSource, appliedStatus, isDraftMode, page, pageSize]);
 
   const loadBatchJobs = useCallback(async (opts?: { page?: number; pageSize?: number }) => {
     const nextPage = opts?.page ?? batchJobsPage;
@@ -417,6 +421,7 @@ export function ListingsAuditPage() {
     setAppliedStatus('');
     setAppliedListingTopic('');
     setAppliedSource('');
+    setViewMode('REVIEW');
   }, []);
 
   const openFileById = useCallback(async (fileId?: string | null) => {
@@ -721,6 +726,15 @@ export function ListingsAuditPage() {
 
           {error ? <RequestErrorAlert error={error} onRetry={loadListings} /> : null}
 
+          <Segmented
+            value={viewMode}
+            onChange={(value) => setViewMode(value as 'REVIEW' | 'DRAFTS')}
+            options={[
+              { label: '待处理', value: 'REVIEW' },
+              { label: '草稿箱', value: 'DRAFTS' },
+            ]}
+          />
+
           <Space wrap>
             <Input
               value={draftQ}
@@ -730,29 +744,32 @@ export function ListingsAuditPage() {
               allowClear
               onPressEnter={applyFilters}
             />
-            <Select
-              value={draftAuditStatus}
-              style={{ width: 160 }}
-              onChange={(v) => setDraftAuditStatus((v as AuditStatus) || '')}
-              options={[
-                { value: '', label: '全部审核状态' },
-                { value: 'PENDING', label: '待审核' },
-                { value: 'APPROVED', label: '已通过' },
-                { value: 'REJECTED', label: '已驳回' },
-              ]}
-            />
-            <Select
-              value={draftStatus}
-              style={{ width: 160 }}
-              onChange={(v) => setDraftStatus((v as ListingStatus) || '')}
-              options={[
-                { value: '', label: '全部上架状态' },
-                { value: 'DRAFT', label: '草稿' },
-                { value: 'ACTIVE', label: '上架中' },
-                { value: 'OFF_SHELF', label: '已下架' },
-                { value: 'SOLD', label: '已售出' },
-              ]}
-            />
+            {!isDraftMode ? (
+              <>
+                <Select
+                  value={draftAuditStatus}
+                  style={{ width: 160 }}
+                  onChange={(v) => setDraftAuditStatus((v as AuditStatus) || '')}
+                  options={[
+                    { value: '', label: '全部审核状态' },
+                    { value: 'PENDING', label: '待审核' },
+                    { value: 'APPROVED', label: '已通过' },
+                    { value: 'REJECTED', label: '已驳回' },
+                  ]}
+                />
+                <Select
+                  value={draftStatus}
+                  style={{ width: 160 }}
+                  onChange={(v) => setDraftStatus((v as ListingStatus) || '')}
+                  options={[
+                    { value: '', label: '全部上架状态' },
+                    { value: 'ACTIVE', label: '上架中' },
+                    { value: 'OFF_SHELF', label: '已下架' },
+                    { value: 'SOLD', label: '已售出' },
+                  ]}
+                />
+              </>
+            ) : null}
             <Select
               value={draftListingTopic}
               style={{ width: 180 }}
@@ -778,25 +795,33 @@ export function ListingsAuditPage() {
             </Button>
           </Space>
 
-          <Space wrap>
-            <Button onClick={() => void submitBatchAction('APPROVE')}>批量通过</Button>
-            <Button onClick={() => void submitBatchAction('REJECT')}>批量驳回</Button>
-            <Button type="primary" disabled={selectedPublishBlocked} onClick={() => void submitBatchAction('PUBLISH')}>
-              批量上架
-            </Button>
-            <Button onClick={() => void submitBatchAction('OFF_SHELF')}>批量下架</Button>
-            <Typography.Text type="secondary">已选 {selectedListingIds.length} 条</Typography.Text>
-            {selectedPublishBlocked ? <Typography.Text type="secondary">草稿和未审核通过项不能直接上架</Typography.Text> : null}
-          </Space>
+          {!isDraftMode ? (
+            <Space wrap>
+              <Button onClick={() => void submitBatchAction('APPROVE')}>批量通过</Button>
+              <Button onClick={() => void submitBatchAction('REJECT')}>批量驳回</Button>
+              <Button type="primary" disabled={selectedPublishBlocked} onClick={() => void submitBatchAction('PUBLISH')}>
+                批量上架
+              </Button>
+              <Button onClick={() => void submitBatchAction('OFF_SHELF')}>批量下架</Button>
+              <Typography.Text type="secondary">已选 {selectedListingIds.length} 条</Typography.Text>
+              {selectedPublishBlocked ? <Typography.Text type="secondary">草稿和未审核通过项不能直接上架</Typography.Text> : null}
+            </Space>
+          ) : (
+            <Typography.Text type="secondary">草稿箱仅用于查看草稿，不进入待审核队列。</Typography.Text>
+          )}
 
           <Table<Listing>
             rowKey="id"
             loading={loading}
             dataSource={listings?.items || []}
-            rowSelection={{
-              selectedRowKeys,
-              onChange: setSelectedRowKeys,
-            }}
+            rowSelection={
+              isDraftMode
+                ? undefined
+                : {
+                    selectedRowKeys,
+                    onChange: setSelectedRowKeys,
+                  }
+            }
             pagination={{
               current: listings?.page.page || page,
               pageSize: listings?.page.pageSize || pageSize,
@@ -886,7 +911,9 @@ export function ListingsAuditPage() {
                 width: 170,
                 fixed: 'right',
                 render: (_, row) =>
-                  row.auditStatus === 'PENDING' ? (
+                  row.status === 'DRAFT' ? (
+                    <Typography.Text type="secondary">草稿</Typography.Text>
+                  ) : row.auditStatus === 'PENDING' ? (
                     <Space>
                       <Button size="small" type="primary" onClick={() => void approveListing(row)}>
                         通过
