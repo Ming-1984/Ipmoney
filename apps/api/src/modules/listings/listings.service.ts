@@ -1323,21 +1323,32 @@ export class ListingsService {
 
   private async findLatestListingByPatentNumber(patentNumberRaw: string): Promise<{ id: string } | null> {
     const parsed = this.parsePatentNumber(patentNumberRaw);
+    const patentOrFilters: any[] = [];
+    if (parsed.primaryIdType === 'APPLICATION') {
+      patentOrFilters.push({ applicationNoNorm: parsed.applicationNoNorm });
+    }
+    if (parsed.identifierCandidates.length > 0) {
+      patentOrFilters.push({
+        identifiers: {
+          some: {
+            OR: parsed.identifierCandidates.map((c: any) => ({
+              idType: c.idType,
+              idValueNorm: c.idValueNorm,
+            })),
+          },
+        },
+      });
+    }
+    if (parsed.publicationNoDisplay) {
+      patentOrFilters.push({ publicationNoDisplay: parsed.publicationNoDisplay });
+      patentOrFilters.push({ grantPublicationNoDisplay: parsed.publicationNoDisplay });
+    }
+    if (parsed.patentNoDisplay) {
+      patentOrFilters.push({ patentNoDisplay: parsed.patentNoDisplay });
+    }
     const patent = await this.prisma.patent.findFirst({
       where: {
-        OR: [
-          { applicationNoNorm: parsed.applicationNoNorm },
-          {
-            identifiers: {
-              some: {
-                OR: parsed.identifierCandidates.map((c: any) => ({
-                  idType: c.idType,
-                  idValueNorm: c.idValueNorm,
-                })),
-              },
-            },
-          },
-        ],
+        OR: patentOrFilters,
       },
       select: { id: true },
     });
@@ -1404,6 +1415,7 @@ export class ListingsService {
     grantPublicationNoDisplay?: string;
     patentType?: 'INVENTION' | 'UTILITY_MODEL' | 'DESIGN';
     primaryIdType: 'APPLICATION' | 'PUBLICATION';
+    canCreatePatent: boolean;
     identifierCandidates: Array<{ idType: 'APPLICATION' | 'PATENT' | 'PUBLICATION'; idValueNorm: string; kindCode?: string }>;
   } {
     const cleaned = this.cleanPatentRaw(raw);
@@ -1432,6 +1444,7 @@ export class ListingsService {
         patentNoDisplay,
         patentType,
         primaryIdType: 'APPLICATION',
+        canCreatePatent: true,
         identifierCandidates,
       };
     }
@@ -1449,6 +1462,7 @@ export class ListingsService {
         grantPublicationNoDisplay: kindCode.startsWith('B') ? publicationNoNorm : undefined,
         patentType,
         primaryIdType: 'PUBLICATION',
+        canCreatePatent: false,
         identifierCandidates,
       };
     }
@@ -1639,7 +1653,8 @@ export class ListingsService {
     const hasSourcePrimary = this.hasOwn(body, 'sourcePrimary');
     const sourcePrimary = hasSourcePrimary ? this.parseSourcePrimaryStrict(body?.sourcePrimary, 'sourcePrimary') : undefined;
     const applicationNoNorm = parsed.applicationNoNorm;
-    let patent = await this.prisma.patent.findFirst({ where: { applicationNoNorm } });
+    let patent =
+      parsed.primaryIdType === 'APPLICATION' ? await this.prisma.patent.findFirst({ where: { applicationNoNorm } }) : null;
 
     if (!patent && parsed.identifierCandidates.length > 0) {
       for (const candidate of parsed.identifierCandidates) {
@@ -1653,6 +1668,17 @@ export class ListingsService {
       }
     }
 
+    if (!patent && parsed.primaryIdType === 'PUBLICATION' && parsed.publicationNoDisplay) {
+      patent = await this.prisma.patent.findFirst({
+        where: {
+          OR: [
+            { publicationNoDisplay: parsed.publicationNoDisplay },
+            { grantPublicationNoDisplay: parsed.publicationNoDisplay },
+          ],
+        },
+      });
+    }
+
     const applicationNoDisplay = parsed.primaryIdType === 'APPLICATION' ? parsed.applicationNoDisplay : undefined;
 
     const derivedPatentTitle = this.derivePatentBackfillTitle({
@@ -1662,6 +1688,10 @@ export class ListingsService {
       patentNoDisplay: parsed.patentNoDisplay ?? null,
       grantPublicationNoDisplay: parsed.grantPublicationNoDisplay ?? null,
     });
+
+    if (!patent && !parsed.canCreatePatent) {
+      return null;
+    }
 
     if (!patent) {
       patent = await this.prisma.patent.create({
@@ -3944,7 +3974,9 @@ export class ListingsService {
       if (qType == 'NUMBER') {
         try {
           const parsed = this.parsePatentNumber(q);
-          orFilters.push({ patent: { applicationNoNorm: parsed.applicationNoNorm } });
+          if (parsed.primaryIdType === 'APPLICATION') {
+            orFilters.push({ patent: { applicationNoNorm: parsed.applicationNoNorm } });
+          }
           if (parsed.applicationNoDisplay) {
             orFilters.push({ patent: { applicationNoDisplay: parsed.applicationNoDisplay } });
             orFilters.push({ patent: { applicationNoDisplay: { contains: parsed.applicationNoDisplay, mode: 'insensitive' } } });
@@ -4008,7 +4040,9 @@ export class ListingsService {
         orFilters.push({ patent: { parties: { some: { name: { contains: q, mode: 'insensitive' } } } } });
         try {
           const parsed = this.parsePatentNumber(q);
-          orFilters.push({ patent: { applicationNoNorm: parsed.applicationNoNorm } });
+          if (parsed.primaryIdType === 'APPLICATION') {
+            orFilters.push({ patent: { applicationNoNorm: parsed.applicationNoNorm } });
+          }
           for (const c of parsed.identifierCandidates) {
             orFilters.push({ patent: { identifiers: { some: { idType: c.idType, idValueNorm: c.idValueNorm } } } });
           }

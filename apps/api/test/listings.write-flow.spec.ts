@@ -301,6 +301,42 @@ describe('ListingsService write flow suite', () => {
     );
   });
 
+  it('does not create patent master data from publication number only', async () => {
+    prisma.patent = {
+      findFirst: vi.fn().mockResolvedValue(null),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+    };
+    prisma.patentIdentifier = {
+      findUnique: vi.fn().mockResolvedValue(null),
+      createMany: vi.fn(),
+    };
+    prisma.listing.create.mockResolvedValueOnce(
+      buildListing({
+        patentId: null,
+        title: 'Publication Listing',
+      }),
+    );
+
+    await service.createListing(USER_REQ, {
+      title: 'Publication Listing',
+      patentNumberRaw: 'CN109087628A',
+      patentType: 'invention',
+      priceType: 'negotiable',
+    });
+
+    expect(prisma.patent.create).not.toHaveBeenCalled();
+    expect(prisma.patentIdentifier.createMany).not.toHaveBeenCalled();
+    expect(prisma.listing.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          patentId: null,
+          title: 'Publication Listing',
+        }),
+      }),
+    );
+  });
+
   it('update validates ownership and strict patch fields', async () => {
     prisma.listing.findUnique.mockResolvedValueOnce(null);
     await expect(service.updateListing(USER_REQ, LISTING_ID, {})).rejects.toBeInstanceOf(NotFoundException);
