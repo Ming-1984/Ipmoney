@@ -96,6 +96,36 @@ describe('RbacService read/update strictness suite', () => {
     });
   });
 
+  it('allows conversation managers to read staff users without rbac management access', async () => {
+    prisma.rbacRole.count.mockResolvedValueOnce(1);
+    prisma.user.findMany.mockResolvedValueOnce([
+      {
+        id: 'u-2',
+        nickname: 'CS',
+        phone: '13900000000',
+        role: 'cs',
+        createdAt: new Date('2026-03-13T00:00:00.000Z'),
+        rbacRoles: [],
+      },
+    ]);
+
+    const result = await service.listUsers(
+      { auth: { userId: 'cs-1', permissions: new Set(['conversation.platform.manage']) } },
+      { scope: 'STAFF' },
+    );
+
+    expect(result.items[0]).toMatchObject({
+      id: 'u-2',
+      roleIds: ['role-cs'],
+    });
+  });
+
+  it('does not allow conversation managers to read all users', async () => {
+    await expect(
+      service.listUsers({ auth: { userId: 'cs-1', permissions: new Set(['conversation.platform.manage']) } }, { scope: 'ALL' }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
   it('validates listUsers scope strictly', async () => {
     await expect(service.listUsers(req, { scope: 'BAD' })).rejects.toBeInstanceOf(BadRequestException);
   });

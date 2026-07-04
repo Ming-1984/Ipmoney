@@ -111,7 +111,7 @@ function normalizeHttpError(status: number, data: unknown): ApiError {
   const err = (data || {}) as ApiErrorShape;
   const code = err?.code;
 
-  if (status === 401 || status === 403) {
+  if (status === 401) {
     try {
       clearAdminToken();
     } catch {
@@ -125,6 +125,16 @@ function normalizeHttpError(status: number, data: unknown): ApiError {
       status,
       code,
       message: 'Authentication required or session expired.',
+      retryable: false,
+      debug: data,
+    });
+  }
+  if (status === 403) {
+    return new ApiError({
+      kind: 'auth',
+      status,
+      code,
+      message: err?.message || '无权限访问该功能。',
       retryable: false,
       debug: data,
     });

@@ -91,6 +91,11 @@ export class RbacService {
     if (!request?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
   }
 
+  private hasPermission(request: any, permission: string): boolean {
+    const perms: Set<string> | undefined = request?.auth?.permissions;
+    return !!perms && (perms.has('*') || perms.has(permission));
+  }
+
   private hasOwn(input: any, key: string) {
     return !!input && Object.prototype.hasOwnProperty.call(input, key);
   }
@@ -393,10 +398,15 @@ export class RbacService {
 
   async listUsers(request: any, query: any = {}) {
     this.ensureAuth(request);
-    requirePermission(request, 'rbac.manage');
     await this.ensureSeeded();
 
     const scope = this.hasOwn(query, 'scope') ? this.parseUserListScopeStrict(query?.scope, 'scope') : 'STAFF';
+    if (
+      !this.hasPermission(request, 'rbac.manage') &&
+      !(scope === 'STAFF' && (this.hasPermission(request, 'conversation.platform.manage') || this.hasPermission(request, 'maintenance.manage')))
+    ) {
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
+    }
     const q = String(query?.q || '').trim();
     const where: Prisma.UserWhereInput = {};
     const andFilters: Prisma.UserWhereInput[] = [];
@@ -566,4 +576,3 @@ export class RbacService {
     };
   }
 }
-
