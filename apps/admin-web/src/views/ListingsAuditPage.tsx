@@ -2,6 +2,7 @@
   Button,
   Card,
   Col,
+  Descriptions,
   Drawer,
   Form,
   Input,
@@ -20,7 +21,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet, apiPost, apiUploadFile } from '../lib/api';
-import { formatTimeSmart, yuanToFen } from '../lib/format';
+import { fenToYuan, formatTimeSmart, yuanToFen } from '../lib/format';
 import { displayAdminInfo, normalizeUserFacingText } from '../lib/userFacingText';
 import {
   DEFAULT_LISTING_TOPIC_OPTIONS,
@@ -57,10 +58,29 @@ type StaffUserListResponse = {
 type Listing = {
   id: string;
   title: string;
+  summary?: string | null;
   source?: ContentSource;
+  patentId?: string | null;
+  applicationNoDisplay?: string | null;
+  publicationNoDisplay?: string | null;
+  patentNoDisplay?: string | null;
+  grantPublicationNoDisplay?: string | null;
+  patentType?: string | null;
+  inventorNames?: string[];
+  assigneeNames?: string[];
+  applicantNames?: string[];
+  ipcCodes?: string[];
+  locCodes?: string[];
+  proofFileIds?: string[];
+  deliverables?: string[];
+  industryTags?: string[];
   auditStatus: AuditStatus;
   status: ListingStatus;
   tradeMode: 'ASSIGNMENT' | 'LICENSE';
+  licenseMode?: 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | null;
+  priceType?: 'FIXED' | 'NEGOTIABLE';
+  priceAmountFen?: number | null;
+  depositAmountFen?: number | null;
   regionCode?: string;
   listingTopics?: ListingTopic[];
   createdAt: string;
@@ -209,6 +229,34 @@ function staffDisplayName(user: StaffUser | null | undefined, fallback = '未命
   return normalizeUserFacingText(user?.name) || normalizeUserFacingText(user?.email) || fallback;
 }
 
+function displayText(value: unknown, fallback = '-'): string {
+  return normalizeUserFacingText(value) || fallback;
+}
+
+function displayList(value: unknown, fallback = '-'): string {
+  const items = Array.isArray(value) ? value.map((item) => normalizeUserFacingText(item)).filter(Boolean) : [];
+  return items.length ? items.join('、') : fallback;
+}
+
+function licenseModeLabel(value?: Listing['licenseMode']): string {
+  if (value === 'EXCLUSIVE') return '独占许可';
+  if (value === 'SOLE') return '排他许可';
+  if (value === 'NON_EXCLUSIVE') return '普通许可';
+  return '-';
+}
+
+function priceDisplay(row?: Listing | null): string {
+  if (!row) return '-';
+  if (row.priceType === 'FIXED') return row.priceAmountFen == null ? '一口价待确认' : `一口价 ¥${fenToYuan(row.priceAmountFen)}`;
+  return '面议';
+}
+
+function listingAuditStatusText(row: Listing): string {
+  if (row.status === 'DRAFT') return listingStatusLabel(row.status);
+  if (row.auditStatus === 'PENDING') return '待审核，审核通过后上架';
+  return listingStatusLabel(row.status);
+}
+
 export function ListingsAuditPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
@@ -227,6 +275,9 @@ export function ListingsAuditPage() {
   const [appliedSource, setAppliedSource] = useState<ContentSource | ''>('');
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [viewMode, setViewMode] = useState<'REVIEW' | 'DRAFTS'>('REVIEW');
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [activeListing, setActiveListing] = useState<Listing | null>(null);
 
   const [batchJobsLoading, setBatchJobsLoading] = useState(false);
   const [batchJobs, setBatchJobs] = useState<Paged<BatchJob> | null>(null);
@@ -440,6 +491,20 @@ export function ListingsAuditPage() {
     }
   }, []);
 
+  const openListingDetail = useCallback(async (row: Listing) => {
+    setDetailOpen(true);
+    setActiveListing(row);
+    setDetailLoading(true);
+    try {
+      const detail = await apiGet<Listing>(`/admin/listings/${row.id}`);
+      setActiveListing(detail);
+    } catch (e: any) {
+      message.error(e?.message || '加载挂牌详情失败');
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
+
   const submitBatchAction = useCallback(
     async (action: BatchAction) => {
       if (!selectedListingIds.length) {
@@ -493,6 +558,7 @@ export function ListingsAuditPage() {
         );
         message.success('挂牌已通过审核');
         setSelectedRowKeys((prev) => prev.filter((key) => String(key) !== row.id));
+        setDetailOpen(false);
         await loadListings();
       } catch (e: any) {
         message.error(e?.message || '通过审核失败');
@@ -527,6 +593,7 @@ export function ListingsAuditPage() {
         );
         message.success('挂牌已驳回');
         setSelectedRowKeys((prev) => prev.filter((key) => String(key) !== row.id));
+        setDetailOpen(false);
         await loadListings();
       } catch (e: any) {
         message.error(e?.message || '驳回审核失败');
@@ -763,7 +830,7 @@ export function ListingsAuditPage() {
                   onChange={(v) => setDraftStatus((v as ListingStatus) || '')}
                   options={[
                     { value: '', label: '全部上架状态' },
-                    { value: 'ACTIVE', label: '上架中' },
+                    { value: 'ACTIVE', label: '已上架' },
                     { value: 'OFF_SHELF', label: '已下架' },
                     { value: 'SOLD', label: '已售出' },
                   ]}
@@ -873,7 +940,7 @@ export function ListingsAuditPage() {
                       ))}
                     </Space>
                   ) : (
-                    <Typography.Text type="secondary">-</Typography.Text>
+                    <Typography.Text type="secondary">未设置</Typography.Text>
                   ),
               },
               {
@@ -896,8 +963,8 @@ export function ListingsAuditPage() {
               {
                 title: '上架状态',
                 dataIndex: 'status',
-                width: 120,
-                render: (v: ListingStatus) => <Tag>{listingStatusLabel(v)}</Tag>,
+                width: 180,
+                render: (_: ListingStatus, row) => <Tag>{listingAuditStatusText(row)}</Tag>,
               },
               {
                 title: '创建时间',
@@ -908,13 +975,18 @@ export function ListingsAuditPage() {
               {
                 title: '操作',
                 key: 'actions',
-                width: 170,
+                width: 220,
                 fixed: 'right',
                 render: (_, row) =>
                   row.status === 'DRAFT' ? (
-                    <Typography.Text type="secondary">草稿</Typography.Text>
+                    <Button size="small" onClick={() => void openListingDetail(row)}>
+                      详情
+                    </Button>
                   ) : row.auditStatus === 'PENDING' ? (
                     <Space>
+                      <Button size="small" onClick={() => void openListingDetail(row)}>
+                        详情
+                      </Button>
                       <Button size="small" type="primary" onClick={() => void approveListing(row)}>
                         通过
                       </Button>
@@ -923,7 +995,12 @@ export function ListingsAuditPage() {
                       </Button>
                     </Space>
                   ) : (
-                    <Typography.Text type="secondary">已处理</Typography.Text>
+                    <Space>
+                      <Button size="small" onClick={() => void openListingDetail(row)}>
+                        详情
+                      </Button>
+                      <Typography.Text type="secondary">已处理</Typography.Text>
+                    </Space>
                   ),
               },
             ]}
@@ -1188,6 +1265,97 @@ export function ListingsAuditPage() {
           ]}
         />
       </Card>
+
+      <Drawer
+        width={860}
+        open={detailOpen}
+        title={activeListing ? `挂牌详情：${displayText(activeListing.title, activeListing.id)}` : '挂牌详情'}
+        onClose={() => setDetailOpen(false)}
+        extra={
+          activeListing && activeListing.status !== 'DRAFT' && activeListing.auditStatus === 'PENDING' ? (
+            <Space>
+              <Button onClick={() => void rejectListing(activeListing)} danger>
+                驳回
+              </Button>
+              <Button type="primary" onClick={() => void approveListing(activeListing)}>
+                通过
+              </Button>
+            </Space>
+          ) : null
+        }
+      >
+        {detailLoading && !activeListing ? (
+          <Typography.Text type="secondary">加载详情中...</Typography.Text>
+        ) : activeListing ? (
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Descriptions size="small" bordered column={2}>
+              <Descriptions.Item label="挂牌记录编号" span={2}>{activeListing.id}</Descriptions.Item>
+              <Descriptions.Item label="标题" span={2}>{displayText(activeListing.title, '挂牌标题待确认')}</Descriptions.Item>
+              <Descriptions.Item label="审核状态">{auditStatusLabel(activeListing.auditStatus)}</Descriptions.Item>
+              <Descriptions.Item label="上架状态">{listingAuditStatusText(activeListing)}</Descriptions.Item>
+              <Descriptions.Item label="来源">
+                {activeListing.source === 'ADMIN'
+                  ? '后台录入'
+                  : activeListing.source === 'USER'
+                  ? '用户发布'
+                  : activeListing.source === 'PLATFORM'
+                  ? '平台导入'
+                  : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="地区">{displayText(activeListing.regionCode)}</Descriptions.Item>
+              <Descriptions.Item label="交易方式">{tradeModeLabel(activeListing.tradeMode)}</Descriptions.Item>
+              <Descriptions.Item label="许可方式">{licenseModeLabel(activeListing.licenseMode)}</Descriptions.Item>
+              <Descriptions.Item label="价格">{priceDisplay(activeListing)}</Descriptions.Item>
+              <Descriptions.Item label="订金">
+                {activeListing.depositAmountFen == null ? '-' : `¥${fenToYuan(activeListing.depositAmountFen)}`}
+              </Descriptions.Item>
+              <Descriptions.Item label="特色标签" span={2}>
+                {activeListing.listingTopics?.length ? (
+                  <Space size={[4, 4]} wrap>
+                    {activeListing.listingTopics.map((topic) => (
+                      <Tag key={topic}>{topicLabel(topic)}</Tag>
+                    ))}
+                  </Space>
+                ) : (
+                  <Typography.Text type="secondary">未设置</Typography.Text>
+                )}
+              </Descriptions.Item>
+              <Descriptions.Item label="交付内容" span={2}>{displayList(activeListing.deliverables, '未填写')}</Descriptions.Item>
+              <Descriptions.Item label="摘要" span={2}>{displayText(activeListing.summary, '未填写')}</Descriptions.Item>
+              <Descriptions.Item label="权属材料" span={2}>
+                {activeListing.proofFileIds?.length ? (
+                  <Space size={[4, 4]} wrap>
+                    {activeListing.proofFileIds.map((fileId) => (
+                      <Button key={fileId} size="small" onClick={() => void openFileById(fileId)}>
+                        查看材料
+                      </Button>
+                    ))}
+                  </Space>
+                ) : (
+                  <Typography.Text type="secondary">未上传</Typography.Text>
+                )}
+              </Descriptions.Item>
+              <Descriptions.Item label="创建时间">{formatTimeSmart(activeListing.createdAt)}</Descriptions.Item>
+              <Descriptions.Item label="更新时间">{formatTimeSmart(activeListing.updatedAt)}</Descriptions.Item>
+            </Descriptions>
+
+            <Descriptions title="专利信息" size="small" bordered column={2}>
+              <Descriptions.Item label="专利记录编号" span={2}>{displayText(activeListing.patentId)}</Descriptions.Item>
+              <Descriptions.Item label="申请号">{displayText(activeListing.applicationNoDisplay)}</Descriptions.Item>
+              <Descriptions.Item label="专利号">{displayText(activeListing.patentNoDisplay)}</Descriptions.Item>
+              <Descriptions.Item label="公开号">{displayText(activeListing.publicationNoDisplay)}</Descriptions.Item>
+              <Descriptions.Item label="授权公告号">{displayText(activeListing.grantPublicationNoDisplay)}</Descriptions.Item>
+              <Descriptions.Item label="专利类型">{displayText(activeListing.patentType)}</Descriptions.Item>
+              <Descriptions.Item label="IPC">{displayList(activeListing.ipcCodes)}</Descriptions.Item>
+              <Descriptions.Item label="发明人" span={2}>{displayList(activeListing.inventorNames)}</Descriptions.Item>
+              <Descriptions.Item label="申请人" span={2}>{displayList(activeListing.applicantNames)}</Descriptions.Item>
+              <Descriptions.Item label="权利人" span={2}>{displayList(activeListing.assigneeNames)}</Descriptions.Item>
+            </Descriptions>
+          </Space>
+        ) : (
+          <Typography.Text type="secondary">暂未获取到挂牌详情。</Typography.Text>
+        )}
+      </Drawer>
 
       <Drawer
         width={980}

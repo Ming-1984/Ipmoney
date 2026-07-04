@@ -41,6 +41,17 @@ const LISTING_TOPIC_VALUE_SET = new Set<ListingTopic>([
 type ListingAdminDto = {
   id: string;
   source?: ContentSource;
+  patentId?: string | null;
+  applicationNoDisplay?: string | null;
+  publicationNoDisplay?: string | null;
+  patentNoDisplay?: string | null;
+  grantPublicationNoDisplay?: string | null;
+  patentType?: string | null;
+  inventorNames?: string[];
+  assigneeNames?: string[];
+  applicantNames?: string[];
+  ipcCodes?: string[];
+  locCodes?: string[];
   proofFileIds?: string[];
   deliverables?: string[];
   industryTags?: string[];
@@ -53,6 +64,7 @@ type ListingAdminDto = {
   existingLicenseStatus?: ExistingLicenseStatus | null;
   encumbranceNote?: string | null;
   title: string;
+  summary?: string | null;
   auditStatus: AuditStatus;
   status: ListingStatus;
   regionCode?: string | null;
@@ -60,6 +72,7 @@ type ListingAdminDto = {
   priceType: 'FIXED' | 'NEGOTIABLE';
   priceAmountFen?: number | null;
   tradeMode: 'ASSIGNMENT' | 'LICENSE';
+  licenseMode?: 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | null;
   createdAt: string;
   updatedAt: string;
   sellerUserId?: string | null;
@@ -733,9 +746,21 @@ export class ListingsService {
 
   private toAdminDto(it: any): ListingAdminDto {
     const toIso = (d?: Date | null) => (d ? d.toISOString() : undefined);
+    const meta = this.extractPatentMeta(it.patent);
     return {
       id: it.id,
       source: it.source ?? 'USER',
+      patentId: it.patentId ?? null,
+      applicationNoDisplay: meta.applicationNoDisplay,
+      publicationNoDisplay: meta.publicationNoDisplay,
+      patentNoDisplay: meta.patentNoDisplay,
+      grantPublicationNoDisplay: meta.grantPublicationNoDisplay,
+      patentType: meta.patentType,
+      inventorNames: meta.inventorNames,
+      assigneeNames: meta.assigneeNames,
+      applicantNames: meta.applicantNames,
+      ipcCodes: meta.ipcCodes,
+      locCodes: meta.locCodes,
       proofFileIds: this.normalizeStringArray(it.proofFileIdsJson),
       deliverables: this.normalizeStringArray(it.deliverablesJson),
       industryTags: sanitizeIndustryTagNames(it.industryTagsJson),
@@ -748,6 +773,7 @@ export class ListingsService {
       existingLicenseStatus: it.existingLicenseStatus ?? null,
       encumbranceNote: it.encumbranceNote ?? null,
       title: it.title,
+      summary: it.summary ?? null,
       auditStatus: it.auditStatus,
       status: it.status,
       regionCode: it.regionCode ?? undefined,
@@ -755,6 +781,7 @@ export class ListingsService {
       priceType: it.priceType,
       priceAmountFen: it.priceAmount ?? undefined,
       tradeMode: it.tradeMode,
+      licenseMode: it.licenseMode ?? null,
       createdAt: toIso(it.createdAt) || new Date().toISOString(),
       updatedAt: toIso(it.updatedAt) || new Date().toISOString(),
       sellerUserId: it.sellerUserId ?? undefined,
@@ -2077,6 +2104,7 @@ export class ListingsService {
     const [items, total] = await Promise.all([
       this.prisma.listing.findMany({
         where,
+        include: { patent: { include: { parties: true, classifications: true } } },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -2091,7 +2119,10 @@ export class ListingsService {
   }
 
   async getAdminById(listingId: string): Promise<ListingAdminDto> {
-    const it = await this.prisma.listing.findUnique({ where: { id: listingId } });
+    const it = await this.prisma.listing.findUnique({
+      where: { id: listingId },
+      include: { patent: { include: { parties: true, classifications: true } } },
+    });
     if (!it) throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
     return this.toAdminDto(it);
   }
@@ -3026,13 +3057,17 @@ export class ListingsService {
     if (!existing) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
     }
+    if (existing.status === 'DRAFT') {
+      throw new ConflictException({ code: 'CONFLICT', message: 'draft listing cannot be approved directly' });
+    }
+    this.assertRegionCodeRequiredForActiveStatus(existing.regionCode, 'ACTIVE');
     await this.assertFilesReadyForApproval(this.normalizeFileIds((existing as any).proofFileIdsJson), 'proofFileIds');
 
     let it: any;
     try {
       it = await this.prisma.listing.update({
         where: { id: listingId },
-        data: { auditStatus: 'APPROVED' },
+        data: { auditStatus: 'APPROVED', status: 'ACTIVE' },
       });
     } catch (error: any) {
       if (error?.code === 'P2025') {
@@ -3056,7 +3091,7 @@ export class ListingsService {
         action: 'LISTING_APPROVE',
         targetType: 'LISTING',
         targetId: listingId,
-        afterJson: { auditStatus: 'APPROVED', reason },
+        afterJson: { auditStatus: 'APPROVED', status: 'ACTIVE', reason },
       });
     }
     await this.notifications.create({
@@ -3073,7 +3108,7 @@ export class ListingsService {
     try {
       it = await this.prisma.listing.update({
         where: { id: listingId },
-        data: { auditStatus: 'REJECTED' },
+        data: { auditStatus: 'REJECTED', status: 'OFF_SHELF' },
       });
     } catch (error: any) {
       if (error?.code === 'P2025') {
@@ -3097,7 +3132,7 @@ export class ListingsService {
         action: 'LISTING_REJECT',
         targetType: 'LISTING',
         targetId: listingId,
-        afterJson: { auditStatus: 'REJECTED', reason },
+        afterJson: { auditStatus: 'REJECTED', status: 'OFF_SHELF', reason },
       });
     }
     await this.notifications.create({
@@ -3613,14 +3648,14 @@ export class ListingsService {
     this.assertRegionCodeRequiredForActiveStatus(listing.regionCode, 'ACTIVE');
     const updated = await this.prisma.listing.update({
       where: { id: listingId },
-      data: { auditStatus: 'PENDING', status: 'ACTIVE' },
+      data: { auditStatus: 'PENDING', status: 'OFF_SHELF' },
     });
     void this.audit.log({
       actorUserId: req.auth.userId,
       action: 'LISTING_SUBMIT',
       targetType: 'LISTING',
       targetId: listingId,
-      afterJson: { auditStatus: 'PENDING' },
+      afterJson: { auditStatus: 'PENDING', status: 'OFF_SHELF' },
     });
     return this.toAdminDto(updated);
   }
