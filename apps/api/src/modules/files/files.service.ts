@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { FileModerationStatus, FileOwnerScope } from '@prisma/client';
 import { createReadStream, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -44,6 +44,7 @@ const PUBLIC_HOST_WHITELIST = (process.env.PUBLIC_HOST_WHITELIST || '')
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type FileAccessScope = 'download' | 'preview';
+export type AdminFileModerationStatus = 'APPROVED' | 'REJECTED';
 
 @Injectable()
 export class FilesService {
@@ -244,6 +245,38 @@ export class FilesService {
     const normalized = Array.from(new Set(fileIds.map((item) => this.parseUuidStrict(item, 'fileId'))));
     if (!normalized.length) return [];
     return await this.prisma.file.findMany({ where: { id: { in: normalized } } });
+  }
+
+  async adminUpdateFileModeration(params: { fileId: string; status: AdminFileModerationStatus; reason?: string | null }) {
+    const fileId = this.parseUuidStrict(params.fileId, 'fileId');
+    const status = String(params.status || '').trim().toUpperCase();
+    if (status !== FileModerationStatus.APPROVED && status !== FileModerationStatus.REJECTED) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
+    }
+
+    const reason = String(params.reason || '').trim();
+    if (status === FileModerationStatus.REJECTED && !reason) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'reason must not be empty' });
+    }
+    if (reason.length > 500) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'reason is too long' });
+    }
+
+    const before = await this.prisma.file.findUnique({ where: { id: fileId } });
+    if (!before) throw new NotFoundException({ code: 'NOT_FOUND', message: 'file not found' });
+
+    const updated = await this.prisma.file.update({
+      where: { id: fileId },
+      data: {
+        moderationStatus: status,
+        moderationProvider: 'ADMIN',
+        moderationLabel: 'manual_review',
+        moderationReason: status === FileModerationStatus.REJECTED ? reason : reason || null,
+        moderationCheckedAt: new Date(),
+      },
+    });
+
+    return { before, updated };
   }
 
   async canAccessFile(fileId: string, userId: string, isAdmin: boolean) {

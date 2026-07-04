@@ -20,6 +20,7 @@ describe('FilesController delegation suite', () => {
       canAccessFile: vi.fn(),
       getFileBuffer: vi.fn(),
       buildWatermarkedPreview: vi.fn(),
+      adminUpdateFileModeration: vi.fn(),
     };
     audit = { log: vi.fn().mockResolvedValue(undefined) };
     contentSecurity = { scheduleFileModeration: vi.fn().mockResolvedValue(undefined) };
@@ -107,5 +108,28 @@ describe('FilesController delegation suite', () => {
     expect(result).toBeInstanceOf(StreamableFile);
     expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-store');
     expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'image/webp');
+  });
+
+  it('updates file moderation for admins with audit log', async () => {
+    const req: any = {
+      auth: { userId: 'admin-1', isAdmin: true, permissions: new Set(['listing.audit']) },
+      headers: {},
+    };
+    files.adminUpdateFileModeration.mockResolvedValueOnce({
+      before: { id: FILE_ID, moderationStatus: 'PENDING', moderationReason: null },
+      updated: { id: FILE_ID, moderationStatus: 'APPROVED', moderationReason: 'ok', moderationProvider: 'ADMIN' },
+    });
+
+    await expect(controller.updateModeration(req, FILE_ID, { status: 'APPROVED', reason: 'ok' })).resolves.toMatchObject({
+      id: FILE_ID,
+      moderationStatus: 'APPROVED',
+    });
+
+    expect(files.adminUpdateFileModeration).toHaveBeenCalledWith({
+      fileId: FILE_ID,
+      status: 'APPROVED',
+      reason: 'ok',
+    });
+    expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'FILE_MODERATION_UPDATE', targetId: FILE_ID }));
   });
 });

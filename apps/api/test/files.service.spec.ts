@@ -1,12 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 import { FilesService } from '../src/modules/files/files.service';
 
 describe('FilesService temporary token suite', () => {
   let service: FilesService;
+  let prisma: any;
 
   beforeEach(() => {
-    service = new FilesService({} as any);
+    prisma = {
+      file: {
+        findUnique: vi.fn(),
+        update: vi.fn(),
+        findMany: vi.fn(),
+      },
+    };
+    service = new FilesService(prisma as any);
   });
 
   it('clamps temporary token ttl between 60 and 3600 seconds', () => {
@@ -61,5 +70,29 @@ describe('FilesService temporary token suite', () => {
 
     expect(result).toBeNull();
     vi.useRealTimers();
+  });
+
+  it('requires a reason when rejecting a file manually', async () => {
+    prisma.file.findUnique.mockResolvedValueOnce({ id: '11111111-1111-4111-8111-111111111111' });
+
+    await expect(
+      service.adminUpdateFileModeration({
+        fileId: '11111111-1111-4111-8111-111111111111',
+        status: 'REJECTED',
+        reason: '   ',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('throws when file does not exist', async () => {
+    prisma.file.findUnique.mockResolvedValueOnce(null);
+
+    await expect(
+      service.adminUpdateFileModeration({
+        fileId: '11111111-1111-4111-8111-111111111111',
+        status: 'APPROVED',
+        reason: 'ok',
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

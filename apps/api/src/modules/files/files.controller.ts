@@ -26,6 +26,7 @@ import { WechatContentSecurityService } from '../../common/wechat-content-securi
 import { resolveUploadDir } from '../../common/upload-dir';
 import { FilesService } from './files.service';
 import { FileAccessGuard } from './file-access.guard';
+import { requirePermission } from '../../common/permissions';
 
 const UPLOAD_DIR = resolveUploadDir();
 mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -83,6 +84,46 @@ export class FilesController {
       .catch(() => {});
 
     return created;
+  }
+
+  @Post('/admin/files/:fileId/moderation')
+  async updateModeration(@Req() req: any, @Param('fileId') fileId: string, @Body() body: { status?: string; reason?: string }) {
+    const userId = req?.auth?.userId ? String(req.auth.userId) : null;
+    if (!userId) throw new UnauthorizedException({ code: 'UNAUTHORIZED', message: '未登录' });
+    if (!req?.auth?.isAdmin) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
+    requirePermission(req, 'listing.audit');
+
+    const status = String(body?.status || '').trim().toUpperCase();
+    if (status !== 'APPROVED' && status !== 'REJECTED') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
+    }
+
+    const result = await this.files.adminUpdateFileModeration({
+      fileId,
+      status: status as 'APPROVED' | 'REJECTED',
+      reason: body?.reason,
+    });
+
+    void this.audit.log({
+      actorUserId: userId,
+      action: 'FILE_MODERATION_UPDATE',
+      targetType: 'FILE',
+      targetId: result.updated.id,
+      beforeJson: {
+        moderationStatus: result.before.moderationStatus,
+        moderationReason: result.before.moderationReason,
+      },
+      afterJson: {
+        moderationStatus: result.updated.moderationStatus,
+        moderationReason: result.updated.moderationReason,
+        moderationProvider: result.updated.moderationProvider,
+      },
+      requestId: req?.headers?.['x-request-id'] || req?.headers?.['x-requestid'],
+      ip: req?.ip,
+      userAgent: req?.headers?.['user-agent'],
+    });
+
+    return result.updated;
   }
 
   @Post('/files/:fileId/temporary-access')

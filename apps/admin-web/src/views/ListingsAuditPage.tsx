@@ -275,9 +275,30 @@ function fileModerationLabel(status?: string | null): string {
   return '状态待确认';
 }
 
+function translateApiMessage(message: string): string {
+  const text = String(message || '').trim();
+  if (!text) return '操作失败';
+  if (text.includes('media moderation is not approved')) return '权属材料内容审核未通过，无法通过挂牌';
+  if (text.includes('contains prohibited media')) return '权属材料包含违规图片，已被驳回';
+  if (text.includes('is still under review')) return '权属材料仍在审核中';
+  if (text.includes('reason must not be empty')) return '请填写驳回原因';
+  if (text === 'Resource not found.') return '资源不存在';
+  if (text === 'Authentication required or session expired.') return '登录状态已过期，请重新登录';
+  if (text === 'Request failed. Please try again later.') return '请求失败，请稍后重试';
+  return text;
+}
+
 function listingHasBlockedProofFiles(row?: Listing | null): boolean {
   if (!row?.proofFiles?.length) return false;
   return row.proofFiles.some((file) => {
+    const status = String(file.moderationStatus || '').trim().toUpperCase();
+    return status && status !== 'NOT_REQUIRED' && status !== 'APPROVED';
+  });
+}
+
+function listingBlockedProofFiles(row?: Listing | null): Array<NonNullable<Listing['proofFiles']>[number]> {
+  if (!row?.proofFiles?.length) return [];
+  return row.proofFiles.filter((file) => {
     const status = String(file.moderationStatus || '').trim().toUpperCase();
     return status && status !== 'NOT_REQUIRED' && status !== 'APPROVED';
   });
@@ -513,7 +534,7 @@ export function ListingsAuditPage() {
       if (!temp?.url) throw new Error('empty url');
       window.open(temp.url, '_blank', 'noopener,noreferrer');
     } catch (e: any) {
-      message.error(e?.message || '下载错误文件失败');
+      message.error(translateApiMessage(e?.message || '下载错误文件失败'));
     }
   }, []);
 
@@ -525,11 +546,43 @@ export function ListingsAuditPage() {
       const detail = await apiGet<Listing>(`/admin/listings/${row.id}`);
       setActiveListing(detail);
     } catch (e: any) {
-      message.error(e?.message || '加载挂牌详情失败');
+      message.error(translateApiMessage(e?.message || '加载挂牌详情失败'));
     } finally {
       setDetailLoading(false);
     }
   }, []);
+
+  const updateFileModeration = useCallback(
+    async (fileId: string, status: 'APPROVED' | 'REJECTED') => {
+      const reason =
+        status === 'REJECTED'
+          ? window.prompt('请输入驳回原因')?.trim()
+          : window.prompt('可选：请输入通过备注（可留空）')?.trim();
+      if (status === 'REJECTED' && !reason) {
+        message.error('请填写驳回原因');
+        return;
+      }
+      try {
+        await apiPost(
+          `/admin/files/${fileId}/moderation`,
+          {
+            status,
+            reason: reason || undefined,
+          },
+          { idempotencyKey: `admin-file-moderation-${fileId}-${status}-${Date.now()}` },
+        );
+        message.success(status === 'APPROVED' ? '材料已标记为通过' : '材料已标记为驳回');
+        if (activeListing) {
+          const detail = await apiGet<Listing>(`/admin/listings/${activeListing.id}`);
+          setActiveListing(detail);
+        }
+        await loadListings();
+      } catch (e: any) {
+        message.error(translateApiMessage(e?.message || '更新材料审核状态失败'));
+      }
+    },
+    [activeListing, loadListings],
+  );
 
   const submitBatchAction = useCallback(
     async (action: BatchAction) => {
@@ -576,7 +629,11 @@ export function ListingsAuditPage() {
       });
       if (!ok) return;
       if (listingHasBlockedProofFiles(row)) {
-        message.error('当前权属材料仍未通过审核，不能通过挂牌');
+        const blocked = listingBlockedProofFiles(row);
+        const reasonText = blocked
+          .map((file) => `${file.fileName || file.id}：${fileModerationLabel(file.moderationStatus)}${file.moderationReason ? `，${file.moderationReason}` : ''}`)
+          .join('；');
+        message.error(reasonText ? `当前权属材料仍未通过审核：${reasonText}` : '当前权属材料仍未通过审核，不能通过挂牌');
         return;
       }
 
@@ -591,7 +648,7 @@ export function ListingsAuditPage() {
         setDetailOpen(false);
         await loadListings();
       } catch (e: any) {
-        message.error(e?.message || '通过审核失败');
+        message.error(translateApiMessage(e?.message || '通过审核失败'));
       }
     },
     [loadListings],
@@ -626,7 +683,7 @@ export function ListingsAuditPage() {
         setDetailOpen(false);
         await loadListings();
       } catch (e: any) {
-        message.error(e?.message || '驳回审核失败');
+        message.error(translateApiMessage(e?.message || '驳回审核失败'));
       }
     },
     [loadListings],
@@ -1365,6 +1422,16 @@ export function ListingsAuditPage() {
                         </Button>
                         <Tag>{fileModerationLabel(file.moderationStatus)}</Tag>
                         <Typography.Text>{displayText(file.fileName, file.id)}</Typography.Text>
+                        {String(file.moderationStatus || '').trim().toUpperCase() === 'PENDING' ? (
+                          <Space size={4} wrap>
+                            <Button size="small" type="primary" onClick={() => void updateFileModeration(file.id, 'APPROVED')}>
+                              通过
+                            </Button>
+                            <Button size="small" danger onClick={() => void updateFileModeration(file.id, 'REJECTED')}>
+                              驳回
+                            </Button>
+                          </Space>
+                        ) : null}
                         {file.moderationReason ? (
                           <Typography.Text type="danger">原因：{displayText(file.moderationReason)}</Typography.Text>
                         ) : null}
