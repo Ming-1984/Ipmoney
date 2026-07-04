@@ -2,6 +2,8 @@
   --ipm-primary: #ff6a00;
   --ipm-primary-hover: #ff7a00;
   --ipm-primary-active: #e85a00;
+  --ipm-primary-soft: rgba(255, 122, 0, 0.12);
+  --ipm-primary-soft-strong: rgba(255, 122, 0, 0.2);
   --ipm-gold: #ffc54d;
   --ipm-bg: #fff3e6;
   --ipm-bg-strong: #ffe3cc;
@@ -13,7 +15,8 @@
   --ipm-error: #dc2626;
   --ipm-bg-container: rgba(255, 255, 255, 0.92);
   --ipm-bg-elevated: rgba(255, 255, 255, 0.98);
-  --ipm-shadow-secondary: 0 18px 40px rgba(15, 23, 42, 0.08);
+  --ipm-shadow-secondary: 0 18px 40px rgba(255, 122, 0, 0.12);
+  --ipm-shadow-primary: 0 12px 28px rgba(255, 122, 0, 0.18);
 }
 
 html,

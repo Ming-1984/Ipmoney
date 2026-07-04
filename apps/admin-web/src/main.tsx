@@ -20,6 +20,8 @@ const theme: ThemeConfig = {
     colorSuccess: 'var(--ipm-success)',
     colorWarning: 'var(--ipm-warning)',
     colorError: 'var(--ipm-error)',
+    controlItemBgActive: 'var(--ipm-primary-soft)',
+    controlItemBgActiveHover: 'var(--ipm-primary-soft-strong)',
     boxShadowSecondary: 'var(--ipm-shadow-secondary)',
   },
   components: {
@@ -31,10 +33,20 @@ const theme: ThemeConfig = {
       borderRadiusLG: 14,
     },
     Menu: {
-      darkItemSelectedBg: 'var(--ipm-primary)',
+      itemSelectedBg: 'var(--ipm-primary-soft)',
+      itemSelectedColor: 'var(--ipm-primary)',
+      itemActiveBg: 'var(--ipm-primary-soft)',
+      darkItemSelectedBg: 'var(--ipm-primary-soft)',
+      darkItemSelectedColor: 'var(--ipm-primary)',
+      activeBarBorderWidth: 0,
     },
     Button: {
       borderRadius: 999,
+      primaryShadow: 'var(--ipm-shadow-primary)',
+    },
+    Table: {
+      rowSelectedBg: 'var(--ipm-primary-soft)',
+      rowSelectedHoverBg: 'var(--ipm-primary-soft-strong)',
     },
   },
 };
