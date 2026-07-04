@@ -95,6 +95,7 @@ function achievementStatusText(row: AchievementItem): string {
 }
 
 function achievementActionMode(row: AchievementItem): 'REVIEW' | 'OFF_SHELF' | 'PUBLISH' | 'NONE' {
+  if (row.status === 'DRAFT') return 'NONE';
   if (row.auditStatus === 'PENDING') return 'REVIEW';
   if (row.status === 'ACTIVE') return 'OFF_SHELF';
   if (row.status === 'OFF_SHELF') return 'PUBLISH';

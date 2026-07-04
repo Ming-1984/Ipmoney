@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AchievementsService } from '../src/modules/achievements/achievements.service';
@@ -355,6 +355,7 @@ describe('AchievementsService admin update suite', () => {
   it('blocks approval while referenced media moderation is not approved', async () => {
     prisma.achievement.findUnique.mockResolvedValueOnce({
       id: ACHIEVEMENT_ID,
+      status: 'ACTIVE',
       coverFileId: COVER_ID,
       media: [{ fileId: '44444444-4444-4444-8444-444444444444' }],
     });
@@ -386,6 +387,7 @@ describe('AchievementsService admin update suite', () => {
   it('approves achievement when referenced media is approved or not required', async () => {
     prisma.achievement.findUnique.mockResolvedValueOnce({
       id: ACHIEVEMENT_ID,
+      status: 'ACTIVE',
       coverFileId: COVER_ID,
       media: [],
     });
@@ -399,9 +401,21 @@ describe('AchievementsService admin update suite', () => {
 
     expect(prisma.achievement.update).toHaveBeenCalledWith({
       where: { id: ACHIEVEMENT_ID },
-      data: { auditStatus: 'APPROVED' },
+      data: { auditStatus: 'APPROVED', status: 'ACTIVE' },
     });
     expect(result).toMatchObject({ id: ACHIEVEMENT_ID, auditStatus: 'APPROVED' });
+  });
+
+  it('does not approve draft achievements directly', async () => {
+    prisma.achievement.findUnique.mockResolvedValueOnce({
+      id: ACHIEVEMENT_ID,
+      status: 'DRAFT',
+      coverFileId: COVER_ID,
+      media: [],
+    });
+
+    await expect(service.approve(ACHIEVEMENT_ID, 'admin-1', 'ok')).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.achievement.update).not.toHaveBeenCalled();
   });
 
   it('getAdminMaterials returns cover and media moderation details', async () => {

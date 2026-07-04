@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { ContentMediaType, Prisma } from '@prisma/client';
 
@@ -1142,12 +1142,16 @@ export class AchievementsService {
       where: { id: achievementId },
       select: {
         id: true,
+        status: true,
         coverFileId: true,
         media: { select: { fileId: true } },
       },
     });
     if (!existing) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'achievement not found' });
+    }
+    if (existing.status === 'DRAFT') {
+      throw new ConflictException({ code: 'CONFLICT', message: 'draft achievement cannot be approved directly' });
     }
     const fileIds = [
       ...(existing.coverFileId ? [existing.coverFileId] : []),
@@ -1159,7 +1163,7 @@ export class AchievementsService {
     try {
       it = await this.prisma.achievement.update({
         where: { id: achievementId },
-        data: { auditStatus: 'APPROVED' },
+        data: { auditStatus: 'APPROVED', status: 'ACTIVE' },
       });
     } catch (error: any) {
       if (error?.code === 'P2025') {
