@@ -668,6 +668,34 @@ describe('ConversationsService write flow suite', () => {
     expect(result2).toEqual({ ok: true });
   });
 
+  it('allows platform conversation managers to mark platform conversations as read', async () => {
+    const req = {
+      auth: {
+        userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        isAdmin: true,
+        permissions: new Set(['conversation.platform.manage']),
+      },
+    };
+
+    prisma.conversation.findUnique.mockResolvedValueOnce({
+      id: CONVERSATION_ID,
+      contentType: 'SUPPORT',
+      buyerUserId: 'buyer-1',
+      sellerUserId: 'seller-1',
+    });
+    prisma.conversationParticipant.findFirst.mockResolvedValueOnce(null);
+
+    await expect(service.markRead(req, CONVERSATION_ID)).resolves.toEqual({ ok: true });
+    expect(prisma.conversationAgent.findFirst).not.toHaveBeenCalled();
+    expect(prisma.conversationParticipant.create).toHaveBeenCalledWith({
+      data: {
+        conversationId: CONVERSATION_ID,
+        userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        lastReadAt: expect.any(Date),
+      },
+    });
+  });
+
   it('assignPlatformAgent only allows staff users and persists active assignment', async () => {
     const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } };
     const operatorUserId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';

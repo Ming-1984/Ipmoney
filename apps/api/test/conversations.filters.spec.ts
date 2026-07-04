@@ -339,6 +339,38 @@ describe('ConversationsService pagination and id strictness suite', () => {
     });
   });
 
+  it('allows platform conversation managers to read platform conversation messages', async () => {
+    const req = {
+      auth: {
+        userId: 'admin-1',
+        isAdmin: true,
+        permissions: new Set(['conversation.platform.manage']),
+      },
+    };
+    const id = '11111111-1111-1111-1111-111111111111';
+    prisma.conversation.findUnique.mockResolvedValueOnce({
+      id,
+      contentType: 'SUPPORT',
+      buyerUserId: 'u-1',
+      sellerUserId: 'u-2',
+    });
+    prisma.conversationMessage.findMany.mockResolvedValueOnce([
+      {
+        id: 'm-1',
+        conversationId: id,
+        senderUserId: 'u-1',
+        type: 'TEXT',
+        text: 'hello',
+        createdAt: new Date('2026-03-14T01:00:00.000Z'),
+      },
+    ]);
+
+    await expect(service.listMessages(req, id, {})).resolves.toMatchObject({
+      items: [{ id: 'm-1', text: 'hello' }],
+    });
+    expect(prisma.conversationAgent.findFirst).not.toHaveBeenCalled();
+  });
+
   it('supports cursor pagination for listMessages', async () => {
     const req = { auth: { userId: 'u-1' } };
     const conversationId = '11111111-1111-1111-1111-111111111111';

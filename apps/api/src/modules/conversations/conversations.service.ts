@@ -429,11 +429,32 @@ export class ConversationsService {
     return Boolean(assignment);
   }
 
-  private async assertConversationAccessible(conv: any, userId: string): Promise<void> {
+  private hasPermission(req: any, permission: string): boolean {
+    const perms: Set<string> | undefined = req?.auth?.permissions;
+    return Boolean(perms && (perms.has('*') || perms.has(permission)));
+  }
+
+  private isPlatformConversation(conv: any): boolean {
+    return (
+      conv.contentType === 'SUPPORT' ||
+      conv.contentType === 'DISPUTE' ||
+      conv.contentType === 'MAINTENANCE' ||
+      conv.contentType === 'ACHIEVEMENT' ||
+      conv.contentType === 'LISTING'
+    );
+  }
+
+  private canManagePlatformConversation(req: any, conv: any): boolean {
+    return Boolean(req?.auth?.isAdmin && this.hasPermission(req, 'conversation.platform.manage') && this.isPlatformConversation(conv));
+  }
+
+  private async assertConversationAccessible(conv: any, req: any, options: { allowPlatformManager?: boolean } = {}): Promise<void> {
+    const userId = req?.auth?.userId;
+    if (options.allowPlatformManager && this.canManagePlatformConversation(req, conv)) return;
     if (conv.buyerUserId === userId || conv.sellerUserId === userId) return;
     const isAgent = await this.isConversationAgent(conv.id, userId);
     if (!isAgent) {
-      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限访问该会话' });
     }
   }
 
@@ -930,7 +951,7 @@ export class ConversationsService {
     const normalizedConversationId = this.parseUuidStrict(conversationId, 'conversationId');
     const conv = await this.prisma.conversation.findUnique({ where: { id: normalizedConversationId } });
     if (!conv) throw new NotFoundException({ code: 'NOT_FOUND', message: 'conversation not found' });
-    await this.assertConversationAccessible(conv, req.auth.userId);
+    await this.assertConversationAccessible(conv, req, { allowPlatformManager: true });
     const limitInput = this.hasOwn(query, 'limit') ? this.parsePositiveIntStrict(query?.limit, 'limit') : 50;
     const limit = Math.min(100, limitInput);
     const cursor = this.hasOwn(query, 'cursor') ? this.parseUuidStrict(query?.cursor, 'cursor') : undefined;
@@ -1000,7 +1021,7 @@ export class ConversationsService {
 
     const conv = await this.prisma.conversation.findUnique({ where: { id: normalizedConversationId } });
     if (!conv) throw new NotFoundException({ code: 'NOT_FOUND', message: 'conversation not found' });
-    await this.assertConversationAccessible(conv, req.auth.userId);
+    await this.assertConversationAccessible(conv, req);
     let file: any = null;
     let fileId: string | undefined;
     if (type === 'IMAGE' || type === 'FILE') {
@@ -1067,7 +1088,7 @@ export class ConversationsService {
     const normalizedConversationId = this.parseUuidStrict(conversationId, 'conversationId');
     const conv = await this.prisma.conversation.findUnique({ where: { id: normalizedConversationId } });
     if (!conv) throw new NotFoundException({ code: 'NOT_FOUND', message: 'conversation not found' });
-    await this.assertConversationAccessible(conv, req.auth.userId);
+    await this.assertConversationAccessible(conv, req, { allowPlatformManager: true });
     const participant = await this.prisma.conversationParticipant.findFirst({
       where: { conversationId: normalizedConversationId, userId: req.auth.userId },
     });
