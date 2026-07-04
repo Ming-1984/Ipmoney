@@ -1,6 +1,5 @@
 import { Alert, Button, Card, Form, Input, Space, Tabs, Typography, message } from 'antd';
 import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 import { apiGet, apiPost } from '../lib/api';
 import { clearAdminToken, setAdminToken } from '../lib/auth';
@@ -20,7 +19,6 @@ type SmsSendResponse = { cooldownSeconds: number; debugCode?: string };
 type SmsVerifyResponse = { accessToken: string };
 
 export function LoginPage() {
-  const navigate = useNavigate();
   const [tokenForm] = Form.useForm<{ token: string }>();
   const [smsForm] = Form.useForm<{ phone: string; code: string }>();
   const [activeTab, setActiveTab] = useState<'sms' | 'token'>('sms');
@@ -51,7 +49,7 @@ export function LoginPage() {
       if (!session?.isAdmin) {
         throw new Error('该账号不是后台员工账号，请联系管理员开通角色权限。');
       }
-      navigate('/', { replace: true });
+      window.location.replace('/');
     } catch (e: any) {
       clearAdminToken();
       throw e;
@@ -241,4 +239,3 @@ export function LoginPage() {
     </div>
   );
 }
-

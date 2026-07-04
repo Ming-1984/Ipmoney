@@ -38,7 +38,8 @@ body {
   backdrop-filter: blur(8px);
 }
 
-.ipm-sider {
+.ipm-sider,
+.ipm-sider.ant-layout-sider {
   background: var(--ipm-bg-container) !important;
   border-right: 1px solid var(--ipm-border);
 }
@@ -52,6 +53,7 @@ body {
 }
 
 .ipm-sider .ant-menu-light .ant-menu-item:hover,
+.ipm-sider .ant-menu-light .ant-menu-item-active,
 .ipm-sider .ant-menu-light .ant-menu-submenu-title:hover {
   background: rgba(255, 122, 0, 0.08) !important;
   color: var(--ipm-primary) !important;
@@ -65,7 +67,11 @@ body {
 
 .ipm-sider .ant-menu-light .ant-menu-item-selected a,
 .ipm-sider .ant-menu-light .ant-menu-item:hover a,
-.ipm-sider .ant-menu-light .ant-menu-submenu-title:hover a {
+.ipm-sider .ant-menu-light .ant-menu-item-selected .ant-menu-title-content,
+.ipm-sider .ant-menu-light .ant-menu-item:hover .ant-menu-title-content,
+.ipm-sider .ant-menu-light .ant-menu-item-active .ant-menu-title-content,
+.ipm-sider .ant-menu-light .ant-menu-submenu-title:hover a,
+.ipm-sider .ant-menu-light .ant-menu-submenu-title:hover .ant-menu-title-content {
   color: var(--ipm-primary) !important;
 }
 
@@ -83,8 +89,8 @@ body {
 }
 
 .ipm-sider .ant-layout-sider-trigger {
-  background: var(--ipm-bg-container);
-  color: var(--ipm-muted);
+  background: var(--ipm-bg-container) !important;
+  color: var(--ipm-muted) !important;
   border-top: 1px solid var(--ipm-border);
 }
 
