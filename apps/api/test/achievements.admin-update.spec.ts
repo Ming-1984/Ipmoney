@@ -27,6 +27,7 @@ describe('AchievementsService admin update suite', () => {
       },
       file: {
         findMany: vi.fn().mockResolvedValue([]),
+        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
       },
       user: {
         findMany: vi.fn().mockResolvedValue([
@@ -362,8 +363,24 @@ describe('AchievementsService admin update suite', () => {
       { id: '44444444-4444-4444-8444-444444444444', moderationStatus: 'PENDING' },
     ]);
 
-    await expect(service.approve(ACHIEVEMENT_ID, 'admin-1', 'ok')).rejects.toBeInstanceOf(BadRequestException);
-    expect(prisma.achievement.update).not.toHaveBeenCalled();
+    prisma.file.updateMany.mockResolvedValueOnce({ count: 1 });
+    prisma.file.findMany.mockResolvedValueOnce([
+      { id: COVER_ID, moderationStatus: 'APPROVED' },
+      { id: '44444444-4444-4444-8444-444444444444', moderationStatus: 'APPROVED' },
+    ]);
+    prisma.achievement.update.mockResolvedValueOnce({
+      id: ACHIEVEMENT_ID,
+      auditStatus: 'APPROVED',
+    });
+
+    const result = await service.approve(ACHIEVEMENT_ID, 'admin-1', 'ok');
+    expect(prisma.file.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: { in: ['44444444-4444-4444-8444-444444444444'] } },
+        data: expect.objectContaining({ moderationStatus: 'APPROVED', moderationProvider: 'ADMIN' }),
+      }),
+    );
+    expect(result).toMatchObject({ id: ACHIEVEMENT_ID, auditStatus: 'APPROVED' });
   });
 
   it('approves achievement when referenced media is approved or not required', async () => {
@@ -385,6 +402,39 @@ describe('AchievementsService admin update suite', () => {
       data: { auditStatus: 'APPROVED' },
     });
     expect(result).toMatchObject({ id: ACHIEVEMENT_ID, auditStatus: 'APPROVED' });
+  });
+
+  it('getAdminMaterials returns cover and media moderation details', async () => {
+    prisma.achievement.findUnique.mockResolvedValueOnce({
+      id: ACHIEVEMENT_ID,
+      coverFileId: COVER_ID,
+      media: [{ fileId: '44444444-4444-4444-8444-444444444444' }],
+    });
+    prisma.file.findMany.mockResolvedValueOnce([
+      {
+        id: COVER_ID,
+        fileName: 'cover.png',
+        mimeType: 'image/png',
+        moderationStatus: 'APPROVED',
+        moderationLabel: 'manual_review',
+        moderationReason: 'ok',
+        createdAt: new Date('2026-06-15T00:00:00.000Z'),
+      },
+      {
+        id: '44444444-4444-4444-8444-444444444444',
+        fileName: 'media.pdf',
+        mimeType: 'application/pdf',
+        moderationStatus: 'PENDING',
+        moderationLabel: null,
+        moderationReason: null,
+        createdAt: new Date('2026-06-16T00:00:00.000Z'),
+      },
+    ]);
+
+    const result = await service.getAdminMaterials(ACHIEVEMENT_ID);
+    expect(result.items).toHaveLength(2);
+    expect(result.items[0]).toMatchObject({ id: COVER_ID, moderationStatus: 'APPROVED' });
+    expect(result.items[1]).toMatchObject({ id: '44444444-4444-4444-8444-444444444444', moderationStatus: 'PENDING' });
   });
 
   it('listAdmin prioritizes strong title and publisher matches before weaker summary matches', async () => {

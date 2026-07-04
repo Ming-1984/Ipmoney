@@ -133,7 +133,7 @@ export class AchievementsController {
     this.achievements.ensureAdmin(req);
     requirePermission(req, 'listing.read');
     const normalizedAchievementId = this.parseUuidParam(achievementId, 'achievementId');
-    return await this.contentAudit.listMaterials('ACHIEVEMENT', normalizedAchievementId);
+    return await this.achievements.getAdminMaterials(normalizedAchievementId);
   }
 
   @UseGuards(BearerAuthGuard)

@@ -1,4 +1,4 @@
-import { Button, Card, Drawer, Form, Input, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, Descriptions, Drawer, Form, Input, Select, Space, Table, Tag, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { apiGet, apiPatch, apiPost } from '../lib/api';
@@ -7,6 +7,7 @@ import { displayAdminInfo, displayAdminTitle, formatRegionCodeDisplay, normalize
 import { auditStatusLabel, contentStatusLabel } from '../lib/labels';
 import { ImageUrlUploadField } from '../ui/ImageUrlUploadField';
 import { RequestErrorAlert } from '../ui/RequestState';
+import { confirmActionWithReason } from '../ui/confirm';
 
 type AuditStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 type ContentStatus = 'DRAFT' | 'ACTIVE' | 'OFF_SHELF';
@@ -43,6 +44,16 @@ type AchievementEdit = AchievementItem & {
   description?: string | null;
   keywords?: string[];
   cooperationModes?: string[];
+};
+
+type AchievementMaterial = {
+  id: string;
+  fileName?: string | null;
+  mimeType?: string | null;
+  moderationStatus?: string | null;
+  moderationLabel?: string | null;
+  moderationReason?: string | null;
+  createdAt: string;
 };
 
 const SOURCE_OPTIONS: Array<{ value: ContentSource; label: string }> = [
@@ -89,6 +100,8 @@ export function AchievementsPage() {
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [active, setActive] = useState<AchievementEdit | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [materials, setMaterials] = useState<AchievementMaterial[]>([]);
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
   const [description, setDescription] = useState('');
@@ -208,6 +221,41 @@ export function AchievementsPage() {
     }
   };
 
+  const openDetail = useCallback(async (id: string) => {
+    const seq = ++detailSeqRef.current;
+    detailIdRef.current = id;
+    try {
+      const [detail, mat] = await Promise.all([
+        apiGet<AchievementEdit>(`/admin/achievements/${id}`),
+        apiGet<{ items?: AchievementMaterial[] }>(`/admin/achievements/${id}/materials`),
+      ]);
+      if (seq !== detailSeqRef.current || detailIdRef.current !== id) return;
+      setActive(detail);
+      setMaterials(mat?.items || []);
+      setDetailOpen(true);
+    } catch (e: any) {
+      if (seq !== detailSeqRef.current || detailIdRef.current !== id) return;
+      message.error(e?.message || '加载成果详情失败');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!detailOpen || !active?.id) return;
+    void (async () => {
+      try {
+        const mat = await apiGet<{ items?: AchievementMaterial[] }>(`/admin/achievements/${active.id}/materials`);
+        setMaterials(mat?.items || []);
+      } catch (e: any) {
+        message.error(e?.message || '加载成果材料失败');
+      }
+    })();
+  }, [active?.id, detailOpen]);
+
+  const materialHasRejected = useMemo(
+    () => materials.some((item) => String(item.moderationStatus || '').trim().toUpperCase() === 'REJECTED'),
+    [materials],
+  );
+
   const save = useCallback(async () => {
     const payload: Record<string, any> = {
       title: title.trim(),
@@ -273,18 +321,46 @@ export function AchievementsPage() {
 
   const doPublish = useCallback(
     async (id: string) => {
+      const titleText = normalizeUserFacingText(active?.title) || id;
+      const { ok, reason } = await confirmActionWithReason({
+        title: '确认通过成果审核？',
+        content: (
+          <Space direction="vertical" size={4}>
+            <Typography.Text>成果：{titleText}</Typography.Text>
+            <Typography.Text type="secondary">系统会一并处理当前待审核的成果材料。</Typography.Text>
+          </Space>
+        ),
+        okText: '通过',
+        reasonLabel: '审核备注（可选）',
+        reasonPlaceholder: '可填写通过原因或备注，便于审计和后续对账。',
+      });
+      if (!ok) return;
+      const targetMaterialList = materials;
+      const hasRejected = targetMaterialList.some((item) => String(item.moderationStatus || '').trim().toUpperCase() === 'REJECTED');
+      if (hasRejected) {
+        const blocked = targetMaterialList
+          .filter((item) => String(item.moderationStatus || '').trim().toUpperCase() === 'REJECTED')
+          .map((item) => `${item.fileName || item.id}${item.moderationReason ? `：${item.moderationReason}` : ''}`)
+          .join('；');
+        message.error(blocked ? `当前成果材料存在驳回项：${blocked}` : '当前成果材料存在驳回项，不能通过审核');
+        return;
+      }
       setPublishing(true);
       try {
-        await apiPost(`/admin/achievements/${id}/publish`, {}, { idempotencyKey: `admin-achievement-publish-${id}-${Date.now()}` });
+        await apiPost(
+          `/admin/achievements/${id}/approve`,
+          { reason: reason || undefined },
+          { idempotencyKey: `admin-achievement-approve-${id}-${Date.now()}` },
+        );
         message.success('已发布');
         await load();
       } catch (e: any) {
-        message.error(e?.message || '发布失败');
+        message.error(e?.message || '通过审核失败');
       } finally {
         setPublishing(false);
       }
     },
-    [load],
+    [active?.title, load, materials],
   );
 
   const doOffShelf = useCallback(
@@ -411,6 +487,9 @@ export function AchievementsPage() {
                 <Space>
                   <Button size="small" onClick={() => void openEdit(row.id)}>
                     编辑
+                  </Button>
+                  <Button size="small" onClick={() => void openDetail(row.id)}>
+                    详情
                   </Button>
                   {row.status === 'ACTIVE' ? (
                     <Button size="small" loading={publishing} onClick={() => void doOffShelf(row.id)}>
@@ -542,6 +621,70 @@ export function AchievementsPage() {
             </Button>
           </Space>
         </Form>
+      </Drawer>
+
+      <Drawer
+        title={`成果详情：${normalizeUserFacingText(active?.title) || '成果标题待确认'}`}
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        width={860}
+        destroyOnClose
+      >
+        {active ? (
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Descriptions bordered size="small" column={2}>
+              <Descriptions.Item label="标题" span={2}>
+                {displayAdminTitle(active.title, '成果标题待确认')}
+              </Descriptions.Item>
+              <Descriptions.Item label="审核状态">
+                <Tag>{auditStatusLabel(active.auditStatus)}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="上架状态">
+                <Tag>{contentStatusLabel(active.status)}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="来源">{displayAdminInfo(achievementSourceLabel(active.source))}</Descriptions.Item>
+              <Descriptions.Item label="地区">{displayAdminInfo(formatRegionCodeDisplay(active.regionCode))}</Descriptions.Item>
+              <Descriptions.Item label="创建时间">{formatTimeSmart(active.createdAt)}</Descriptions.Item>
+              <Descriptions.Item label="外部编号">{displayAdminInfo(active.externalId)}</Descriptions.Item>
+              <Descriptions.Item label="来源批次">{displayAdminInfo(active.sourceBatch)}</Descriptions.Item>
+              <Descriptions.Item label="来源机构" span={2}>
+                {displayAdminInfo(active.sourceOrgName)}
+              </Descriptions.Item>
+            </Descriptions>
+
+            <Typography.Text strong>成果材料</Typography.Text>
+            {materialHasRejected ? (
+              <Typography.Text type="danger">有成果材料已被驳回，当前不能通过。</Typography.Text>
+            ) : null}
+            {materials.length ? (
+              <Space direction="vertical" style={{ width: '100%' }} size={8}>
+                {materials.map((item) => (
+                  <Card key={item.id} size="small" style={{ width: '100%' }}>
+                    <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                      <Space wrap>
+                        <Typography.Text strong>{displayAdminTitle(item.fileName || item.id, '成果材料')}</Typography.Text>
+                        <Tag>{String(item.moderationStatus || 'NOT_REQUIRED').toUpperCase()}</Tag>
+                      </Space>
+                      <Typography.Text type="secondary">{item.mimeType || '未知类型'}</Typography.Text>
+                      {item.moderationReason ? <Typography.Text type="danger">原因：{displayAdminInfo(item.moderationReason)}</Typography.Text> : null}
+                    </Space>
+                  </Card>
+                ))}
+              </Space>
+            ) : (
+              <Typography.Text type="secondary">暂无可展示的成果材料。</Typography.Text>
+            )}
+
+            <Space>
+              <Button type="primary" loading={publishing} onClick={() => void doPublish(active.id)}>
+                通过
+              </Button>
+              <Button danger loading={publishing} onClick={() => void doOffShelf(active.id)}>
+                驳回为下架
+              </Button>
+            </Space>
+          </Space>
+        ) : null}
       </Drawer>
     </Card>
   );

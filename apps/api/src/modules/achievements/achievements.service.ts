@@ -30,6 +30,15 @@ type AchievementMaturity =
   | 'OTHER';
 type ContentSortBy = 'RECOMMENDED' | 'NEWEST';
 type ConsultChannel = 'FORM' | 'PHONE' | 'WECHAT_CS';
+type AchievementMaterialDto = {
+  id: string;
+  fileName?: string | null;
+  mimeType?: string | null;
+  moderationStatus?: string | null;
+  moderationLabel?: string | null;
+  moderationReason?: string | null;
+  createdAt: string;
+};
 
 const STATUS_SET = new Set(['DRAFT', 'ACTIVE', 'OFF_SHELF']);
 const AUDIT_STATUS_SET = new Set(['PENDING', 'APPROVED', 'REJECTED']);
@@ -192,6 +201,58 @@ export class AchievementsService {
         code: 'BAD_REQUEST',
         message: `${label} media moderation is not approved`,
         fileIds: blocked.map((file: any) => file.id),
+      });
+    }
+  }
+
+  private async approvePendingFilesForAchievement(fileIds: string[], reviewerId: string | null, reason?: string) {
+    const normalizedFileIds = Array.from(new Set(normalizeStringArray(fileIds)));
+    if (!normalizedFileIds.length) return;
+
+    const files = await this.prisma.file.findMany({
+      where: { id: { in: normalizedFileIds } },
+      select: { id: true, moderationStatus: true, moderationReason: true },
+    });
+    if (files.length !== normalizedFileIds.length) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'achievement media is invalid' });
+    }
+
+    const rejected = files.filter((file: any) => String(file?.moderationStatus || '').toUpperCase() === 'REJECTED');
+    if (rejected.length) {
+      throw new BadRequestException({
+        code: 'BAD_REQUEST',
+        message: 'achievement media moderation is not approved',
+        fileIds: rejected.map((file: any) => file.id),
+      });
+    }
+
+    const pending = files.filter((file: any) => {
+      const status = String(file?.moderationStatus || 'NOT_REQUIRED').toUpperCase();
+      return status !== 'NOT_REQUIRED' && status !== 'APPROVED';
+    });
+    if (!pending.length) return;
+
+    await this.prisma.file.updateMany({
+      where: { id: { in: pending.map((file: any) => file.id) } },
+      data: {
+        moderationStatus: 'APPROVED',
+        moderationProvider: 'ADMIN',
+        moderationLabel: 'achievement_approve_auto',
+        moderationReason: reason || 'approved together with achievement review',
+        moderationCheckedAt: new Date(),
+      },
+    });
+
+    if (reviewerId) {
+      await this.audit.log({
+        actorUserId: reviewerId,
+        action: 'ACHIEVEMENT_MATERIALS_APPROVE',
+        targetType: 'ACHIEVEMENT',
+        targetId: pending.map((file: any) => file.id).join(','),
+        afterJson: {
+          fileIds: pending.map((file: any) => file.id),
+          reason,
+        },
       });
     }
   }
@@ -1055,13 +1116,11 @@ export class AchievementsService {
       },
     });
     if (!it) throw new NotFoundException({ code: 'NOT_FOUND', message: 'achievement not found' });
-    await this.assertFilesReadyForApproval(
-      [
-        ...(it.coverFileId ? [it.coverFileId] : []),
-        ...((it.media || []).map((item: any) => String(item.fileId || ''))),
-      ],
-      'achievement media',
-    );
+    const fileIds = [
+      ...(it.coverFileId ? [it.coverFileId] : []),
+      ...((it.media || []).map((item: any) => String(item.fileId || ''))),
+    ];
+    await this.approvePendingFilesForAchievement(fileIds, req?.auth?.userId || null);
     return await this.prisma.achievement.update({
       where: { id: achievementId },
       data: { status: 'ACTIVE', auditStatus: 'APPROVED' },
@@ -1090,13 +1149,11 @@ export class AchievementsService {
     if (!existing) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'achievement not found' });
     }
-    await this.assertFilesReadyForApproval(
-      [
-        ...(existing.coverFileId ? [existing.coverFileId] : []),
-        ...((existing.media || []).map((item: any) => String(item.fileId || ''))),
-      ],
-      'achievement media',
-    );
+    const fileIds = [
+      ...(existing.coverFileId ? [existing.coverFileId] : []),
+      ...((existing.media || []).map((item: any) => String(item.fileId || ''))),
+    ];
+    await this.approvePendingFilesForAchievement(fileIds, reviewerId, reason);
 
     let it: any;
     try {
@@ -1145,6 +1202,52 @@ export class AchievementsService {
       });
     }
     return it;
+  }
+
+  async getAdminMaterials(achievementId: string): Promise<{ items: AchievementMaterialDto[] }> {
+    if (!achievementId) return { items: [] };
+    const achievement = await this.prisma.achievement.findUnique({
+      where: { id: achievementId },
+      select: { coverFileId: true, media: { select: { fileId: true } } },
+    });
+    if (!achievement) throw new NotFoundException({ code: 'NOT_FOUND', message: 'achievement not found' });
+
+    const items: AchievementMaterialDto[] = [];
+    const seen = new Set<string>();
+    const fileIds = Array.from(new Set([
+      ...(achievement.coverFileId ? [achievement.coverFileId] : []),
+      ...((achievement.media || []).map((item: any) => String(item.fileId || ''))),
+    ].filter(Boolean)));
+    if (!fileIds.length) return { items };
+
+    const files = await this.prisma.file.findMany({
+      where: { id: { in: fileIds } },
+      select: {
+        id: true,
+        fileName: true,
+        mimeType: true,
+        moderationStatus: true,
+        moderationLabel: true,
+        moderationReason: true,
+        createdAt: true,
+      },
+    });
+    const fileMap = new Map(files.map((file: any) => [file.id, file]));
+    for (const fileId of fileIds) {
+      if (seen.has(fileId)) continue;
+      seen.add(fileId);
+      const file = fileMap.get(fileId);
+      items.push({
+        id: fileId,
+        fileName: file?.fileName ?? null,
+        mimeType: file?.mimeType ?? null,
+        moderationStatus: file?.moderationStatus ?? null,
+        moderationLabel: file?.moderationLabel ?? null,
+        moderationReason: file?.moderationReason ?? null,
+        createdAt: file?.createdAt ? new Date(file.createdAt).toISOString() : new Date().toISOString(),
+      });
+    }
+    return { items };
   }
 
   async createConsultation(req: any, achievementId: string, payload: any) {
