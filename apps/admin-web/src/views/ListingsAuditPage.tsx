@@ -266,6 +266,17 @@ export function ListingsAuditPage() {
     () => selectedRowKeys.map((it) => String(it)).filter(Boolean),
     [selectedRowKeys],
   );
+  const selectedListings = useMemo(
+    () => {
+      const rowMap = new Map((listings?.items || []).map((row) => [row.id, row]));
+      return selectedListingIds.map((id) => rowMap.get(id)).filter(Boolean) as Listing[];
+    },
+    [listings?.items, selectedListingIds],
+  );
+  const selectedPublishBlocked = useMemo(
+    () => selectedListings.some((row) => row.status === 'DRAFT' || row.auditStatus !== 'APPROVED'),
+    [selectedListings],
+  );
 
   const loadListings = useCallback(async () => {
     setLoading(true);
@@ -430,6 +441,10 @@ export function ListingsAuditPage() {
         message.warning('请先选择需要操作的挂牌');
         return;
       }
+      if (action === 'PUBLISH' && selectedPublishBlocked) {
+        message.error('选中的挂牌包含草稿或未审核通过项，不能直接上架');
+        return;
+      }
       const reason = window.prompt('可选：请输入批量操作备注（可留空）')?.trim();
       try {
         await apiPost<BatchJob>(
@@ -450,7 +465,7 @@ export function ListingsAuditPage() {
         message.error(e?.message || '创建批量任务失败');
       }
     },
-    [loadBatchJobs, loadListings, selectedListingIds],
+    [loadBatchJobs, loadListings, selectedListingIds, selectedPublishBlocked],
   );
 
   const approveListing = useCallback(
@@ -766,11 +781,12 @@ export function ListingsAuditPage() {
           <Space wrap>
             <Button onClick={() => void submitBatchAction('APPROVE')}>批量通过</Button>
             <Button onClick={() => void submitBatchAction('REJECT')}>批量驳回</Button>
-            <Button type="primary" onClick={() => void submitBatchAction('PUBLISH')}>
+            <Button type="primary" disabled={selectedPublishBlocked} onClick={() => void submitBatchAction('PUBLISH')}>
               批量上架
             </Button>
             <Button onClick={() => void submitBatchAction('OFF_SHELF')}>批量下架</Button>
             <Typography.Text type="secondary">已选 {selectedListingIds.length} 条</Typography.Text>
+            {selectedPublishBlocked ? <Typography.Text type="secondary">草稿和未审核通过项不能直接上架</Typography.Text> : null}
           </Space>
 
           <Table<Listing>

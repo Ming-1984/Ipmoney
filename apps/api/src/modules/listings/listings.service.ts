@@ -2093,8 +2093,9 @@ export class ListingsService {
   }
 
 
-  async adminCreate(req: any, body: any) {
+  async adminCreate(req: any, body: any, options?: { allowLifecycleFields?: boolean }) {
     this.ensureAdmin(req);
+    const allowLifecycleFields = options?.allowLifecycleFields === true;
     const hasSource = this.hasOwn(body, 'source');
     const hasTradeMode = this.hasOwn(body, 'tradeMode');
     const hasLicenseMode = this.hasOwn(body, 'licenseMode');
@@ -2111,6 +2112,12 @@ export class ListingsService {
     const hasTitle = this.hasOwn(body, 'title');
     const hasSummary = this.hasOwn(body, 'summary');
     const industryTags = sanitizeIndustryTagNames(body?.industryTags);
+    if (!allowLifecycleFields && (this.hasOwn(body, 'auditStatus') || this.hasOwn(body, 'status'))) {
+      throw new BadRequestException({
+        code: 'BAD_REQUEST',
+        message: 'auditStatus and status can only be set by internal import flows',
+      });
+    }
 
     const source = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : 'ADMIN';
     const tradeMode = hasTradeMode ? this.parseTradeModeStrict(body?.tradeMode, 'tradeMode') : 'ASSIGNMENT';
@@ -2240,8 +2247,9 @@ export class ListingsService {
     return this.toAdminDto(listing);
   }
 
-  async adminUpdate(req: any, listingId: string, body: any) {
+  async adminUpdate(req: any, listingId: string, body: any, options?: { allowLifecycleFields?: boolean }) {
     this.ensureAdmin(req);
+    const allowLifecycleFields = options?.allowLifecycleFields === true;
     const listing = await this.prisma.listing.findUnique({ where: { id: listingId } });
     if (!listing) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
@@ -2293,6 +2301,12 @@ export class ListingsService {
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : undefined;
     const hasStatus = this.hasOwn(body, 'status');
     const status = hasStatus ? this.parseListingStatusStrict(body?.status, 'status') : undefined;
+    if (!allowLifecycleFields && (hasAuditStatus || hasStatus)) {
+      throw new BadRequestException({
+        code: 'BAD_REQUEST',
+        message: 'auditStatus and status can only be set by internal import flows',
+      });
+    }
     const hasConsultationRouting = this.hasOwn(body, 'consultationRouting');
     const consultationRouting = hasConsultationRouting
       ? this.parseConsultationRoutingStrict(body?.consultationRouting, 'consultationRouting')
@@ -2390,6 +2404,9 @@ export class ListingsService {
     const listing = await this.prisma.listing.findUnique({ where: { id: listingId } });
     if (!listing) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
+    }
+    if (listing.status === 'DRAFT') {
+      throw new ConflictException({ code: 'CONFLICT', message: 'draft listing cannot be published directly' });
     }
     if (listing.auditStatus !== 'APPROVED') {
       throw new ConflictException({ code: 'CONFLICT', message: 'listing must be approved before publish' });
@@ -2545,6 +2562,9 @@ export class ListingsService {
       return 'SUCCEEDED' as const;
     }
     if (job.action === 'PUBLISH') {
+      if (listing.status === 'DRAFT') {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'draft listing cannot be published directly' });
+      }
       if (listing.status === 'ACTIVE') return 'SKIPPED' as const;
       if (listing.status === 'SOLD') {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'listing is sold' });
@@ -2903,7 +2923,7 @@ export class ListingsService {
             },
           });
         } else if (existing && job.duplicatePolicy === 'OVERWRITE') {
-          const updated = await this.adminUpdate(reqAsAdmin, existing.id, payload);
+          const updated = await this.adminUpdate(reqAsAdmin, existing.id, payload, { allowLifecycleFields: true });
           listingId = updated.id;
           successCount += 1;
           await this.prisma.listingImportJobRow.update({
@@ -2917,7 +2937,7 @@ export class ListingsService {
             },
           });
         } else {
-          const created = await this.adminCreate(reqAsAdmin, payload);
+          const created = await this.adminCreate(reqAsAdmin, payload, { allowLifecycleFields: true });
           listingId = created.id;
           successCount += 1;
           await this.prisma.listingImportJobRow.update({
