@@ -51,6 +51,29 @@ body {
   background: transparent;
 }
 
+.ipm-sider .ant-menu-light .ant-menu-item:hover,
+.ipm-sider .ant-menu-light .ant-menu-submenu-title:hover {
+  background: rgba(255, 122, 0, 0.08) !important;
+  color: var(--ipm-primary) !important;
+}
+
+.ipm-sider .ant-menu-light .ant-menu-item-selected,
+.ipm-sider .ant-menu-light .ant-menu-item-selected:hover {
+  background: rgba(255, 122, 0, 0.12) !important;
+  color: var(--ipm-primary) !important;
+}
+
+.ipm-sider .ant-menu-light .ant-menu-item-selected a,
+.ipm-sider .ant-menu-light .ant-menu-item:hover a,
+.ipm-sider .ant-menu-light .ant-menu-submenu-title:hover a {
+  color: var(--ipm-primary) !important;
+}
+
+.ipm-sider .ant-menu-light .ant-menu-item .anticon,
+.ipm-sider .ant-menu-light .ant-menu-submenu-title .anticon {
+  color: inherit;
+}
+
 .ipm-sider .ipm-logo-text span {
   color: var(--ipm-text) !important;
 }
