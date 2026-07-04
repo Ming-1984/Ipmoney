@@ -45,6 +45,7 @@ const theme: ThemeConfig = {
       primaryShadow: 'var(--ipm-shadow-primary)',
     },
     Table: {
+      rowHoverBg: 'var(--ipm-primary-soft)',
       rowSelectedBg: 'var(--ipm-primary-soft)',
       rowSelectedHoverBg: 'var(--ipm-primary-soft-strong)',
     },
