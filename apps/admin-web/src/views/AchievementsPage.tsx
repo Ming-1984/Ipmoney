@@ -85,6 +85,23 @@ function splitTags(input: string): string[] {
     .filter(Boolean);
 }
 
+function achievementStatusText(row: AchievementItem): string {
+  if (row.auditStatus === 'REJECTED') return '已驳回';
+  if (row.status === 'DRAFT') return '草稿';
+  if (row.auditStatus === 'PENDING') return '待审核，审核通过后上架';
+  if (row.status === 'ACTIVE') return '已上架';
+  if (row.status === 'OFF_SHELF') return '已下架';
+  return contentStatusLabel(row.status);
+}
+
+function achievementActionMode(row: AchievementItem): 'REVIEW' | 'OFF_SHELF' | 'PUBLISH' | 'NONE' {
+  if (row.auditStatus === 'PENDING') return 'REVIEW';
+  if (row.status === 'ACTIVE') return 'OFF_SHELF';
+  if (row.status === 'OFF_SHELF') return 'PUBLISH';
+  if (row.auditStatus === 'APPROVED') return 'PUBLISH';
+  return 'NONE';
+}
+
 export function AchievementsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
@@ -124,6 +141,13 @@ export function AchievementsPage() {
   const detailIdRef = useRef<string | null>(null);
 
   const rows = useMemo(() => data?.items || [], [data?.items]);
+  const loadAchievementContext = useCallback(async (id: string) => {
+    const [detail, mat] = await Promise.all([
+      apiGet<AchievementEdit>(`/admin/achievements/${id}`),
+      apiGet<{ items?: AchievementMaterial[] }>(`/admin/achievements/${id}/materials`),
+    ]);
+    return { detail, materials: mat?.items || [] };
+  }, []);
 
   const load = useCallback(async (opts?: { page?: number; pageSize?: number }) => {
     const nextPage = opts?.page ?? page;
@@ -321,7 +345,8 @@ export function AchievementsPage() {
 
   const doPublish = useCallback(
     async (id: string) => {
-      const titleText = normalizeUserFacingText(active?.title) || id;
+      const context = await loadAchievementContext(id);
+      const titleText = normalizeUserFacingText(context.detail?.title) || id;
       const { ok, reason } = await confirmActionWithReason({
         title: '确认通过成果审核？',
         content: (
@@ -335,7 +360,7 @@ export function AchievementsPage() {
         reasonPlaceholder: '可填写通过原因或备注，便于审计和后续对账。',
       });
       if (!ok) return;
-      const targetMaterialList = materials;
+      const targetMaterialList = context.materials;
       const hasRejected = targetMaterialList.some((item) => String(item.moderationStatus || '').trim().toUpperCase() === 'REJECTED');
       if (hasRejected) {
         const blocked = targetMaterialList
@@ -361,6 +386,38 @@ export function AchievementsPage() {
       }
     },
     [active?.title, load, materials],
+  );
+
+  const doReject = useCallback(
+    async (id: string) => {
+      const context = await loadAchievementContext(id);
+      const titleText = normalizeUserFacingText(context.detail?.title) || id;
+      const { ok, reason } = await confirmActionWithReason({
+        title: '确认驳回成果审核？',
+        content: `成果：${titleText}`,
+        okText: '驳回',
+        reasonRequired: true,
+        reasonLabel: '驳回原因',
+        reasonPlaceholder: '请填写驳回原因，便于提交人修改后重新审核。',
+        danger: true,
+      });
+      if (!ok) return;
+      if (!reason) {
+        message.error('驳回必须填写原因');
+        return;
+      }
+      setPublishing(true);
+      try {
+        await apiPost(`/admin/achievements/${id}/reject`, { reason }, { idempotencyKey: `admin-achievement-reject-${id}-${Date.now()}` });
+        message.success('成果已驳回');
+        await load();
+      } catch (e: any) {
+        message.error(e?.message || '驳回审核失败');
+      } finally {
+        setPublishing(false);
+      }
+    },
+    [loadAchievementContext, load],
   );
 
   const doOffShelf = useCallback(
@@ -476,7 +533,7 @@ export function AchievementsPage() {
               title: '上架状态',
               dataIndex: 'status',
               width: 120,
-              render: (v: ContentStatus) => <Tag>{contentStatusLabel(v)}</Tag>,
+              render: (_, row) => <Tag>{achievementStatusText(row)}</Tag>,
             },
             { title: '创建时间', dataIndex: 'createdAt', width: 180, render: (v) => formatTimeSmart(v) },
             {
@@ -491,15 +548,27 @@ export function AchievementsPage() {
                   <Button size="small" onClick={() => void openDetail(row.id)}>
                     详情
                   </Button>
-                  {row.status === 'ACTIVE' ? (
+                  {achievementActionMode(row) === 'REVIEW' ? (
+                    <>
+                      <Button size="small" type="primary" onClick={() => void openDetail(row.id)}>
+                        审核
+                      </Button>
+                      <Button size="small" type="primary" loading={publishing} onClick={() => void doPublish(row.id)}>
+                        通过
+                      </Button>
+                      <Button size="small" danger loading={publishing} onClick={() => void doReject(row.id)}>
+                        驳回
+                      </Button>
+                    </>
+                  ) : achievementActionMode(row) === 'OFF_SHELF' ? (
                     <Button size="small" loading={publishing} onClick={() => void doOffShelf(row.id)}>
                       下架
                     </Button>
-                  ) : (
+                  ) : achievementActionMode(row) === 'PUBLISH' ? (
                     <Button size="small" type="primary" loading={publishing} onClick={() => void doPublish(row.id)}>
-                      发布
+                      上架
                     </Button>
-                  )}
+                  ) : null}
                 </Space>
               ),
             },
@@ -640,7 +709,7 @@ export function AchievementsPage() {
                 <Tag>{auditStatusLabel(active.auditStatus)}</Tag>
               </Descriptions.Item>
               <Descriptions.Item label="上架状态">
-                <Tag>{contentStatusLabel(active.status)}</Tag>
+                <Tag>{achievementStatusText(active)}</Tag>
               </Descriptions.Item>
               <Descriptions.Item label="来源">{displayAdminInfo(achievementSourceLabel(active.source))}</Descriptions.Item>
               <Descriptions.Item label="地区">{displayAdminInfo(formatRegionCodeDisplay(active.regionCode))}</Descriptions.Item>
@@ -676,12 +745,24 @@ export function AchievementsPage() {
             )}
 
             <Space>
-              <Button type="primary" loading={publishing} onClick={() => void doPublish(active.id)}>
-                通过
-              </Button>
-              <Button danger loading={publishing} onClick={() => void doOffShelf(active.id)}>
-                驳回为下架
-              </Button>
+              {active.auditStatus === 'PENDING' ? (
+                <>
+                  <Button type="primary" loading={publishing} onClick={() => void doPublish(active.id)}>
+                    通过
+                  </Button>
+                  <Button danger loading={publishing} onClick={() => void doOffShelf(active.id)}>
+                    驳回
+                  </Button>
+                </>
+              ) : active.status === 'ACTIVE' ? (
+                <Button loading={publishing} onClick={() => void doOffShelf(active.id)}>
+                  下架
+                </Button>
+              ) : active.status === 'OFF_SHELF' ? (
+                <Button type="primary" loading={publishing} onClick={() => void doPublish(active.id)}>
+                  上架
+                </Button>
+              ) : null}
             </Space>
           </Space>
         ) : null}
