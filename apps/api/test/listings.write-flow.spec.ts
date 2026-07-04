@@ -76,6 +76,7 @@ describe('ListingsService write flow suite', () => {
       },
       file: {
         findMany: vi.fn(),
+        updateMany: vi.fn(),
       },
       listingAuditLog: {
         create: vi.fn().mockResolvedValue(undefined),
@@ -390,7 +391,7 @@ describe('ListingsService write flow suite', () => {
   });
 
   it('update can clear proofFileIds explicitly', async () => {
-    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ proofFileIdsJson: ['file-1'] }));
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ proofFileIdsJson: ['file-1'], status: 'ACTIVE' }));
     prisma.listing.update.mockResolvedValueOnce(buildListing({ proofFileIdsJson: [] }));
 
     const result = await service.updateListing(USER_REQ, LISTING_ID, {
@@ -429,14 +430,14 @@ describe('ListingsService write flow suite', () => {
   it('submit allows pending proof files', async () => {
     prisma.listing.findUnique.mockResolvedValueOnce(buildListing());
     prisma.file.findMany.mockResolvedValueOnce([{ id: 'file-1', ownerId: USER_ID }]);
-    prisma.listing.update.mockResolvedValueOnce(buildListing({ status: 'ACTIVE', auditStatus: 'PENDING' }));
+    prisma.listing.update.mockResolvedValueOnce(buildListing({ status: 'OFF_SHELF', auditStatus: 'PENDING' }));
 
     const submitted = await service.submitListing(USER_REQ, LISTING_ID);
 
     expect(contentSecurity.ensureReferencedFilesReady).toHaveBeenCalledWith(
       expect.objectContaining({ userId: USER_ID, fileIds: ['file-1'], label: 'proofFileIds', allowPending: true }),
     );
-    expect(submitted.status).toBe('ACTIVE');
+    expect(submitted.status).toBe('OFF_SHELF');
   });
 
   it('update rejects OPEN_LICENSE when effective tradeMode is not LICENSE', async () => {
@@ -523,7 +524,7 @@ describe('ListingsService write flow suite', () => {
       .mockResolvedValueOnce(buildListing({ sellerUserId: USER_ID }));
     prisma.file.findMany.mockResolvedValueOnce([{ id: 'file-1', ownerId: USER_ID }]);
     prisma.listing.update
-      .mockResolvedValueOnce(buildListing({ status: 'ACTIVE', auditStatus: 'PENDING' }))
+      .mockResolvedValueOnce(buildListing({ status: 'OFF_SHELF', auditStatus: 'PENDING' }))
       .mockResolvedValueOnce(buildListing({ status: 'OFF_SHELF' }));
 
     const submitted = await service.submitListing(USER_REQ, LISTING_ID);
@@ -531,14 +532,14 @@ describe('ListingsService write flow suite', () => {
 
     expect(prisma.listing.update).toHaveBeenNthCalledWith(1, {
       where: { id: LISTING_ID },
-      data: { auditStatus: 'PENDING', status: 'ACTIVE' },
+      data: { auditStatus: 'PENDING', status: 'OFF_SHELF' },
     });
     expect(prisma.listing.update).toHaveBeenNthCalledWith(2, {
       where: { id: LISTING_ID },
       data: { status: 'OFF_SHELF' },
     });
     expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'LISTING_SUBMIT', targetId: LISTING_ID }));
-    expect(submitted.status).toBe('ACTIVE');
+    expect(submitted.status).toBe('OFF_SHELF');
     expect(offShelved.status).toBe('OFF_SHELF');
   });
 
@@ -564,8 +565,6 @@ describe('ListingsService write flow suite', () => {
         tradeMode: 'LICENSE',
         licenseMode: 'EXCLUSIVE',
         priceType: 'FIXED',
-        auditStatus: 'APPROVED',
-        status: 'ACTIVE',
       }),
     );
 
@@ -577,8 +576,6 @@ describe('ListingsService write flow suite', () => {
       licenseMode: 'exclusive',
       priceType: 'fixed',
       regionCode: '110000',
-      auditStatus: 'approved',
-      status: 'active',
     });
 
     expect(contentSecurity.ensureReferencedFilesReady).not.toHaveBeenCalled();
@@ -591,12 +588,12 @@ describe('ListingsService write flow suite', () => {
           tradeMode: 'LICENSE',
           priceType: 'FIXED',
           regionCode: '110000',
-          auditStatus: 'APPROVED',
-          status: 'ACTIVE',
+          auditStatus: 'PENDING',
+          status: 'DRAFT',
         }),
       }),
     );
-    expect(created.status).toBe('ACTIVE');
+    expect(created.status).toBe('DRAFT');
 
     prisma.listing.findUnique.mockResolvedValueOnce(null);
     await expect(service.adminUpdate(ADMIN_REQ, LISTING_ID, { title: 'x' })).rejects.toBeInstanceOf(NotFoundException);
@@ -607,8 +604,6 @@ describe('ListingsService write flow suite', () => {
         sellerUserId: 'owner-3',
         source: 'ADMIN',
         title: 'Admin Updated',
-        auditStatus: 'REJECTED',
-        status: 'OFF_SHELF',
       }),
     );
 
@@ -616,8 +611,6 @@ describe('ListingsService write flow suite', () => {
       sellerUserId: ' owner-3 ',
       source: 'admin',
       title: ' Admin Updated ',
-      auditStatus: 'rejected',
-      status: 'off_shelf',
     });
 
     expect(prisma.listing.update).toHaveBeenCalledWith({
@@ -626,19 +619,13 @@ describe('ListingsService write flow suite', () => {
         sellerUserId: 'owner-3',
         source: 'ADMIN',
         title: 'Admin Updated',
-        auditStatus: 'REJECTED',
-        status: 'OFF_SHELF',
       }),
     });
     expect(updated).toMatchObject({
       id: LISTING_ID,
       title: 'Admin Updated',
       source: 'ADMIN',
-      status: 'OFF_SHELF',
     });
-
-    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ status: 'OFF_SHELF', auditStatus: 'PENDING', regionCode: null }));
-    await expect(service.adminUpdate(ADMIN_REQ, LISTING_ID, { status: 'active' })).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('adminCreate falls back to patent metadata instead of synthetic listing title', async () => {
@@ -668,8 +655,6 @@ describe('ListingsService write flow suite', () => {
       sellerUserId: USER_ID,
       patentNumberRaw: '202410000000.1',
       patentType: 'invention',
-      auditStatus: 'pending',
-      status: 'draft',
     });
 
     expect(prisma.listing.create).toHaveBeenCalledWith(
@@ -795,13 +780,13 @@ describe('ListingsService write flow suite', () => {
     prisma.listing.findUnique.mockResolvedValueOnce(null);
     await expect(service.adminPublish(ADMIN_REQ, LISTING_ID)).rejects.toBeInstanceOf(NotFoundException);
 
-    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ auditStatus: 'PENDING' }));
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ auditStatus: 'PENDING', status: 'OFF_SHELF' }));
     await expect(service.adminPublish(ADMIN_REQ, LISTING_ID)).rejects.toBeInstanceOf(ConflictException);
 
-    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ auditStatus: 'APPROVED', regionCode: null }));
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ auditStatus: 'APPROVED', status: 'ACTIVE', regionCode: null }));
     await expect(service.adminPublish(ADMIN_REQ, LISTING_ID)).rejects.toBeInstanceOf(BadRequestException);
 
-    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ auditStatus: 'APPROVED' }));
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ auditStatus: 'APPROVED', status: 'ACTIVE' }));
     prisma.file.findMany.mockResolvedValueOnce([{ id: 'file-1', moderationStatus: 'APPROVED' }]);
     prisma.listing.update.mockResolvedValueOnce(buildListing({ status: 'ACTIVE', auditStatus: 'APPROVED' }));
     const published = await service.adminPublish(ADMIN_REQ, LISTING_ID);
@@ -822,12 +807,14 @@ describe('ListingsService write flow suite', () => {
     prisma.listing.findUnique.mockResolvedValueOnce(null);
     await expect(service.approve(LISTING_ID, 'admin-reviewer', 'ok')).rejects.toBeInstanceOf(NotFoundException);
 
-    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ proofFileIdsJson: ['file-1'] }));
-    prisma.file.findMany.mockResolvedValueOnce([{ id: 'file-1', moderationStatus: 'PENDING' }]);
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ proofFileIdsJson: ['file-1'], status: 'ACTIVE' }));
+    prisma.file.findMany.mockResolvedValueOnce([{ id: 'file-1', moderationStatus: 'REJECTED' }]);
     await expect(service.approve(LISTING_ID, 'admin-reviewer', 'ok')).rejects.toBeInstanceOf(ConflictException);
 
-    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ proofFileIdsJson: ['file-1'] }));
-    prisma.file.findMany.mockResolvedValueOnce([{ id: 'file-1', moderationStatus: 'APPROVED' }]);
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ proofFileIdsJson: ['file-1'], status: 'ACTIVE' }));
+    prisma.file.findMany
+      .mockResolvedValueOnce([{ id: 'file-1', moderationStatus: 'APPROVED' }])
+      .mockResolvedValueOnce([{ id: 'file-1', moderationStatus: 'APPROVED' }]);
     prisma.listing.update.mockResolvedValueOnce(buildListing({ auditStatus: 'APPROVED', sellerUserId: USER_ID }));
     const approved = await service.approve(LISTING_ID, 'admin-reviewer', 'ok');
     expect(approved).toMatchObject({ id: LISTING_ID, auditStatus: 'APPROVED' });
@@ -852,6 +839,34 @@ describe('ListingsService write flow suite', () => {
     expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'LISTING_APPROVE', targetId: LISTING_ID }));
     expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'LISTING_REJECT', targetId: LISTING_ID }));
     expect(notifications.create).toHaveBeenCalledWith(expect.objectContaining({ userId: USER_ID }));
+  });
+
+  it('approve auto-passes pending proof files but blocks rejected proof files', async () => {
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ proofFileIdsJson: ['file-1', 'file-2'], status: 'ACTIVE' }));
+    prisma.file.findMany
+      .mockResolvedValueOnce([
+        { id: 'file-1', moderationStatus: 'PENDING' },
+        { id: 'file-2', moderationStatus: 'NOT_REQUIRED' },
+      ])
+      .mockResolvedValueOnce([
+        { id: 'file-1', moderationStatus: 'APPROVED' },
+        { id: 'file-2', moderationStatus: 'NOT_REQUIRED' },
+      ]);
+    prisma.file.updateMany.mockResolvedValueOnce({ count: 1 });
+    prisma.listing.update.mockResolvedValueOnce(buildListing({ auditStatus: 'APPROVED', sellerUserId: USER_ID }));
+
+    const approved = await service.approve(LISTING_ID, 'admin-reviewer', 'ok');
+    expect(approved).toMatchObject({ id: LISTING_ID, auditStatus: 'APPROVED' });
+    expect(prisma.file.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: { in: ['file-1'] } },
+        data: expect.objectContaining({ moderationStatus: 'APPROVED', moderationProvider: 'ADMIN' }),
+      }),
+    );
+
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ proofFileIdsJson: ['file-1'] }));
+    prisma.file.findMany.mockResolvedValueOnce([{ id: 'file-1', moderationStatus: 'REJECTED' }]);
+    await expect(service.approve(LISTING_ID, 'admin-reviewer', 'ok')).rejects.toBeInstanceOf(ConflictException);
   });
 
   it('updateFeatured rejects unsafe integer featuredRank', async () => {

@@ -288,19 +288,19 @@ function translateApiMessage(message: string): string {
   return text;
 }
 
-function listingHasBlockedProofFiles(row?: Listing | null): boolean {
+function listingHasRejectedProofFiles(row?: Listing | null): boolean {
   if (!row?.proofFiles?.length) return false;
   return row.proofFiles.some((file) => {
     const status = String(file.moderationStatus || '').trim().toUpperCase();
-    return status && status !== 'NOT_REQUIRED' && status !== 'APPROVED';
+    return status === 'REJECTED';
   });
 }
 
-function listingBlockedProofFiles(row?: Listing | null): Array<NonNullable<Listing['proofFiles']>[number]> {
+function listingRejectedProofFiles(row?: Listing | null): Array<NonNullable<Listing['proofFiles']>[number]> {
   if (!row?.proofFiles?.length) return [];
   return row.proofFiles.filter((file) => {
     const status = String(file.moderationStatus || '').trim().toUpperCase();
-    return status && status !== 'NOT_REQUIRED' && status !== 'APPROVED';
+    return status === 'REJECTED';
   });
 }
 
@@ -622,18 +622,23 @@ export function ListingsAuditPage() {
       const title = normalizeUserFacingText(row.title) || row.id;
       const { ok, reason } = await confirmActionWithReason({
         title: '确认通过挂牌审核？',
-        content: `挂牌：${title}`,
+        content: (
+          <Space direction="vertical" size={4}>
+            <Typography.Text>挂牌：{title}</Typography.Text>
+            <Typography.Text type="secondary">系统会一并处理当前待审核的权属材料。</Typography.Text>
+          </Space>
+        ),
         okText: '通过',
         reasonLabel: '审核备注（可选）',
         reasonPlaceholder: '可填写通过原因或备注，便于审计和后续对账。',
       });
       if (!ok) return;
-      if (listingHasBlockedProofFiles(row)) {
-        const blocked = listingBlockedProofFiles(row);
+      if (listingHasRejectedProofFiles(row)) {
+        const blocked = listingRejectedProofFiles(row);
         const reasonText = blocked
           .map((file) => `${file.fileName || file.id}：${fileModerationLabel(file.moderationStatus)}${file.moderationReason ? `，${file.moderationReason}` : ''}`)
           .join('；');
-        message.error(reasonText ? `当前权属材料仍未通过审核：${reasonText}` : '当前权属材料仍未通过审核，不能通过挂牌');
+        message.error(reasonText ? `当前权属材料存在驳回项：${reasonText}` : '当前权属材料存在驳回项，不能通过挂牌');
         return;
       }
 
@@ -1375,8 +1380,8 @@ export function ListingsAuditPage() {
           <Typography.Text type="secondary">加载详情中...</Typography.Text>
         ) : activeListing ? (
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
-            {listingHasBlockedProofFiles(activeListing) ? (
-              <Typography.Text type="danger">有权属材料仍未通过审核，当前不能通过。</Typography.Text>
+            {listingHasRejectedProofFiles(activeListing) ? (
+              <Typography.Text type="danger">有权属材料已被驳回，当前不能通过。</Typography.Text>
             ) : null}
             <Descriptions size="small" bordered column={2}>
               <Descriptions.Item label="挂牌记录编号" span={2}>{activeListing.id}</Descriptions.Item>

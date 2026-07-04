@@ -599,6 +599,58 @@ export class ListingsService {
     }
   }
 
+  private async approvePendingProofFilesForListing(fileIds: string[], reviewerId: string | null, reason?: string) {
+    const normalizedFileIds = this.normalizeFileIds(fileIds);
+    if (!normalizedFileIds.length) return;
+
+    const files = await this.prisma.file.findMany({
+      where: { id: { in: normalizedFileIds } },
+      select: { id: true, moderationStatus: true, moderationReason: true },
+    });
+    if (files.length !== normalizedFileIds.length) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'proofFileIds is invalid' });
+    }
+
+    const rejected = files.filter((file: any) => String(file?.moderationStatus || '').toUpperCase() === 'REJECTED');
+    if (rejected.length) {
+      throw new ConflictException({
+        code: 'CONFLICT',
+        message: 'proofFileIds media moderation is rejected',
+        fileIds: rejected.map((file: any) => file.id),
+      });
+    }
+
+    const pending = files.filter((file: any) => {
+      const status = String(file?.moderationStatus || 'NOT_REQUIRED').toUpperCase();
+      return status !== 'NOT_REQUIRED' && status !== 'APPROVED';
+    });
+    if (!pending.length) return;
+
+    await this.prisma.file.updateMany({
+      where: { id: { in: pending.map((file: any) => file.id) } },
+      data: {
+        moderationStatus: 'APPROVED',
+        moderationProvider: 'ADMIN',
+        moderationLabel: 'listing_approve_auto',
+        moderationReason: reason || 'approved together with listing review',
+        moderationCheckedAt: new Date(),
+      },
+    });
+
+    if (reviewerId) {
+      await this.audit.log({
+        actorUserId: reviewerId,
+        action: 'LISTING_PROOF_FILES_APPROVE',
+        targetType: 'LISTING',
+        targetId: pending.map((file: any) => file.id).join(','),
+        afterJson: {
+          fileIds: pending.map((file: any) => file.id),
+          reason,
+        },
+      });
+    }
+  }
+
   private normalizeListingTopics(input: unknown): ListingTopic[] {
     return Array.from(
       new Set(
@@ -3107,7 +3159,9 @@ export class ListingsService {
       throw new ConflictException({ code: 'CONFLICT', message: 'draft listing cannot be approved directly' });
     }
     this.assertRegionCodeRequiredForActiveStatus(existing.regionCode, 'ACTIVE');
-    await this.assertFilesReadyForApproval(this.normalizeFileIds((existing as any).proofFileIdsJson), 'proofFileIds');
+    const proofFileIds = this.normalizeFileIds((existing as any).proofFileIdsJson);
+    await this.approvePendingProofFilesForListing(proofFileIds, reviewerId, reason);
+    await this.assertFilesReadyForApproval(proofFileIds, 'proofFileIds');
 
     let it: any;
     try {
