@@ -72,6 +72,15 @@ type Listing = {
   ipcCodes?: string[];
   locCodes?: string[];
   proofFileIds?: string[];
+  proofFiles?: Array<{
+    id: string;
+    fileName?: string | null;
+    mimeType?: string | null;
+    moderationStatus?: string | null;
+    moderationLabel?: string | null;
+    moderationReason?: string | null;
+    createdAt: string;
+  }>;
   deliverables?: string[];
   industryTags?: string[];
   auditStatus: AuditStatus;
@@ -255,6 +264,23 @@ function listingAuditStatusText(row: Listing): string {
   if (row.status === 'DRAFT') return listingStatusLabel(row.status);
   if (row.auditStatus === 'PENDING') return '待审核，审核通过后上架';
   return listingStatusLabel(row.status);
+}
+
+function fileModerationLabel(status?: string | null): string {
+  const text = String(status || '').trim().toUpperCase();
+  if (text === 'APPROVED') return '已通过';
+  if (text === 'PENDING') return '待审核';
+  if (text === 'REJECTED') return '已驳回';
+  if (text === 'NOT_REQUIRED') return '无需审核';
+  return '状态待确认';
+}
+
+function listingHasBlockedProofFiles(row?: Listing | null): boolean {
+  if (!row?.proofFiles?.length) return false;
+  return row.proofFiles.some((file) => {
+    const status = String(file.moderationStatus || '').trim().toUpperCase();
+    return status && status !== 'NOT_REQUIRED' && status !== 'APPROVED';
+  });
 }
 
 export function ListingsAuditPage() {
@@ -549,6 +575,10 @@ export function ListingsAuditPage() {
         reasonPlaceholder: '可填写通过原因或备注，便于审计和后续对账。',
       });
       if (!ok) return;
+      if (listingHasBlockedProofFiles(row)) {
+        message.error('当前权属材料仍未通过审核，不能通过挂牌');
+        return;
+      }
 
       try {
         await apiPost(
@@ -1288,6 +1318,9 @@ export function ListingsAuditPage() {
           <Typography.Text type="secondary">加载详情中...</Typography.Text>
         ) : activeListing ? (
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            {listingHasBlockedProofFiles(activeListing) ? (
+              <Typography.Text type="danger">有权属材料仍未通过审核，当前不能通过。</Typography.Text>
+            ) : null}
             <Descriptions size="small" bordered column={2}>
               <Descriptions.Item label="挂牌记录编号" span={2}>{activeListing.id}</Descriptions.Item>
               <Descriptions.Item label="标题" span={2}>{displayText(activeListing.title, '挂牌标题待确认')}</Descriptions.Item>
@@ -1323,12 +1356,19 @@ export function ListingsAuditPage() {
               <Descriptions.Item label="交付内容" span={2}>{displayList(activeListing.deliverables, '未填写')}</Descriptions.Item>
               <Descriptions.Item label="摘要" span={2}>{displayText(activeListing.summary, '未填写')}</Descriptions.Item>
               <Descriptions.Item label="权属材料" span={2}>
-                {activeListing.proofFileIds?.length ? (
-                  <Space size={[4, 4]} wrap>
-                    {activeListing.proofFileIds.map((fileId) => (
-                      <Button key={fileId} size="small" onClick={() => void openFileById(fileId)}>
-                        查看材料
-                      </Button>
+                {activeListing.proofFiles?.length ? (
+                  <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                    {activeListing.proofFiles.map((file) => (
+                      <Space key={file.id} size={8} wrap>
+                        <Button size="small" onClick={() => void openFileById(file.id)}>
+                          查看
+                        </Button>
+                        <Tag>{fileModerationLabel(file.moderationStatus)}</Tag>
+                        <Typography.Text>{displayText(file.fileName, file.id)}</Typography.Text>
+                        {file.moderationReason ? (
+                          <Typography.Text type="danger">原因：{displayText(file.moderationReason)}</Typography.Text>
+                        ) : null}
+                      </Space>
                     ))}
                   </Space>
                 ) : (

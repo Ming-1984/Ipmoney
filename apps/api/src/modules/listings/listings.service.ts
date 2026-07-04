@@ -53,6 +53,7 @@ type ListingAdminDto = {
   ipcCodes?: string[];
   locCodes?: string[];
   proofFileIds?: string[];
+  proofFiles?: ListingProofFileDto[];
   deliverables?: string[];
   industryTags?: string[];
   listingTopics?: ListingTopic[];
@@ -81,6 +82,16 @@ type ListingAdminDto = {
   featuredRegionCode?: string | null;
   featuredRank?: number | null;
   featuredUntil?: string | null;
+};
+
+type ListingProofFileDto = {
+  id: string;
+  fileName?: string | null;
+  mimeType?: string | null;
+  moderationStatus?: string | null;
+  moderationLabel?: string | null;
+  moderationReason?: string | null;
+  createdAt: string;
 };
 
 type PagedListingAdmin = {
@@ -791,6 +802,41 @@ export class ListingsService {
       featuredRank: it.featuredRank ?? undefined,
       featuredUntil: toIso(it.featuredUntil),
     };
+  }
+
+  private async toAdminDetailDto(it: any): Promise<ListingAdminDto> {
+    const dto = this.toAdminDto(it);
+    const proofFileIds = this.normalizeStringArray(it.proofFileIdsJson);
+    if (!proofFileIds.length) {
+      return dto;
+    }
+
+    const files = await this.prisma.file.findMany({
+      where: { id: { in: proofFileIds } },
+      select: {
+        id: true,
+        fileName: true,
+        mimeType: true,
+        moderationStatus: true,
+        moderationLabel: true,
+        moderationReason: true,
+        createdAt: true,
+      },
+    });
+    const fileMap = new Map(files.map((file: any) => [file.id, file]));
+    dto.proofFiles = proofFileIds.map((fileId) => {
+      const file = fileMap.get(fileId);
+      return {
+        id: fileId,
+        fileName: file?.fileName ?? null,
+        mimeType: file?.mimeType ?? null,
+        moderationStatus: file?.moderationStatus ?? null,
+        moderationLabel: file?.moderationLabel ?? null,
+        moderationReason: file?.moderationReason ?? null,
+        createdAt: file?.createdAt ? new Date(file.createdAt).toISOString() : new Date().toISOString(),
+      } satisfies ListingProofFileDto;
+    });
+    return dto;
   }
 
   private resolveSellerOrgCategory(listing: any): 'UNIVERSITY' | 'UNIVERSITY_985' | 'UNIVERSITY_211' | 'RESEARCH_INSTITUTE' | 'OTHER' | null {
@@ -2124,7 +2170,7 @@ export class ListingsService {
       include: { patent: { include: { parties: true, classifications: true } } },
     });
     if (!it) throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
-    return this.toAdminDto(it);
+    return await this.toAdminDetailDto(it);
   }
 
 
