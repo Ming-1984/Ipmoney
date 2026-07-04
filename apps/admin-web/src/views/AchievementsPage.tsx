@@ -88,7 +88,7 @@ function splitTags(input: string): string[] {
 function achievementStatusText(row: AchievementItem): string {
   if (row.auditStatus === 'REJECTED') return '已驳回';
   if (row.status === 'DRAFT') return '草稿';
-  if (row.auditStatus === 'PENDING') return '待审核，审核通过后上架';
+  if (row.auditStatus === 'PENDING') return '待审核';
   if (row.status === 'ACTIVE') return '已上架';
   if (row.status === 'OFF_SHELF') return '已下架';
   return contentStatusLabel(row.status);
@@ -550,9 +550,6 @@ export function AchievementsPage() {
                   </Button>
                   {achievementActionMode(row) === 'REVIEW' ? (
                     <>
-                      <Button size="small" type="primary" onClick={() => void openDetail(row.id)}>
-                        审核
-                      </Button>
                       <Button size="small" type="primary" loading={publishing} onClick={() => void doPublish(row.id)}>
                         通过
                       </Button>
@@ -750,7 +747,7 @@ export function AchievementsPage() {
                   <Button type="primary" loading={publishing} onClick={() => void doPublish(active.id)}>
                     通过
                   </Button>
-                  <Button danger loading={publishing} onClick={() => void doOffShelf(active.id)}>
+                  <Button danger loading={publishing} onClick={() => void doReject(active.id)}>
                     驳回
                   </Button>
                 </>
