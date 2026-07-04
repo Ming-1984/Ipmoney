@@ -40,6 +40,12 @@ type ConversationSummary = {
   contentType: 'LISTING' | 'ACHIEVEMENT' | 'TECH_MANAGER' | 'SUPPORT' | 'DISPUTE' | 'MAINTENANCE';
   contentId: string;
   contentTitle: string;
+  patentId?: string | null;
+  patentTitle?: string | null;
+  patentNoDisplay?: string | null;
+  applicationNoDisplay?: string | null;
+  maintenanceYearNo?: number | null;
+  maintenancePatentTitle?: string | null;
   listingId?: string | null;
   listingTitle?: string | null;
   listingTopics?: ListingTopic[];
@@ -187,6 +193,23 @@ function conversationMessageBody(messageItem: ConversationMessage): string {
   return conversationMessageTypeLabel(messageItem.type);
 }
 
+function formatConversationBusinessInfo(item: ConversationSummary | null): Array<{ label: string; value: string }> {
+  if (!item) return [];
+  const rows: Array<{ label: string; value: string }> = [];
+  if (item.patentTitle) rows.push({ label: '专利标题', value: item.patentTitle });
+  if (item.patentNoDisplay) rows.push({ label: '专利号', value: item.patentNoDisplay });
+  if (item.applicationNoDisplay) rows.push({ label: '申请号', value: item.applicationNoDisplay });
+  if (item.listingTitle) rows.push({ label: '挂牌标题', value: item.listingTitle });
+  if (item.listingId) rows.push({ label: '挂牌编号', value: item.listingId });
+  if (item.maintenanceYearNo) rows.push({ label: '代缴年份', value: `第${item.maintenanceYearNo}年` });
+  if (item.contentType === 'MAINTENANCE' && item.maintenancePatentTitle) {
+    rows.push({ label: '代缴专利', value: item.maintenancePatentTitle });
+  }
+  if (item.contentType === 'SUPPORT') rows.push({ label: '业务类型', value: '平台客服' });
+  if (item.contentType === 'DISPUTE') rows.push({ label: '业务类型', value: '订单争议' });
+  return rows;
+}
+
 export function PlatformConversationsPage() {
   const screens = Grid.useBreakpoint();
   const [loading, setLoading] = useState(false);
@@ -239,6 +262,8 @@ export function PlatformConversationsPage() {
     }
     return out;
   }, [staffUsers]);
+
+  const conversationBusinessInfo = useMemo(() => formatConversationBusinessInfo(activeConversation), [activeConversation]);
 
   const timeline = useMemo<TimelineLine[]>(() => {
     const out: TimelineLine[] = [];
@@ -718,6 +743,29 @@ export function PlatformConversationsPage() {
                       </Tag>
                     ))}
                   </Space>
+
+                  {conversationBusinessInfo.length ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: screens.lg ? 'repeat(2, minmax(0, 1fr))' : '1fr', gap: 8 }}>
+                      {conversationBusinessInfo.map((row) => (
+                        <div
+                          key={row.label}
+                          style={{
+                            border: '1px solid #f0f0f0',
+                            borderRadius: 8,
+                            padding: '8px 10px',
+                            background: '#fafafa',
+                          }}
+                        >
+                          <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
+                            {row.label}
+                          </Typography.Text>
+                          <Typography.Text strong ellipsis style={{ display: 'block' }}>
+                            {row.value}
+                          </Typography.Text>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
 
                   <Space wrap>
                     <Button size="small" loading={assigning} onClick={() => void assignAgent()}>

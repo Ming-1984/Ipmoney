@@ -65,7 +65,25 @@ describe('ConversationsService pagination and id strictness suite', () => {
       },
       include: {
         listing: true,
-        order: { include: { listing: { select: { id: true, title: true } } } },
+        order: {
+          include: {
+            listing: {
+              select: {
+                id: true,
+                title: true,
+                patentId: true,
+                patent: {
+                  select: {
+                    id: true,
+                    title: true,
+                    patentNoDisplay: true,
+                    applicationNoDisplay: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         buyer: { include: { verifications: { orderBy: { submittedAt: 'desc' }, take: 1 } } },
         seller: { include: { verifications: { orderBy: { submittedAt: 'desc' }, take: 1 } } },
         agents: { where: { active: true } },
@@ -544,6 +562,49 @@ describe('ConversationsService pagination and id strictness suite', () => {
         },
       }),
     );
+  });
+
+  it('returns patent metadata for platform conversations', async () => {
+    const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } };
+    prisma.conversation.findMany.mockResolvedValueOnce([
+      {
+        id: '11111111-1111-1111-1111-111111111111',
+        contentType: 'LISTING',
+        contentId: 'listing-1',
+        listingId: 'listing-1',
+        listing: {
+          id: 'listing-1',
+          title: '挂牌标题 A',
+          patentId: 'patent-1',
+          patent: {
+            id: 'patent-1',
+            title: '专利标题 A',
+            patentNoDisplay: 'CN123456',
+            applicationNoDisplay: 'CN20240001',
+          },
+          listingTopicsJson: ['OPEN_LICENSE'],
+        },
+        buyer: { id: 'u-1', nickname: 'Buyer', avatarUrl: null, role: 'buyer', verifications: [] },
+        seller: { id: 'u-2', nickname: 'Seller', avatarUrl: null, role: 'seller', verifications: [] },
+        agents: [],
+        participants: [{ lastReadAt: null }],
+        messages: [],
+        lastMessageAt: new Date('2026-03-14T01:10:00.000Z'),
+        updatedAt: new Date('2026-03-14T01:10:00.000Z'),
+        createdAt: new Date('2026-03-14T01:00:00.000Z'),
+      },
+    ]);
+    prisma.conversation.count.mockResolvedValueOnce(1);
+
+    const result = await service.listPlatformConversations(req, {});
+
+    expect(result.items[0]).toMatchObject({
+      patentId: 'patent-1',
+      patentTitle: '专利标题 A',
+      patentNoDisplay: 'CN123456',
+      applicationNoDisplay: 'CN20240001',
+      listingTitle: '挂牌标题 A',
+    });
   });
 
   it('uses exact UUID matching for id fields when q looks like UUID', async () => {

@@ -32,6 +32,12 @@ type ConversationSummary = {
   contentType: ConversationContentType;
   contentId: string;
   contentTitle: string;
+  patentId?: string | null;
+  patentTitle?: string | null;
+  patentNoDisplay?: string | null;
+  applicationNoDisplay?: string | null;
+  maintenanceYearNo?: number | null;
+  maintenancePatentTitle?: string | null;
   listingId?: string | null;
   listingTitle?: string | null;
   listingTopics?: ListingTopic[];
@@ -250,6 +256,7 @@ export class ConversationsService {
     unreadCount: number,
     achievementTitleMap: Map<string, string>,
     maintenanceTitleMap: Map<string, string>,
+    maintenanceMetaMap: Map<string, { patentTitle: string | null; yearNo: number | null }>,
   ): ConversationSummary {
     const lastMessageAt = (it.lastMessageAt || it.updatedAt || it.createdAt) as Date;
     const latestMessage = Array.isArray(it.messages) && it.messages.length > 0 ? it.messages[0] : null;
@@ -265,11 +272,46 @@ export class ConversationsService {
             : contentType === 'MAINTENANCE'
               ? maintenanceTitleMap.get(contentId) ?? '年费代缴'
               : this.resolveDisputeTitle(it.order);
+    const maintenanceMeta = contentType === 'MAINTENANCE' ? maintenanceMetaMap.get(contentId) ?? null : null;
     return {
       id: it.id,
       contentType,
       contentId,
       contentTitle,
+      patentId:
+        contentType === 'MAINTENANCE'
+          ? it.order?.schedule?.patentId ?? null
+          : contentType === 'LISTING'
+            ? it.listing?.patentId ?? null
+            : contentType === 'DISPUTE'
+              ? it.order?.listing?.patentId ?? null
+              : null,
+      patentTitle:
+        contentType === 'MAINTENANCE'
+          ? maintenanceMeta?.patentTitle ?? null
+          : contentType === 'LISTING'
+            ? it.listing?.patent?.title ?? it.listing?.title ?? null
+            : contentType === 'DISPUTE'
+              ? it.order?.listing?.patent?.title ?? null
+              : null,
+      patentNoDisplay:
+        contentType === 'MAINTENANCE'
+          ? it.order?.schedule?.patent?.patentNoDisplay ?? null
+          : contentType === 'LISTING'
+            ? it.listing?.patent?.patentNoDisplay ?? null
+            : contentType === 'DISPUTE'
+              ? it.order?.listing?.patent?.patentNoDisplay ?? null
+              : null,
+      applicationNoDisplay:
+        contentType === 'MAINTENANCE'
+          ? it.order?.schedule?.patent?.applicationNoDisplay ?? null
+          : contentType === 'LISTING'
+            ? it.listing?.patent?.applicationNoDisplay ?? null
+            : contentType === 'DISPUTE'
+              ? it.order?.listing?.patent?.applicationNoDisplay ?? null
+              : null,
+      maintenanceYearNo: maintenanceMeta?.yearNo ?? null,
+      maintenancePatentTitle: maintenanceMeta?.patentTitle ?? null,
       listingId: it.listingId ?? null,
       listingTitle: it.listing?.title ?? null,
       listingTopics: this.normalizeListingTopics(it.listing?.listingTopicsJson),
@@ -606,7 +648,25 @@ export class ConversationsService {
         where: mineWhere,
         include: {
           listing: true,
-          order: { include: { listing: { select: { id: true, title: true } } } },
+          order: {
+            include: {
+              listing: {
+                select: {
+                  id: true,
+                  title: true,
+                  patentId: true,
+                  patent: {
+                    select: {
+                      id: true,
+                      title: true,
+                      patentNoDisplay: true,
+                      applicationNoDisplay: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
           buyer: { include: { verifications: { orderBy: { submittedAt: 'desc' }, take: 1 } } },
           seller: { include: { verifications: { orderBy: { submittedAt: 'desc' }, take: 1 } } },
           agents: { where: { active: true } },
@@ -669,7 +729,10 @@ export class ConversationsService {
                 yearNo: true,
                 patent: {
                   select: {
+                    id: true,
                     title: true,
+                    patentNoDisplay: true,
+                    applicationNoDisplay: true,
                   },
                 },
               },
@@ -679,6 +742,15 @@ export class ConversationsService {
       : [];
     const maintenanceTitleMap = new Map(
       maintenanceOrders.map((item: any) => [item.id, this.resolveMaintenanceTitle(item)]),
+    );
+    const maintenanceMetaMap = new Map(
+      maintenanceOrders.map((item: any) => [
+        item.id,
+        {
+          patentTitle: item.schedule?.patent?.title ?? null,
+          yearNo: Number.isSafeInteger(Number(item.schedule?.yearNo || 0)) ? Number(item.schedule?.yearNo) : null,
+        },
+      ]),
     );
 
     const unreadCounts = await Promise.all(
@@ -1200,7 +1272,25 @@ export class ConversationsService {
       where,
       include: {
         listing: true,
-        order: { include: { listing: { select: { id: true, title: true } } } },
+        order: {
+          include: {
+            listing: {
+              select: {
+                id: true,
+                title: true,
+                patentId: true,
+                patent: {
+                  select: {
+                    id: true,
+                    title: true,
+                    patentNoDisplay: true,
+                    applicationNoDisplay: true,
+                  },
+                },
+              },
+            },
+            },
+          },
         buyer: { include: { verifications: { orderBy: { submittedAt: 'desc' }, take: 1 } } },
         seller: { include: { verifications: { orderBy: { submittedAt: 'desc' }, take: 1 } } },
         agents: { where: { active: true } },
@@ -1246,9 +1336,13 @@ export class ConversationsService {
             schedule: {
               select: {
                 yearNo: true,
+                patentId: true,
                 patent: {
                   select: {
+                    id: true,
                     title: true,
+                    patentNoDisplay: true,
+                    applicationNoDisplay: true,
                   },
                 },
               },
@@ -1258,6 +1352,15 @@ export class ConversationsService {
       : [];
     const maintenanceTitleMap = new Map(
       maintenanceOrders.map((item: any) => [item.id, this.resolveMaintenanceTitle(item)]),
+    );
+    const maintenanceMetaMap = new Map(
+      maintenanceOrders.map((item: any) => [
+        item.id,
+        {
+          patentTitle: item.schedule?.patent?.title ?? null,
+          yearNo: Number.isSafeInteger(Number(item.schedule?.yearNo || 0)) ? Number(item.schedule?.yearNo) : null,
+        },
+      ]),
     );
     const achievements = achievementIds.size
       ? await this.prisma.achievement.findMany({
@@ -1275,7 +1378,7 @@ export class ConversationsService {
     );
 
     const mapped = items.map((it: any, index: number) =>
-      this.toPlatformConversationSummary(it, unreadCounts[index] ?? 0, achievementTitleMap, maintenanceTitleMap),
+      this.toPlatformConversationSummary(it, unreadCounts[index] ?? 0, achievementTitleMap, maintenanceTitleMap, maintenanceMetaMap),
     );
 
     if (qFilter) {
