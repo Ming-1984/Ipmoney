@@ -4,6 +4,8 @@ import {
   Button,
   Card,
   DatePicker,
+  Descriptions,
+  Drawer,
   Empty,
   Grid,
   Input,
@@ -83,6 +85,29 @@ type AuthSession = { userId: string };
 type Paged<T> = { items: T[]; page: { page: number; pageSize: number; total: number } };
 type PagedMessages = { items: ConversationMessage[]; nextCursor?: string | null };
 type UserListResponse = { items: StaffUser[] };
+type PatentDetail = {
+  id: string;
+  jurisdiction: 'CN';
+  applicationNoNorm: string;
+  applicationNoDisplay?: string;
+  publicationNoDisplay?: string;
+  patentNoDisplay?: string;
+  grantPublicationNoDisplay?: string;
+  patentType: 'INVENTION' | 'UTILITY_MODEL' | 'DESIGN';
+  title: string;
+  abstract?: string;
+  inventorNames?: string[];
+  assigneeNames?: string[];
+  applicantNames?: string[];
+  filingDate?: string;
+  publicationDate?: string;
+  grantDate?: string;
+  legalStatus?: 'PENDING' | 'GRANTED' | 'EXPIRED' | 'INVALIDATED' | 'UNKNOWN';
+  sourcePrimary?: 'USER' | 'ADMIN' | 'PROVIDER';
+  sourceUpdatedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+};
 type TimelineLine = { kind: 'divider'; key: string; label: string } | { kind: 'message'; key: string; message: ConversationMessage };
 
 const ASSIGNED_FILTER_OPTIONS: Array<{ value: AssignedFilter; label: string }> = [
@@ -193,21 +218,44 @@ function conversationMessageBody(messageItem: ConversationMessage): string {
   return conversationMessageTypeLabel(messageItem.type);
 }
 
-function formatConversationBusinessInfo(item: ConversationSummary | null): Array<{ label: string; value: string }> {
-  if (!item) return [];
-  const rows: Array<{ label: string; value: string }> = [];
-  if (item.patentTitle) rows.push({ label: '专利标题', value: item.patentTitle });
-  if (item.patentNoDisplay) rows.push({ label: '专利号', value: item.patentNoDisplay });
-  if (item.applicationNoDisplay) rows.push({ label: '申请号', value: item.applicationNoDisplay });
-  if (item.listingTitle) rows.push({ label: '挂牌标题', value: item.listingTitle });
-  if (item.listingId) rows.push({ label: '挂牌编号', value: item.listingId });
-  if (item.maintenanceYearNo) rows.push({ label: '代缴年份', value: `第${item.maintenanceYearNo}年` });
-  if (item.contentType === 'MAINTENANCE' && item.maintenancePatentTitle) {
-    rows.push({ label: '代缴专利', value: item.maintenancePatentTitle });
-  }
-  if (item.contentType === 'SUPPORT') rows.push({ label: '业务类型', value: '平台客服' });
-  if (item.contentType === 'DISPUTE') rows.push({ label: '业务类型', value: '订单争议' });
-  return rows;
+function displayPatentText(value?: string | null): string {
+  return normalizeUserFacingText(value) || '-';
+}
+
+function patentTypeLabel(value?: PatentDetail['patentType']): string {
+  if (value === 'UTILITY_MODEL') return '实用新型';
+  if (value === 'DESIGN') return '外观设计';
+  if (value === 'INVENTION') return '发明';
+  return '类型待确认';
+}
+
+function patentLegalStatusLabel(value?: PatentDetail['legalStatus']): string {
+  if (value === 'GRANTED') return '已授权';
+  if (value === 'PENDING') return '审查中';
+  if (value === 'EXPIRED') return '已失效';
+  if (value === 'INVALIDATED') return '已无效';
+  if (value === 'UNKNOWN') return '状态待确认';
+  return '状态待确认';
+}
+
+function patentLegalStatusColor(value?: PatentDetail['legalStatus']): string {
+  if (value === 'GRANTED') return 'green';
+  if (value === 'PENDING') return 'gold';
+  if (value === 'EXPIRED') return 'default';
+  if (value === 'INVALIDATED') return 'red';
+  return 'default';
+}
+
+function patentSourceLabel(value?: PatentDetail['sourcePrimary']): string {
+  if (value === 'ADMIN') return '后台录入';
+  if (value === 'USER') return '用户上传';
+  if (value === 'PROVIDER') return '外部数据源';
+  return '来源待确认';
+}
+
+function patentNamesLabel(values?: string[] | null): string {
+  const list = (values || []).map((item) => normalizeUserFacingText(item)).filter(Boolean);
+  return list.length ? list.join('、') : '-';
 }
 
 export function PlatformConversationsPage() {
@@ -241,6 +289,9 @@ export function PlatformConversationsPage() {
   const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
   const [currentUserId, setCurrentUserId] = useState('');
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [patentDetailOpen, setPatentDetailOpen] = useState(false);
+  const [patentDetailLoading, setPatentDetailLoading] = useState(false);
+  const [patentDetail, setPatentDetail] = useState<PatentDetail | null>(null);
   const [listingTopicOptions, setListingTopicOptions] =
     useState<Array<{ value: ListingTopic; label: string }>>(DEFAULT_LISTING_TOPIC_OPTIONS);
 
@@ -262,8 +313,6 @@ export function PlatformConversationsPage() {
     }
     return out;
   }, [staffUsers]);
-
-  const conversationBusinessInfo = useMemo(() => formatConversationBusinessInfo(activeConversation), [activeConversation]);
 
   const timeline = useMemo<TimelineLine[]>(() => {
     const out: TimelineLine[] = [];
@@ -509,6 +558,25 @@ export function PlatformConversationsPage() {
     [activeConversationId, loadConversations, staffNameMap],
   );
 
+  const openPatentDetail = useCallback(async () => {
+    const patentId = String(activeConversation?.patentId || '').trim();
+    if (!patentId) {
+      message.warning('当前会话没有可查看的专利');
+      return;
+    }
+    setPatentDetailOpen(true);
+    setPatentDetailLoading(true);
+    try {
+      const detail = await apiGet<PatentDetail>(`/admin/patents/${patentId}`);
+      setPatentDetail(detail);
+    } catch (err: any) {
+      message.error(err?.message || '加载专利详情失败');
+      setPatentDetailOpen(false);
+    } finally {
+      setPatentDetailLoading(false);
+    }
+  }, [activeConversation?.patentId]);
+
   useEffect(() => {
     void loadStaffContext();
   }, [loadStaffContext]);
@@ -565,6 +633,11 @@ export function PlatformConversationsPage() {
     }, 15000);
     return () => window.clearInterval(timer);
   }, [autoRefresh, refreshCurrent]);
+
+  useEffect(() => {
+    setPatentDetailOpen(false);
+    setPatentDetail(null);
+  }, [activeConversationId]);
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
@@ -744,30 +817,12 @@ export function PlatformConversationsPage() {
                     ))}
                   </Space>
 
-                  {conversationBusinessInfo.length ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: screens.lg ? 'repeat(2, minmax(0, 1fr))' : '1fr', gap: 8 }}>
-                      {conversationBusinessInfo.map((row) => (
-                        <div
-                          key={row.label}
-                          style={{
-                            border: '1px solid #f0f0f0',
-                            borderRadius: 8,
-                            padding: '8px 10px',
-                            background: '#fafafa',
-                          }}
-                        >
-                          <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
-                            {row.label}
-                          </Typography.Text>
-                          <Typography.Text strong ellipsis style={{ display: 'block' }}>
-                            {row.value}
-                          </Typography.Text>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-
                   <Space wrap>
+                    {activeConversation.patentId ? (
+                      <Button size="small" loading={patentDetailLoading && patentDetailOpen} onClick={() => void openPatentDetail()}>
+                        专利详情
+                      </Button>
+                    ) : null}
                     <Button size="small" loading={assigning} onClick={() => void assignAgent()}>
                       分配给我
                     </Button>
@@ -899,6 +954,55 @@ export function PlatformConversationsPage() {
           )}
         </Card>
       </div>
+
+      <Drawer
+        title="专利详情"
+        open={patentDetailOpen}
+        width={screens.lg ? 820 : '100%'}
+        onClose={() => {
+          setPatentDetailOpen(false);
+          setPatentDetail(null);
+        }}
+        destroyOnClose
+      >
+        {patentDetailLoading ? (
+          <Typography.Text type="secondary">正在加载专利详情...</Typography.Text>
+        ) : patentDetail ? (
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Space wrap>
+              <Tag color="blue">{patentTypeLabel(patentDetail.patentType)}</Tag>
+              <Tag color={patentLegalStatusColor(patentDetail.legalStatus)}>{patentLegalStatusLabel(patentDetail.legalStatus)}</Tag>
+              <Tag>{patentSourceLabel(patentDetail.sourcePrimary)}</Tag>
+            </Space>
+
+            <Descriptions bordered size="small" column={screens.lg ? 2 : 1}>
+              <Descriptions.Item label="专利标题" span={2}>
+                {displayPatentText(patentDetail.title)}
+              </Descriptions.Item>
+              <Descriptions.Item label="申请号">{displayPatentText(patentDetail.applicationNoDisplay || patentDetail.applicationNoNorm)}</Descriptions.Item>
+              <Descriptions.Item label="专利号">{displayPatentText(patentDetail.patentNoDisplay)}</Descriptions.Item>
+              <Descriptions.Item label="公开号">{displayPatentText(patentDetail.publicationNoDisplay)}</Descriptions.Item>
+              <Descriptions.Item label="公告号">{displayPatentText(patentDetail.grantPublicationNoDisplay)}</Descriptions.Item>
+              <Descriptions.Item label="发明人" span={2}>{patentNamesLabel(patentDetail.inventorNames)}</Descriptions.Item>
+              <Descriptions.Item label="申请人" span={2}>{patentNamesLabel(patentDetail.applicantNames)}</Descriptions.Item>
+              <Descriptions.Item label="权利人" span={2}>{patentNamesLabel(patentDetail.assigneeNames)}</Descriptions.Item>
+              <Descriptions.Item label="申请日">{displayPatentText(patentDetail.filingDate)}</Descriptions.Item>
+              <Descriptions.Item label="公开日">{displayPatentText(patentDetail.publicationDate)}</Descriptions.Item>
+              <Descriptions.Item label="授权日">{displayPatentText(patentDetail.grantDate)}</Descriptions.Item>
+              <Descriptions.Item label="来源更新时间">{patentDetail.sourceUpdatedAt ? formatTimeSmart(patentDetail.sourceUpdatedAt) : '-'}</Descriptions.Item>
+              <Descriptions.Item label="创建时间">{formatTimeSmart(patentDetail.createdAt)}</Descriptions.Item>
+              <Descriptions.Item label="更新时间">{formatTimeSmart(patentDetail.updatedAt)}</Descriptions.Item>
+              <Descriptions.Item label="摘要" span={2}>
+                <Typography.Paragraph style={{ marginBottom: 0, whiteSpace: 'pre-wrap' }}>
+                  {displayPatentText(patentDetail.abstract)}
+                </Typography.Paragraph>
+              </Descriptions.Item>
+            </Descriptions>
+          </Space>
+        ) : (
+          <Empty description="暂无专利详情" />
+        )}
+      </Drawer>
     </Space>
   );
 }
