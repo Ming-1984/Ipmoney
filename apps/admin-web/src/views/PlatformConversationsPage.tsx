@@ -9,8 +9,10 @@ import {
   Empty,
   Grid,
   Input,
+  Form,
   List,
   Pagination,
+  Modal,
   Select,
   Space,
   Switch,
@@ -21,7 +23,7 @@ import {
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { components } from '@ipmoney/api-types';
 
-import { apiDelete, apiGet, apiPost } from '../lib/api';
+import { apiDelete, apiGet, apiPatch, apiPost } from '../lib/api';
 import { fenToYuan, formatTimeSmart } from '../lib/format';
 import {
   DEFAULT_LISTING_TOPIC_OPTIONS,
@@ -123,6 +125,20 @@ type PatentDetail = {
   } | null;
   createdAt: string;
   updatedAt: string;
+};
+type PatentEditFormValues = {
+  applicationNoDisplay?: string;
+  patentType?: PatentDetail['patentType'];
+  title?: string;
+  abstract?: string;
+  filingDate?: string;
+  publicationDate?: string;
+  grantDate?: string;
+  legalStatus?: PatentDetail['legalStatus'] | '';
+  sourcePrimary?: PatentDetail['sourcePrimary'] | '';
+  inventorNamesText?: string;
+  assigneeNamesText?: string;
+  applicantNamesText?: string;
 };
 type TimelineLine = { kind: 'divider'; key: string; label: string } | { kind: 'message'; key: string; message: ConversationMessage };
 
@@ -238,6 +254,18 @@ function displayPatentText(value?: string | null): string {
   return normalizeUserFacingText(value) || '-';
 }
 
+function parseNames(text?: string): string[] {
+  const values = String(text || '')
+    .split(/[\n,，;；、]/g)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return Array.from(new Set(values));
+}
+
+function namesToText(values?: string[] | null): string {
+  return (values || []).join('\n');
+}
+
 function patentTypeLabel(value?: PatentDetail['patentType']): string {
   if (value === 'UTILITY_MODEL') return '实用新型';
   if (value === 'DESIGN') return '外观设计';
@@ -323,6 +351,9 @@ export function PlatformConversationsPage() {
   const [patentDetailOpen, setPatentDetailOpen] = useState(false);
   const [patentDetailLoading, setPatentDetailLoading] = useState(false);
   const [patentDetail, setPatentDetail] = useState<PatentDetail | null>(null);
+  const [patentEditOpen, setPatentEditOpen] = useState(false);
+  const [patentEditSubmitting, setPatentEditSubmitting] = useState(false);
+  const [patentEditForm] = Form.useForm<PatentEditFormValues>();
   const [listingTopicOptions, setListingTopicOptions] =
     useState<Array<{ value: ListingTopic; label: string }>>(DEFAULT_LISTING_TOPIC_OPTIONS);
 
@@ -607,6 +638,60 @@ export function PlatformConversationsPage() {
       setPatentDetailLoading(false);
     }
   }, [activeConversation?.patentId]);
+
+  const openPatentEdit = useCallback(() => {
+    if (!patentDetail) return;
+    patentEditForm.setFieldsValue({
+      applicationNoDisplay: patentDetail.applicationNoDisplay || '',
+      patentType: patentDetail.patentType,
+      title: patentDetail.title,
+      abstract: patentDetail.abstract || '',
+      filingDate: patentDetail.filingDate || '',
+      publicationDate: patentDetail.publicationDate || '',
+      grantDate: patentDetail.grantDate || '',
+      legalStatus: patentDetail.legalStatus || '',
+      sourcePrimary: patentDetail.sourcePrimary || '',
+      inventorNamesText: namesToText(patentDetail.inventorNames),
+      assigneeNamesText: namesToText(patentDetail.assigneeNames),
+      applicantNamesText: namesToText(patentDetail.applicantNames),
+    });
+    setPatentEditOpen(true);
+  }, [patentDetail, patentEditForm]);
+
+  const submitPatentEdit = useCallback(async () => {
+    if (!patentDetail) return;
+    try {
+      const values = await patentEditForm.validateFields();
+      setPatentEditSubmitting(true);
+      const payload: Record<string, unknown> = {
+        applicationNoDisplay: String(values.applicationNoDisplay || '').trim() || null,
+        patentType: values.patentType,
+        title: String(values.title || '').trim(),
+        abstract: String(values.abstract || '').trim() || null,
+        filingDate: String(values.filingDate || '').trim() || null,
+        publicationDate: String(values.publicationDate || '').trim() || null,
+        grantDate: String(values.grantDate || '').trim() || null,
+        legalStatus: values.legalStatus || null,
+        sourcePrimary: values.sourcePrimary || null,
+        inventorNames: parseNames(values.inventorNamesText),
+        assigneeNames: parseNames(values.assigneeNamesText),
+        applicantNames: parseNames(values.applicantNamesText),
+      };
+      await apiPatch(`/admin/patents/${patentDetail.id}`, payload, {
+        idempotencyKey: `admin-conv-patent-edit-${patentDetail.id}-${Date.now()}`,
+      });
+      message.success('专利信息已更新');
+      setPatentEditOpen(false);
+      const detail = await apiGet<PatentDetail>(`/admin/patents/${patentDetail.id}`);
+      setPatentDetail(detail);
+      await loadConversations();
+    } catch (err: any) {
+      if (err?.errorFields) return;
+      message.error(err?.message || '更新专利信息失败');
+    } finally {
+      setPatentEditSubmitting(false);
+    }
+  }, [loadConversations, patentDetail, patentEditForm]);
 
   useEffect(() => {
     void loadStaffContext();
@@ -990,9 +1075,17 @@ export function PlatformConversationsPage() {
         title="专利详情"
         open={patentDetailOpen}
         width={screens.lg ? 820 : '100%'}
+        footer={
+          patentDetail ? (
+            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+              <Button onClick={openPatentEdit}>编辑</Button>
+            </Space>
+          ) : null
+        }
         onClose={() => {
           setPatentDetailOpen(false);
           setPatentDetail(null);
+          setPatentEditOpen(false);
         }}
         destroyOnClose
       >
@@ -1046,6 +1139,83 @@ export function PlatformConversationsPage() {
           <Empty description="暂无专利详情" />
         )}
       </Drawer>
+
+      <Modal
+        title="编辑专利信息"
+        open={patentEditOpen}
+        onCancel={() => setPatentEditOpen(false)}
+        onOk={() => void submitPatentEdit()}
+        okText="保存"
+        confirmLoading={patentEditSubmitting}
+        destroyOnClose
+        width={760}
+      >
+        <Form form={patentEditForm} layout="vertical">
+          <Form.Item label="申请号展示值" name="applicationNoDisplay">
+            <Input placeholder="如：202311340972.0（可选）" />
+          </Form.Item>
+          <Space style={{ width: '100%' }} size={12} wrap>
+            <Form.Item label="专利类型" name="patentType" rules={[{ required: true, message: '请选择专利类型' }]} style={{ minWidth: 180, marginBottom: 12 }}>
+              <Select
+                options={[
+                  { value: 'INVENTION', label: '发明' },
+                  { value: 'UTILITY_MODEL', label: '实用新型' },
+                  { value: 'DESIGN', label: '外观设计' },
+                ]}
+              />
+            </Form.Item>
+            <Form.Item label="法律状态" name="legalStatus" style={{ minWidth: 180, marginBottom: 12 }}>
+              <Select
+                options={[
+                  { value: '', label: '不设置' },
+                  { value: 'PENDING', label: '审查中' },
+                  { value: 'GRANTED', label: '已授权' },
+                  { value: 'EXPIRED', label: '已失效' },
+                  { value: 'INVALIDATED', label: '已无效' },
+                  { value: 'UNKNOWN', label: '状态待确认' },
+                ]}
+              />
+            </Form.Item>
+            <Form.Item label="来源" name="sourcePrimary" style={{ minWidth: 180, marginBottom: 12 }}>
+              <Select
+                allowClear
+                options={[
+                  { value: '', label: '不设置' },
+                  { value: 'ADMIN', label: '后台录入' },
+                  { value: 'USER', label: '用户上传' },
+                  { value: 'PROVIDER', label: '外部数据源' },
+                ]}
+              />
+            </Form.Item>
+          </Space>
+          <Form.Item label="专利名称" name="title" rules={[{ required: true, message: '请输入专利名称' }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item label="摘要" name="abstract">
+            <Input.TextArea rows={3} />
+          </Form.Item>
+          <Space style={{ width: '100%' }} size={12} wrap>
+            <Form.Item label="申请日" name="filingDate" style={{ minWidth: 180, marginBottom: 12 }}>
+              <Input placeholder="YYYY-MM-DD" />
+            </Form.Item>
+            <Form.Item label="公开日" name="publicationDate" style={{ minWidth: 180, marginBottom: 12 }}>
+              <Input placeholder="YYYY-MM-DD" />
+            </Form.Item>
+            <Form.Item label="授权日" name="grantDate" style={{ minWidth: 180, marginBottom: 12 }}>
+              <Input placeholder="YYYY-MM-DD" />
+            </Form.Item>
+          </Space>
+          <Form.Item label="发明人" name="inventorNamesText">
+            <Input.TextArea rows={2} placeholder="张三\n李四" />
+          </Form.Item>
+          <Form.Item label="申请人" name="applicantNamesText">
+            <Input.TextArea rows={2} placeholder="某某研究院" />
+          </Form.Item>
+          <Form.Item label="权利人" name="assigneeNamesText">
+            <Input.TextArea rows={2} placeholder="某某科技有限公司" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </Space>
   );
 }
