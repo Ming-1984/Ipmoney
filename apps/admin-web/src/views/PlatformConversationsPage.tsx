@@ -1093,6 +1093,9 @@ export function PlatformConversationsPage() {
           <Typography.Text type="secondary">正在加载专利详情...</Typography.Text>
         ) : patentDetail ? (
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+              <Button onClick={openPatentEdit}>编辑专利信息</Button>
+            </Space>
             <Space wrap>
               <Tag color="blue">{patentTypeLabel(patentDetail.patentType)}</Tag>
               <Tag color={patentLegalStatusColor(patentDetail.legalStatus)}>{patentLegalStatusLabel(patentDetail.legalStatus)}</Tag>

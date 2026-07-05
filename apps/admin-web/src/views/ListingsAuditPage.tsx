@@ -1447,6 +1447,19 @@ export function ListingsAuditPage() {
           <Typography.Text type="secondary">加载详情中...</Typography.Text>
         ) : activeListing ? (
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
+              {activeListing.status !== 'DRAFT' && activeListing.auditStatus === 'PENDING' ? (
+                <>
+                  <Button onClick={() => void rejectListing(activeListing)} danger>
+                    驳回
+                  </Button>
+                  <Button type="primary" onClick={() => void approveListing(activeListing)}>
+                    通过
+                  </Button>
+                </>
+              ) : null}
+              <Button onClick={openListingEdit}>编辑价格/保证金</Button>
+            </Space>
             {listingHasRejectedProofFiles(activeListing) ? (
               <Typography.Text type="danger">有权属材料已被驳回，当前不能通过。</Typography.Text>
             ) : null}
