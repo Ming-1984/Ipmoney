@@ -18,6 +18,9 @@ describe('ConversationsService pagination and id strictness suite', () => {
       achievement: {
         findMany: vi.fn(),
       },
+      order: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
       userVerification: {
         findMany: vi.fn(),
       },
@@ -694,6 +697,74 @@ describe('ConversationsService pagination and id strictness suite', () => {
 
     const result = await service.listPlatformConversations(req, { channel: 'CONSULTATION' });
     expect(result.items[0]?.counterpart?.nickname).toBe('Buyer Nick');
+  });
+
+  it('links listing consultations to the latest matching order in platform inbox list', async () => {
+    const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } };
+    prisma.conversation.findMany.mockResolvedValueOnce([
+      {
+        id: '11111111-1111-1111-1111-111111111111',
+        contentType: 'LISTING',
+        contentId: '22222222-2222-2222-2222-222222222222',
+        listingId: '22222222-2222-2222-2222-222222222222',
+        orderId: null,
+        buyerUserId: '33333333-3333-3333-3333-333333333333',
+        sellerUserId: 'seller-platform',
+        listing: {
+          id: '22222222-2222-2222-2222-222222222222',
+          title: 'Platform listing',
+          consultationRouting: 'PLATFORM',
+          source: 'ADMIN',
+          listingTopicsJson: [],
+        },
+        buyer: {
+          id: '33333333-3333-3333-3333-333333333333',
+          nickname: 'Buyer Nick',
+          avatarUrl: null,
+          role: 'buyer',
+          verifications: [],
+        },
+        seller: { id: 'seller-platform', nickname: 'Platform', avatarUrl: null, role: 'seller', verifications: [] },
+        order: null,
+        agents: [],
+        participants: [{ lastReadAt: null }],
+        messages: [{ id: 'm-1', text: 'hello', type: 'TEXT', createdAt: new Date('2026-03-14T01:10:00.000Z') }],
+        lastMessageAt: new Date('2026-03-14T01:10:00.000Z'),
+        updatedAt: new Date('2026-03-14T01:10:00.000Z'),
+        createdAt: new Date('2026-03-14T01:00:00.000Z'),
+      },
+    ]);
+    prisma.conversation.count.mockResolvedValueOnce(1);
+    prisma.order.findMany.mockResolvedValueOnce([
+      {
+        id: '44444444-4444-4444-4444-444444444444',
+        listingId: '22222222-2222-2222-2222-222222222222',
+        buyerUserId: '33333333-3333-3333-3333-333333333333',
+        status: 'DEPOSIT_PAID',
+        listing: { id: '22222222-2222-2222-2222-222222222222', title: 'Platform listing' },
+      },
+    ]);
+    prisma.conversationMessage.count.mockResolvedValueOnce(0);
+
+    const result = await service.listPlatformConversations(req, { channel: 'CONSULTATION' });
+
+    expect(prisma.order.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          OR: [
+            {
+              listingId: '22222222-2222-2222-2222-222222222222',
+              buyerUserId: '33333333-3333-3333-3333-333333333333',
+            },
+          ],
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+    );
+    expect(result.items[0]).toMatchObject({
+      orderId: '44444444-4444-4444-4444-444444444444',
+      orderStatus: 'DEPOSIT_PAID',
+    });
   });
 
   it('reorders platform conversation search results to prioritize strong counterpart and title matches', async () => {

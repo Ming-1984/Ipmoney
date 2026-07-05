@@ -254,17 +254,28 @@ export class ConversationsService {
     return '年费代缴';
   }
 
+  private linkedOrderKey(listingId: unknown, buyerUserId: unknown): string | null {
+    const normalizedListingId = String(listingId || '').trim();
+    const normalizedBuyerUserId = String(buyerUserId || '').trim();
+    if (!normalizedListingId || !normalizedBuyerUserId) return null;
+    return `${normalizedListingId}:${normalizedBuyerUserId}`;
+  }
+
   private toPlatformConversationSummary(
     it: any,
     unreadCount: number,
     achievementTitleMap: Map<string, string>,
     maintenanceTitleMap: Map<string, string>,
     maintenanceMetaMap: Map<string, { patentTitle: string | null; yearNo: number | null }>,
+    linkedOrderMap: Map<string, any> = new Map(),
   ): ConversationSummary {
     const lastMessageAt = (it.lastMessageAt || it.updatedAt || it.createdAt) as Date;
     const latestMessage = Array.isArray(it.messages) && it.messages.length > 0 ? it.messages[0] : null;
     const contentType = (it.contentType || 'LISTING') as ConversationContentType;
     const contentId = String(it.contentId || it.listingId || '');
+    const linkedOrder =
+      it.order ??
+      (contentType === 'LISTING' ? linkedOrderMap.get(this.linkedOrderKey(it.listingId, it.buyerUserId) || '') ?? null : null);
     const contentTitle =
       contentType === 'LISTING'
         ? it.listing?.title ?? DEFAULT_CONSULTATION_TITLE
@@ -274,23 +285,23 @@ export class ConversationsService {
             ? '平台客服'
             : contentType === 'MAINTENANCE'
               ? maintenanceTitleMap.get(contentId) ?? '年费代缴'
-              : this.resolveDisputeTitle(it.order);
+              : this.resolveDisputeTitle(linkedOrder);
     const maintenanceMeta = contentType === 'MAINTENANCE' ? maintenanceMetaMap.get(contentId) ?? null : null;
     return {
       id: it.id,
       contentType,
       contentId,
       contentTitle,
-      orderId: it.orderId ?? it.order?.id ?? null,
-      orderStatus: it.order?.status ?? null,
-      orderTitle: it.order ? this.resolveDisputeTitle(it.order) : null,
+      orderId: it.orderId ?? linkedOrder?.id ?? null,
+      orderStatus: linkedOrder?.status ?? null,
+      orderTitle: linkedOrder ? this.resolveDisputeTitle(linkedOrder) : null,
       patentId:
         contentType === 'MAINTENANCE'
           ? it.order?.schedule?.patentId ?? null
           : contentType === 'LISTING'
             ? it.listing?.patentId ?? null
             : contentType === 'DISPUTE'
-              ? it.order?.listing?.patentId ?? null
+              ? linkedOrder?.listing?.patentId ?? null
               : null,
       patentTitle:
         contentType === 'MAINTENANCE'
@@ -298,7 +309,7 @@ export class ConversationsService {
           : contentType === 'LISTING'
             ? it.listing?.patent?.title ?? it.listing?.title ?? null
             : contentType === 'DISPUTE'
-              ? it.order?.listing?.patent?.title ?? null
+              ? linkedOrder?.listing?.patent?.title ?? null
               : null,
       patentNoDisplay:
         contentType === 'MAINTENANCE'
@@ -306,7 +317,7 @@ export class ConversationsService {
           : contentType === 'LISTING'
             ? it.listing?.patent?.patentNoDisplay ?? null
             : contentType === 'DISPUTE'
-              ? it.order?.listing?.patent?.patentNoDisplay ?? null
+              ? linkedOrder?.listing?.patent?.patentNoDisplay ?? null
               : null,
       applicationNoDisplay:
         contentType === 'MAINTENANCE'
@@ -314,7 +325,7 @@ export class ConversationsService {
           : contentType === 'LISTING'
             ? it.listing?.patent?.applicationNoDisplay ?? null
             : contentType === 'DISPUTE'
-              ? it.order?.listing?.patent?.applicationNoDisplay ?? null
+              ? linkedOrder?.listing?.patent?.applicationNoDisplay ?? null
               : null,
       maintenanceYearNo: maintenanceMeta?.yearNo ?? null,
       maintenancePatentTitle: maintenanceMeta?.patentTitle ?? null,
@@ -1324,6 +1335,8 @@ export class ConversationsService {
 
     const maintenanceIds = new Set<string>();
     const achievementIds = new Set<string>();
+    const linkedOrderFilters: Array<{ listingId: string; buyerUserId: string }> = [];
+    const linkedOrderKeys = new Set<string>();
     for (const it of items as any[]) {
       if (String(it.contentType || '').toUpperCase() === 'MAINTENANCE') {
         const contentId = String(it.contentId || '');
@@ -1331,6 +1344,12 @@ export class ConversationsService {
       } else if (String(it.contentType || '').toUpperCase() === 'ACHIEVEMENT') {
         const contentId = String(it.contentId || '');
         if (contentId) achievementIds.add(contentId);
+      } else if (String(it.contentType || '').toUpperCase() === 'LISTING' && !it.orderId && !it.order) {
+        const key = this.linkedOrderKey(it.listingId, it.buyerUserId);
+        if (key && !linkedOrderKeys.has(key)) {
+          linkedOrderKeys.add(key);
+          linkedOrderFilters.push({ listingId: String(it.listingId), buyerUserId: String(it.buyerUserId) });
+        }
       }
     }
 
@@ -1375,6 +1394,36 @@ export class ConversationsService {
         })
       : [];
     const achievementTitleMap = new Map(achievements.map((item: any) => [item.id, item.title || '成果咨询']));
+    const linkedOrders = linkedOrderFilters.length
+      ? await this.prisma.order.findMany({
+          where: { OR: linkedOrderFilters },
+          include: {
+            listing: {
+              select: {
+                id: true,
+                title: true,
+                patentId: true,
+                patent: {
+                  select: {
+                    id: true,
+                    title: true,
+                    patentNoDisplay: true,
+                    applicationNoDisplay: true,
+                  },
+                },
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        })
+      : [];
+    const linkedOrderMap = new Map<string, any>();
+    for (const order of linkedOrders as any[]) {
+      const key = this.linkedOrderKey(order.listingId, order.buyerUserId);
+      if (key && !linkedOrderMap.has(key)) {
+        linkedOrderMap.set(key, order);
+      }
+    }
 
     const unreadCounts = await Promise.all(
       items.map((item: any) => {
@@ -1384,7 +1433,14 @@ export class ConversationsService {
     );
 
     const mapped = items.map((it: any, index: number) =>
-      this.toPlatformConversationSummary(it, unreadCounts[index] ?? 0, achievementTitleMap, maintenanceTitleMap, maintenanceMetaMap),
+      this.toPlatformConversationSummary(
+        it,
+        unreadCounts[index] ?? 0,
+        achievementTitleMap,
+        maintenanceTitleMap,
+        maintenanceMetaMap,
+        linkedOrderMap,
+      ),
     );
 
     if (qFilter) {
