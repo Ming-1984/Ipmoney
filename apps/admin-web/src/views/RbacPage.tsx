@@ -57,9 +57,9 @@ export function RbacPage() {
   const [userScope, setUserScope] = useState<UserScope>('STAFF');
   const [userKeyword, setUserKeyword] = useState('');
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (options?: { background?: boolean }) => {
     setLoading(true);
-    setError(null);
+    if (!options?.background) setError(null);
     try {
       const roleRes = await apiGet<PagedRoles>('/admin/rbac/roles');
       const permRes = await apiGet<{ items: Permission[] }>('/admin/rbac/permissions');
@@ -70,9 +70,14 @@ export function RbacPage() {
       setRoles(roleRes.items || []);
       setPermissions(permRes.items || []);
       setUsers(userRes.items || []);
+      setError(null);
     } catch (e: any) {
-      setError(e);
-      message.error(e?.message || '加载失败');
+      if (options?.background) {
+        message.warning(e?.message ? `已保存，但刷新列表失败：${e.message}` : '已保存，但刷新列表失败');
+      } else {
+        setError(e);
+        message.error(e?.message || '加载失败');
+      }
     } finally {
       setLoading(false);
     }
@@ -131,7 +136,7 @@ export function RbacPage() {
       setNewUserName('');
       setNewUserPhone('');
       setNewUserRoleIds([]);
-      void load();
+      void load({ background: true });
     } catch (e: any) {
       message.error(e?.message || '开通失败');
     }
@@ -199,7 +204,7 @@ export function RbacPage() {
                 setRoleDesc('');
                 setRolePerms([]);
                 message.success('已创建');
-                void load();
+                void load({ background: true });
               } catch (e: any) {
                 message.error(e?.message || '创建失败');
               }
@@ -277,7 +282,7 @@ export function RbacPage() {
                       try {
                         await apiDelete(`/admin/rbac/roles/${r.id}`, { idempotencyKey: `rbac-role-${r.id}` });
                         message.success('已删除');
-                        void load();
+                        void load({ background: true });
                       } catch (e: any) {
                         message.error(e?.message || '删除失败');
                       }
@@ -318,7 +323,7 @@ export function RbacPage() {
               message.success('已更新');
               setEditOpen(false);
               setEditingRole(null);
-              void load();
+              void load({ background: true });
             } catch (e: any) {
               if (e?.errorFields) return;
               message.error(e?.message || '更新失败');
@@ -431,7 +436,7 @@ export function RbacPage() {
                     try {
                       await apiPatch(`/admin/rbac/users/${row.id}`, { roleIds: next, reason: reason || undefined });
                       message.success('已更新');
-                      void load();
+                      void load({ background: true });
                     } catch (e: any) {
                       message.error(e?.message || '更新失败');
                     }
