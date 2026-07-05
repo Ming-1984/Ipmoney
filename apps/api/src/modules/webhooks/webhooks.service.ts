@@ -263,6 +263,24 @@ export class WebhooksService {
     });
   }
 
+  private async updateOrderAndMaybeOffShelf(orderId: string, data: Record<string, any>, offShelfListingId?: string | null) {
+    const tx = (this.prisma as any).$transaction;
+    if (typeof tx === 'function') {
+      return await tx(async (client: any) => {
+        const updatedOrder = await client.order.update({ where: { id: orderId }, data });
+        if (offShelfListingId && typeof client.listing?.update === 'function') {
+          await client.listing.update({ where: { id: offShelfListingId }, data: { status: 'OFF_SHELF' } });
+        }
+        return updatedOrder;
+      });
+    }
+    const updatedOrder = await this.prisma.order.update({ where: { id: orderId }, data });
+    if (offShelfListingId && typeof this.prisma.listing?.update === 'function') {
+      await this.prisma.listing.update({ where: { id: offShelfListingId }, data: { status: 'OFF_SHELF' } });
+    }
+    return updatedOrder;
+  }
+
   private toRawBodyString(rawBody: string | Buffer | undefined): string {
     if (typeof rawBody === 'string') return rawBody;
     if (Buffer.isBuffer(rawBody)) return rawBody.toString('utf8');
@@ -437,7 +455,11 @@ export class WebhooksService {
       if (payType === 'FINAL' && order.finalAmount == null && order.dealAmount != null) {
         update.finalAmount = Math.max(0, order.dealAmount - order.depositAmount);
       }
-      const updated = await this.prisma.order.update({ where: { id: orderId }, data: update });
+      const updated = await this.updateOrderAndMaybeOffShelf(
+        orderId,
+        update,
+        payType === 'DEPOSIT' ? order.listingId : undefined,
+      );
 
       const actorUserId = await this.ensureSystemActorId();
       await this.audit.log({

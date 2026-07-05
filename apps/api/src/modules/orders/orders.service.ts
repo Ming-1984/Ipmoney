@@ -514,6 +514,24 @@ export class OrdersService {
     throw new ConflictException({ code: 'LISTING_LOCKED', message: 'listing already locked by another order' });
   }
 
+  private async updateOrderAndMaybeOffShelf(orderId: string, data: any, listingId?: string | null, offShelf?: boolean) {
+    const tx = (this.prisma as any).$transaction;
+    if (typeof tx === 'function') {
+      return await tx(async (client: any) => {
+        const updatedOrder = await client.order.update({ where: { id: orderId }, data });
+        if (offShelf && listingId && typeof client.listing?.update === 'function') {
+          await client.listing.update({ where: { id: listingId }, data: { status: 'OFF_SHELF' } });
+        }
+        return updatedOrder;
+      });
+    }
+    const updatedOrder = await this.prisma.order.update({ where: { id: orderId }, data });
+    if (offShelf && listingId && typeof this.prisma.listing?.update === 'function') {
+      await this.prisma.listing.update({ where: { id: listingId }, data: { status: 'OFF_SHELF' } });
+    }
+    return updatedOrder;
+  }
+
   private toFileObject(file: any): FileObjectDto {
     return {
       id: file.id,
@@ -1053,6 +1071,7 @@ export class OrdersService {
     const fallbackTradeNo = existingPayment?.tradeNo || `manual-${normalizedOrderId}-${Date.now()}`;
     const parsedTradeNo = hasTradeNo ? this.parseNullableNonEmptyStringStrict(body?.tradeNo, 'tradeNo') : undefined;
     const tradeNo = hasTradeNo ? (parsedTradeNo ?? fallbackTradeNo) : fallbackTradeNo;
+    const targetStatus = payType === 'FINAL' ? 'FINAL_PAID_ESCROW' : 'DEPOSIT_PAID';
     const payment = existingPayment
       ? await this.prisma.payment.update({
           where: { id: existingPayment.id },
@@ -1070,8 +1089,12 @@ export class OrdersService {
           },
         });
 
-    const targetStatus = payType === 'FINAL' ? 'FINAL_PAID_ESCROW' : 'DEPOSIT_PAID';
-    const updated = await this.prisma.order.update({ where: { id: normalizedOrderId }, data: { status: targetStatus } });
+    const updated = await this.updateOrderAndMaybeOffShelf(
+      normalizedOrderId,
+      { status: targetStatus },
+      order.listingId,
+      payType === 'DEPOSIT',
+    );
 
     await this.audit.log({
       actorUserId: req.auth.userId,
