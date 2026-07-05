@@ -1,27 +1,77 @@
-import { Button, Card, Descriptions, Input, Space, Typography, Upload, message } from 'antd';
+import { Button, Card, Input, Select, Space, Table, Tag, Typography, Upload, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { apiGet, apiPost, apiUploadFile, type FileObject } from '../lib/api';
 import { fenToYuan, formatTimeSmart } from '../lib/format';
+import { orderStatusLabel } from '../lib/labels';
 import { displayAdminInfo } from '../lib/userFacingText';
 import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
 import { confirmActionWithReason } from '../ui/confirm';
 
+type PayoutStatus = 'PENDING' | 'SUCCEEDED' | 'FAILED';
+
+type OrderContext = {
+  orderId: string;
+  orderStatus: string;
+  listingTitle?: string | null;
+  applicationNoDisplay?: string | null;
+  buyerDisplayName?: string | null;
+  sellerDisplayName?: string | null;
+  depositAmountFen?: number | null;
+  dealAmountFen?: number | null;
+  finalAmountFen?: number | null;
+};
+
 type Settlement = {
-  id: string;
+  id?: string | null;
   orderId: string;
   grossAmountFen: number;
   commissionAmountFen: number;
   payoutAmountFen: number;
-  payoutMethod?: 'MANUAL' | 'WECHAT';
-  payoutStatus: 'PENDING' | 'SUCCEEDED' | 'FAILED';
-  payoutRef?: string;
-  payoutEvidenceFileId?: string;
-  payoutAt?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  payoutMethod?: 'MANUAL' | 'WECHAT' | string | null;
+  payoutStatus: PayoutStatus;
+  payoutRef?: string | null;
+  payoutEvidenceFileId?: string | null;
+  payoutAt?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  order?: OrderContext | null;
 };
+
+type PagedSettlement = {
+  items: Settlement[];
+  page: { page: number; pageSize: number; total: number };
+};
+
+const STATUS_OPTIONS = [
+  { value: 'PENDING', label: '待放款' },
+  { value: 'FAILED', label: '放款失败' },
+  { value: 'SUCCEEDED', label: '已放款' },
+  { value: '', label: '全部结算' },
+];
+
+const TEXT = {
+  title: '放款/结算',
+  subtitle: '默认展示待放款订单；财务上传凭证后确认线下放款。',
+  orderIdPlaceholder: '订单号（可选）',
+  loadFailed: '加载失败',
+  auditHint: '放款确认涉及资金出账，建议二次确认并上传凭证留痕。',
+  uploadEvidence: '上传放款凭证',
+  uploadFailed: '上传失败',
+  uploadedPrefix: '已上传放款凭证',
+  noUploadedFile: '未上传',
+  payoutRefPlaceholder: '放款流水号（可选）',
+  remarkPlaceholder: '备注（可选）',
+  uploadFirst: '请先上传放款凭证',
+  payoutTitle: '确认已线下放款？',
+  payoutContent: '该操作将记录凭证文件与放款信息，请确保已核验订单状态与放款凭证。',
+  payoutOk: '确认放款',
+  payoutReasonLabel: '放款备注/依据',
+  payoutReasonHint: '建议写明放款凭证要点、核验项与操作人信息，便于后续对账与争议处理。',
+  payoutSuccess: '已确认放款',
+  actionFailed: '操作失败',
+} as const;
 
 function payoutMethodLabel(value?: Settlement['payoutMethod']): string {
   if (value === 'MANUAL') return '线下打款';
@@ -29,131 +79,89 @@ function payoutMethodLabel(value?: Settlement['payoutMethod']): string {
   return '待确认';
 }
 
-function payoutStatusLabel(value?: Settlement['payoutStatus']): string {
-  if (value === 'PENDING') return '待放款';
-  if (value === 'SUCCEEDED') return '已放款';
-  if (value === 'FAILED') return '放款失败';
-  return '待确认';
+function payoutStatusTag(value?: PayoutStatus) {
+  if (value === 'SUCCEEDED') return <Tag color="green">已放款</Tag>;
+  if (value === 'FAILED') return <Tag color="red">放款失败</Tag>;
+  return <Tag color="gold">待放款</Tag>;
 }
 
-function settlementSummaryText(settlement?: Settlement | null): string {
-  if (!settlement) return '结算信息待确认';
-  return `订单号：${displayAdminInfo(settlement.orderId)} · 应放款：¥${fenToYuan(settlement.payoutAmountFen)}`;
+function moneyText(value?: number | null): string {
+  return value == null ? '-' : `¥${fenToYuan(value)}`;
 }
-
-const TEXT = {
-  title: '\u653e\u6b3e/\u7ed3\u7b97',
-  subtitle: '\u8d22\u52a1\u7ebf\u4e0b\u6253\u6b3e\uff0c\u5e73\u53f0\u5185\u786e\u8ba4\u5e76\u4e0a\u4f20\u51ed\u8bc1\u7559\u75d5\u3002',
-  orderIdPlaceholder: '\u8bf7\u8f93\u5165\u8ba2\u5355\u53f7',
-  loadSettlement: '\u52a0\u8f7d\u7ed3\u7b97\u53f0\u8d26',
-  noSettlement: '\u6682\u65e0\u7ed3\u7b97\u53f0\u8d26',
-  loadFailed: '\u52a0\u8f7d\u5931\u8d25',
-  auditHint:
-    '\u653e\u6b3e\u786e\u8ba4\u6d89\u53ca\u8d44\u91d1\u51fa\u8d26\uff0c\u5efa\u8bae\u4e8c\u6b21\u786e\u8ba4\u5e76\u4e0a\u4f20\u51ed\u8bc1\u7559\u75d5\u3002',
-  settlementId: '\u7ed3\u7b97\u5355\u53f7',
-  orderId: '\u8ba2\u5355\u53f7',
-  grossAmount: '\u6210\u4ea4\u4ef7',
-  commissionAmount: '\u4f63\u91d1',
-  payoutAmount: '\u5e94\u653e\u6b3e',
-  payoutMethod: '\u653e\u6b3e\u65b9\u5f0f',
-  payoutStatus: '\u653e\u6b3e\u72b6\u6001',
-  payoutEvidenceFileId: '\u653e\u6b3e\u51ed\u8bc1\u72b6\u6001',
-  payoutRef: '\u653e\u6b3e\u6d41\u6c34\u53f7/\u5907\u6ce8',
-  payoutAt: '\u653e\u6b3e\u65f6\u95f4',
-  emptyPrompt: '\u6682\u65e0\u53f0\u8d26\u6570\u636e\uff0c\u8bf7\u8f93\u5165\u8ba2\u5355\u53f7\u540e\u52a0\u8f7d\u3002',
-  payoutCardTitle: '\u8d22\u52a1\u653e\u6b3e\u786e\u8ba4',
-  uploadEvidence: '\u4e0a\u4f20\u653e\u6b3e\u51ed\u8bc1',
-  uploadFailed: '\u4e0a\u4f20\u5931\u8d25',
-  uploadedPrefix: '\u5df2\u4e0a\u4f20\u653e\u6b3e\u51ed\u8bc1',
-  noUploadedFile: '\u672a\u4e0a\u4f20',
-  payoutRefPlaceholder: '\u653e\u6b3e\u6d41\u6c34\u53f7\uff08\u53ef\u9009\uff09',
-  remarkPlaceholder: '\u5907\u6ce8\uff08\u53ef\u9009\uff09',
-  uploadFirst: '\u8bf7\u5148\u4e0a\u4f20\u653e\u6b3e\u51ed\u8bc1',
-  payoutTitle: '\u786e\u8ba4\u5df2\u7ebf\u4e0b\u653e\u6b3e\uff1f',
-  payoutContent:
-    '\u8be5\u64cd\u4f5c\u5c06\u8bb0\u5f55\u51ed\u8bc1\u6587\u4ef6\u4e0e\u653e\u6b3e\u4fe1\u606f\uff0c\u8bf7\u786e\u4fdd\u5df2\u6838\u9a8c\u8ba2\u5355\u72b6\u6001\u4e0e\u653e\u6b3e\u51ed\u8bc1\u3002',
-  payoutOk: '\u786e\u8ba4\u653e\u6b3e',
-  payoutReasonLabel: '\u653e\u6b3e\u5907\u6ce8/\u4f9d\u636e',
-  payoutReasonHint:
-    '\u5efa\u8bae\u5199\u660e\u653e\u6b3e\u51ed\u8bc1\u8981\u70b9\u3001\u6838\u9a8c\u9879\u4e0e\u64cd\u4f5c\u4eba\u4fe1\u606f\uff0c\u4fbf\u4e8e\u540e\u7eed\u5bf9\u8d26\u4e0e\u4e89\u8bae\u5904\u7406\u3002',
-  payoutSuccess: '\u5df2\u786e\u8ba4\u653e\u6b3e',
-  actionFailed: '\u64cd\u4f5c\u5931\u8d25',
-  payoutButton: '\u786e\u8ba4\u653e\u6b3e',
-  hint:
-    '\u63d0\u793a\uff1a\u653e\u6b3e\u6761\u4ef6\u56fa\u5b9a\u4e3a\u201c\u53d8\u66f4\u5b8c\u6210\u786e\u8ba4\u540e\u201d\u624d\u5141\u8bb8\u653e\u6b3e\uff0c\u907f\u514d\u4e89\u8bae\u3002',
-} as const;
 
 export function SettlementsPage() {
-  const [orderId, setOrderId] = useState('');
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [orderId, setOrderId] = useState('');
+  const [payoutStatus, setPayoutStatus] = useState<PayoutStatus | ''>('PENDING');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
-  const [settlement, setSettlement] = useState<Settlement | null>(null);
+  const [data, setData] = useState<PagedSettlement | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [active, setActive] = useState<Settlement | null>(null);
   const [payoutEvidenceFile, setPayoutEvidenceFile] = useState<FileObject | null>(null);
   const [payoutRef, setPayoutRef] = useState('');
   const [remark, setRemark] = useState('');
-  const orderIdRef = useRef(orderId);
   const loadSeqRef = useRef(0);
   const payoutSeqRef = useRef(0);
   const uploadSeqRef = useRef(0);
 
   useEffect(() => {
-    orderIdRef.current = orderId;
-    payoutSeqRef.current += 1;
-    uploadSeqRef.current += 1;
-  }, [orderId]);
+    const preset = String(searchParams.get('orderId') || '').trim();
+    if (!preset) return;
+    setOrderId(preset);
+    setPayoutStatus('');
+    setPage(1);
+  }, [searchParams]);
 
-  const load = useCallback(async (targetOrderId?: string) => {
-    const normalizedOrderId = String(targetOrderId ?? orderId).trim();
-    const requestSeq = ++loadSeqRef.current;
-    if (!normalizedOrderId) {
-      setLoading(false);
-      setError(null);
-      setSettlement(null);
-      setPayoutEvidenceFile(null);
-      setPayoutRef('');
-      setRemark('');
-      return;
-    }
-    setLoading(true);
-    setError(null);
+  const resetPayoutForm = useCallback(() => {
     setPayoutEvidenceFile(null);
     setPayoutRef('');
     setRemark('');
+  }, []);
+
+  const load = useCallback(async (opts?: { page?: number; pageSize?: number }) => {
+    const nextPage = opts?.page ?? page;
+    const nextPageSize = opts?.pageSize ?? pageSize;
+    const seq = ++loadSeqRef.current;
+    setLoading(true);
+    setError(null);
     try {
-      const next = await apiGet<Settlement>(`/admin/orders/${normalizedOrderId}/settlement`);
-      if (loadSeqRef.current !== requestSeq || orderIdRef.current !== normalizedOrderId) return;
-      setSettlement(next);
+      const next = await apiGet<PagedSettlement>('/admin/settlements', {
+        payoutStatus: payoutStatus || undefined,
+        orderId: orderId.trim() || undefined,
+        page: nextPage,
+        pageSize: nextPageSize,
+      });
+      if (seq !== loadSeqRef.current) return;
+      setData(next);
+      setActive((current) => {
+        if (!current) return next.items[0] || null;
+        return next.items.find((it) => it.orderId === current.orderId) || next.items[0] || null;
+      });
     } catch (e: any) {
-      if (loadSeqRef.current !== requestSeq || orderIdRef.current !== normalizedOrderId) return;
-      const statusCode = Number(e?.status || e?.statusCode || 0);
-      if (statusCode === 404) {
-        setSettlement(null);
-        message.info(TEXT.noSettlement);
-      } else {
-        setError(e);
-        setSettlement(null);
-        message.error(e?.message || TEXT.loadFailed);
-      }
+      if (seq !== loadSeqRef.current) return;
+      setError(e);
+      setData(null);
+      setActive(null);
+      message.error(e?.message || TEXT.loadFailed);
     } finally {
-      if (loadSeqRef.current !== requestSeq || orderIdRef.current !== normalizedOrderId) return;
+      if (seq !== loadSeqRef.current) return;
       setLoading(false);
     }
-  }, [orderId]);
+  }, [orderId, page, pageSize, payoutStatus]);
 
   useEffect(() => {
-    const preset = String(searchParams.get('orderId') || '').trim();
-    if (!preset) return;
-    orderIdRef.current = preset;
-    setOrderId(preset);
-    void load(preset);
-  }, [searchParams]);
+    void load();
+  }, [load]);
 
-  const payoutDisabled = useMemo(() => {
-    if (!settlement) return true;
-    if (settlement.payoutStatus === 'SUCCEEDED') return true;
-    return !payoutEvidenceFile?.id;
-  }, [payoutEvidenceFile?.id, settlement]);
+  useEffect(() => {
+    setPage(1);
+  }, [orderId, payoutStatus]);
+
+  const rows = useMemo(() => data?.items || [], [data?.items]);
+  const payoutDisabled = !active || active.payoutStatus === 'SUCCEEDED' || !payoutEvidenceFile?.id;
 
   return (
     <Card className="admin-settlements-page">
@@ -168,81 +176,123 @@ export function SettlementsPage() {
         </div>
 
         <Space wrap>
+          <Select value={payoutStatus} options={STATUS_OPTIONS} style={{ width: 150 }} onChange={(v) => setPayoutStatus(v as PayoutStatus | '')} />
           <Input
             value={orderId}
-            onChange={(e) => {
-              setOrderId(e.target.value);
-              setLoading(false);
-              setError(null);
-              setSettlement(null);
-              setPayoutEvidenceFile(null);
-              setPayoutRef('');
-              setRemark('');
-            }}
-            style={{ width: 420 }}
+            onChange={(e) => setOrderId(e.target.value)}
+            onPressEnter={() => void load({ page: 1 })}
+            allowClear
+            style={{ width: 360 }}
             placeholder={TEXT.orderIdPlaceholder}
           />
-          <Button loading={loading} onClick={() => void load()}>
-            {TEXT.loadSettlement}
-          </Button>
+          <Button onClick={() => void load({ page: 1 })}>查询</Button>
         </Space>
 
         {error ? <RequestErrorAlert error={error} onRetry={() => void load()} /> : <AuditHint text={TEXT.auditHint} />}
 
-        {settlement ? (
-          <Descriptions bordered size="small" column={2}>
-            <Descriptions.Item label="结算摘要" span={2}>
-              <Space direction="vertical" size={2}>
-                <Typography.Text strong>{settlementSummaryText(settlement)}</Typography.Text>
-                <Typography.Text type="secondary">
-                  放款方式：{payoutMethodLabel(settlement.payoutMethod)} · 放款状态：{payoutStatusLabel(settlement.payoutStatus)}
-                </Typography.Text>
-                <Typography.Text type="secondary" copyable={{ text: settlement.id }}>
-                  结算单号：{settlement.id}
-                </Typography.Text>
-              </Space>
-            </Descriptions.Item>
-            <Descriptions.Item label={TEXT.grossAmount}>\u00a5{fenToYuan(settlement.grossAmountFen)}</Descriptions.Item>
-            <Descriptions.Item label={TEXT.commissionAmount}>\u00a5{fenToYuan(settlement.commissionAmountFen)}</Descriptions.Item>
-            <Descriptions.Item label={TEXT.payoutAmount}>\u00a5{fenToYuan(settlement.payoutAmountFen)}</Descriptions.Item>
-            <Descriptions.Item label={TEXT.payoutMethod}>{payoutMethodLabel(settlement.payoutMethod)}</Descriptions.Item>
-            <Descriptions.Item label={TEXT.payoutStatus}>{payoutStatusLabel(settlement.payoutStatus)}</Descriptions.Item>
-            <Descriptions.Item label={TEXT.payoutEvidenceFileId}>
-              {settlement.payoutEvidenceFileId ? TEXT.uploadedPrefix : TEXT.noUploadedFile}
-            </Descriptions.Item>
-            <Descriptions.Item label={TEXT.payoutRef}>{displayAdminInfo(settlement.payoutRef)}</Descriptions.Item>
-            <Descriptions.Item label={TEXT.payoutAt}>{settlement.payoutAt ? formatTimeSmart(settlement.payoutAt) : '-'}</Descriptions.Item>
-          </Descriptions>
-        ) : (
-          <Typography.Text type="secondary">{TEXT.emptyPrompt}</Typography.Text>
-        )}
+        <Table<Settlement>
+          rowKey="orderId"
+          loading={loading}
+          dataSource={rows}
+          rowClassName={(row) => (row.orderId === active?.orderId ? 'ant-table-row-selected' : '')}
+          pagination={{
+            current: data?.page.page || page,
+            pageSize: data?.page.pageSize || pageSize,
+            total: data?.page.total || 0,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50'],
+            onChange: (nextPage, nextPageSize) => {
+              const normalizedPageSize = nextPageSize || pageSize;
+              if (normalizedPageSize !== pageSize) {
+                setPageSize(normalizedPageSize);
+                setPage(1);
+                return;
+              }
+              setPage(nextPage);
+            },
+          }}
+          columns={[
+            {
+              title: '订单摘要',
+              key: 'summary',
+              width: 430,
+              render: (_, row) => (
+                <Space direction="vertical" size={2}>
+                  <Typography.Text>{displayAdminInfo(row.order?.listingTitle, '交易标的待确认')}</Typography.Text>
+                  <Typography.Text type="secondary">
+                    买方：{displayAdminInfo(row.order?.buyerDisplayName, '买方待确认')} · 卖方：{displayAdminInfo(row.order?.sellerDisplayName, '卖方待确认')}
+                  </Typography.Text>
+                  <Typography.Text type="secondary" copyable={{ text: row.orderId }}>
+                    订单号：{row.orderId}
+                  </Typography.Text>
+                </Space>
+              ),
+            },
+            { title: '订单状态', key: 'orderStatus', render: (_, row) => orderStatusLabel(row.order?.orderStatus as any) },
+            {
+              title: '结算金额',
+              key: 'amounts',
+              render: (_, row) => (
+                <Space direction="vertical" size={0}>
+                  <Typography.Text>应放款：{moneyText(row.payoutAmountFen)}</Typography.Text>
+                  <Typography.Text type="secondary">佣金：{moneyText(row.commissionAmountFen)}</Typography.Text>
+                </Space>
+              ),
+            },
+            { title: '放款方式', dataIndex: 'payoutMethod', render: (v) => payoutMethodLabel(v) },
+            { title: '状态', dataIndex: 'payoutStatus', render: (v: PayoutStatus) => payoutStatusTag(v) },
+            { title: '更新时间', dataIndex: 'updatedAt', render: (v?: string | null) => formatTimeSmart(v) },
+            {
+              title: '操作',
+              key: 'actions',
+              width: 210,
+              render: (_, row) => (
+                <Space wrap>
+                  <Button onClick={() => navigate(`/orders/${row.orderId}`)}>查看订单</Button>
+                  <Button
+                    type={row.orderId === active?.orderId ? 'primary' : 'default'}
+                    disabled={row.payoutStatus === 'SUCCEEDED'}
+                    onClick={() => {
+                      setActive(row);
+                      resetPayoutForm();
+                    }}
+                  >
+                    处理放款
+                  </Button>
+                </Space>
+              ),
+            },
+          ]}
+        />
 
         <Card size="small" style={{ background: '#fff7ed' }}>
           <Space direction="vertical" size={12} style={{ width: '100%' }}>
-            <Typography.Text strong>{TEXT.payoutCardTitle}</Typography.Text>
+            <Typography.Text strong>
+              财务放款确认：{active ? `${displayAdminInfo(active.order?.listingTitle, '交易标的待确认')} / ${moneyText(active.payoutAmountFen)}` : '请选择待放款订单'}
+            </Typography.Text>
 
             <Space wrap>
               <Upload
                 maxCount={1}
                 showUploadList={false}
+                disabled={!active || active.payoutStatus === 'SUCCEEDED'}
                 customRequest={async (options) => {
-                  const targetOrderId = orderIdRef.current;
+                  const targetOrderId = active?.orderId || '';
                   const requestSeq = ++uploadSeqRef.current;
                   try {
                     const uploaded = await apiUploadFile(options.file as File, 'PAYOUT_EVIDENCE');
-                    if (uploadSeqRef.current !== requestSeq || orderIdRef.current !== targetOrderId) return;
+                    if (uploadSeqRef.current !== requestSeq || active?.orderId !== targetOrderId) return;
                     setPayoutEvidenceFile(uploaded);
                     options.onSuccess?.(uploaded as any);
                   } catch (e: any) {
-                    if (uploadSeqRef.current !== requestSeq || orderIdRef.current !== targetOrderId) return;
+                    if (uploadSeqRef.current !== requestSeq || active?.orderId !== targetOrderId) return;
                     options.onError?.(e);
                     message.error(e?.message || TEXT.uploadFailed);
                   }
                 }}
               >
-                <Button>{TEXT.uploadEvidence}</Button>
+                <Button disabled={!active || active.payoutStatus === 'SUCCEEDED'}>{TEXT.uploadEvidence}</Button>
               </Upload>
-
               <Typography.Text type="secondary">{payoutEvidenceFile ? TEXT.uploadedPrefix : TEXT.noUploadedFile}</Typography.Text>
             </Space>
 
@@ -253,8 +303,7 @@ export function SettlementsPage() {
                 type="primary"
                 disabled={payoutDisabled}
                 onClick={async () => {
-                  if (!settlement) return;
-                  const targetOrderId = String(settlement.orderId || orderId).trim();
+                  if (!active) return;
                   if (!payoutEvidenceFile?.id) {
                     message.warning(TEXT.uploadFirst);
                     return;
@@ -268,33 +317,32 @@ export function SettlementsPage() {
                     reasonHint: TEXT.payoutReasonHint,
                   });
                   if (!ok) return;
-                  const requestSeq = ++payoutSeqRef.current;
+                  const seq = ++payoutSeqRef.current;
                   try {
                     const finalRemark = (remark || reason || '').trim() || undefined;
                     await apiPost<Settlement>(
-                      `/admin/orders/${targetOrderId}/payouts/manual`,
+                      `/admin/orders/${active.orderId}/payouts/manual`,
                       {
                         payoutEvidenceFileId: payoutEvidenceFile.id,
                         payoutRef: payoutRef || undefined,
                         payoutAt: new Date().toISOString(),
                         remark: finalRemark,
                       },
-                      { idempotencyKey: `payout-${targetOrderId}` },
+                      { idempotencyKey: `payout-${active.orderId}` },
                     );
-                    if (payoutSeqRef.current !== requestSeq || orderIdRef.current !== targetOrderId) return;
+                    if (seq !== payoutSeqRef.current) return;
                     message.success(TEXT.payoutSuccess);
-                    void load(targetOrderId);
+                    resetPayoutForm();
+                    void load({ page: data?.page.page || page, pageSize: data?.page.pageSize || pageSize });
                   } catch (e: any) {
-                    if (payoutSeqRef.current !== requestSeq || orderIdRef.current !== targetOrderId) return;
+                    if (seq !== payoutSeqRef.current) return;
                     message.error(e?.message || TEXT.actionFailed);
                   }
                 }}
               >
-                {TEXT.payoutButton}
+                确认放款
               </Button>
             </Space>
-
-            <Typography.Text type="secondary">{TEXT.hint}</Typography.Text>
           </Space>
         </Card>
       </Space>

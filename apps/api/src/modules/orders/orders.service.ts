@@ -126,6 +126,31 @@ type RefundRequestDto = {
   updatedAt?: string;
 };
 
+type AdminOrderContextDto = {
+  orderId: string;
+  orderStatus: OrderStatus;
+  listingId?: string | null;
+  listingTitle?: string | null;
+  applicationNoDisplay?: string | null;
+  buyerUserId?: string | null;
+  buyerDisplayName?: string | null;
+  sellerUserId?: string | null;
+  sellerDisplayName?: string | null;
+  depositAmountFen: number;
+  dealAmountFen?: number | null;
+  finalAmountFen?: number | null;
+  createdAt?: string | null;
+};
+
+type AdminRefundRequestItem = RefundRequestDto & {
+  order?: AdminOrderContextDto | null;
+};
+
+type PagedAdminRefundRequests = {
+  items: AdminRefundRequestItem[];
+  page: { page: number; pageSize: number; total: number };
+};
+
 type FileObjectDto = {
   id: string;
   url: string;
@@ -155,6 +180,36 @@ type InvoiceItem = OrderDto & {
   issuedAt?: string | null;
   invoiceFileUrl?: string | null;
   requestedAt?: string | null;
+};
+
+type AdminSettlementItem = {
+  id?: string | null;
+  orderId: string;
+  grossAmountFen: number;
+  commissionAmountFen: number;
+  payoutAmountFen: number;
+  payoutMethod?: string | null;
+  payoutStatus: 'PENDING' | 'SUCCEEDED' | 'FAILED';
+  payoutRef?: string | null;
+  payoutEvidenceFileId?: string | null;
+  payoutAt?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  order?: AdminOrderContextDto | null;
+};
+
+type PagedAdminSettlements = {
+  items: AdminSettlementItem[];
+  page: { page: number; pageSize: number; total: number };
+};
+
+type AdminInvoiceItem = InvoiceItem & {
+  order?: AdminOrderContextDto | null;
+};
+
+type PagedAdminInvoices = {
+  items: AdminInvoiceItem[];
+  page: { page: number; pageSize: number; total: number };
 };
 
 @Injectable()
@@ -593,6 +648,70 @@ export class OrdersService {
     };
   }
 
+  private toAdminOrderContext(order: any): AdminOrderContextDto | null {
+    if (!order) return null;
+    const listing = order.listing;
+    const patent = listing?.patent;
+    const dto = this.toOrderDto(order, listing, patent);
+    return {
+      orderId: dto.id,
+      orderStatus: dto.status,
+      listingId: dto.listingId,
+      listingTitle: dto.listingTitle ?? null,
+      applicationNoDisplay: dto.applicationNoDisplay ?? null,
+      buyerUserId: dto.buyerUserId,
+      buyerDisplayName: dto.buyerDisplayName ?? null,
+      sellerUserId: dto.sellerUserId,
+      sellerDisplayName: dto.sellerDisplayName ?? null,
+      depositAmountFen: dto.depositAmountFen,
+      dealAmountFen: dto.dealAmountFen ?? null,
+      finalAmountFen: dto.finalAmountFen ?? null,
+      createdAt: dto.createdAt,
+    };
+  }
+
+  private adminOrderContextInclude() {
+    return {
+      buyer: {
+        select: {
+          nickname: true,
+          verifications: {
+            orderBy: { submittedAt: 'desc' as const },
+            take: 1,
+            select: { displayName: true },
+          },
+        },
+      },
+      listing: {
+        include: {
+          patent: true,
+          seller: {
+            select: {
+              nickname: true,
+              verifications: {
+                orderBy: { submittedAt: 'desc' as const },
+                take: 1,
+                select: { displayName: true },
+              },
+            },
+          },
+        },
+      },
+    };
+  }
+
+  private normalizeRefundStatus(value: unknown): string | undefined {
+    const raw = String(value || '').trim().toUpperCase();
+    if (['PENDING', 'APPROVED', 'REJECTED', 'REFUNDING', 'REFUNDED'].includes(raw)) return raw;
+    return undefined;
+  }
+
+  private normalizePayoutStatus(value: unknown): 'PENDING' | 'SUCCEEDED' | 'FAILED' | undefined {
+    const raw = String(value || '').trim().toUpperCase();
+    if (raw === 'PENDING' || raw === 'SUCCEEDED' || raw === 'FAILED') return raw;
+    return undefined;
+  }
+
   private toAdminOrderMilestoneDto(milestone: any): AdminOrderMilestoneDto {
     return {
       id: String(milestone?.id || ''),
@@ -841,6 +960,187 @@ export class OrdersService {
 
     return {
       items: items.map((it: any) => this.toOrderDto(it, it.listing, it.listing?.patent)),
+      page: { page, pageSize, total },
+    };
+  }
+
+  async listAdminRefundRequests(req: any, query: any): Promise<PagedAdminRefundRequests> {
+    this.ensureAdmin(req);
+    const hasPage = this.hasOwn(query, 'page');
+    const hasPageSize = this.hasOwn(query, 'pageSize');
+    const page = hasPage ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = hasPageSize ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
+    const hasStatus = this.hasOwn(query, 'status');
+    const hasOrderId = this.hasOwn(query, 'orderId');
+    const status = hasStatus ? this.normalizeRefundStatus(query?.status) : 'PENDING';
+    if (hasStatus && !status) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
+    }
+
+    const where: any = {};
+    if (status) where.status = status;
+    if (hasOrderId && String(query?.orderId || '').trim()) {
+      where.orderId = this.parseUuidStrict(query.orderId, 'orderId');
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.refundRequest.findMany({
+        where,
+        include: { order: { include: this.adminOrderContextInclude() } },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.refundRequest.count({ where }),
+    ]);
+
+    return {
+      items: items.map((it: any) => ({
+        id: it.id,
+        orderId: it.orderId,
+        reasonCode: it.reasonCode,
+        reasonText: it.reasonText ?? null,
+        status: it.status,
+        createdAt: it.createdAt.toISOString(),
+        updatedAt: it.updatedAt?.toISOString(),
+        order: this.toAdminOrderContext(it.order),
+      })),
+      page: { page, pageSize, total },
+    };
+  }
+
+  async listAdminSettlements(req: any, query: any): Promise<PagedAdminSettlements> {
+    this.ensureAdmin(req);
+    const hasPage = this.hasOwn(query, 'page');
+    const hasPageSize = this.hasOwn(query, 'pageSize');
+    const page = hasPage ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = hasPageSize ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
+    const hasStatus = this.hasOwn(query, 'payoutStatus');
+    const hasOrderId = this.hasOwn(query, 'orderId');
+    const payoutStatus = hasStatus ? this.normalizePayoutStatus(query?.payoutStatus) : 'PENDING';
+    if (hasStatus && !payoutStatus) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'payoutStatus is invalid' });
+    }
+
+    const rules = await this.config.getTradeRules();
+    const where: any = {};
+    if (hasOrderId && String(query?.orderId || '').trim()) {
+      where.id = this.parseUuidStrict(query.orderId, 'orderId');
+    } else if (payoutStatus === 'PENDING') {
+      where.OR = [
+        { settlement: { is: { payoutStatus: 'PENDING' } } },
+        { status: 'READY_TO_SETTLE', settlement: { is: null } },
+      ];
+    } else if (payoutStatus) {
+      where.settlement = { is: { payoutStatus } };
+    }
+
+    const [orders, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        include: {
+          ...this.adminOrderContextInclude(),
+          settlement: true,
+        },
+        orderBy: { updatedAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    return {
+      items: orders.map((order: any) => {
+        const settlementAmounts = this.computeSettlementAmounts(order, rules);
+        const settlement = order.settlement;
+        return {
+          id: settlement?.id ?? null,
+          orderId: order.id,
+          grossAmountFen: settlement?.grossAmount ?? settlementAmounts.grossAmount,
+          commissionAmountFen: settlement?.commissionAmount ?? settlementAmounts.commissionAmount,
+          payoutAmountFen: settlement?.payoutAmount ?? settlementAmounts.payoutAmount,
+          payoutMethod: settlement?.payoutMethod ?? rules.payoutMethodDefault,
+          payoutStatus: settlement?.payoutStatus ?? 'PENDING',
+          payoutRef: settlement?.payoutRef ?? null,
+          payoutEvidenceFileId: settlement?.payoutEvidenceFileId ?? null,
+          payoutAt: settlement?.payoutAt ? settlement.payoutAt.toISOString() : null,
+          createdAt: settlement?.createdAt ? settlement.createdAt.toISOString() : order.createdAt.toISOString(),
+          updatedAt: settlement?.updatedAt ? settlement.updatedAt.toISOString() : order.updatedAt.toISOString(),
+          order: this.toAdminOrderContext(order),
+        };
+      }),
+      page: { page, pageSize, total },
+    };
+  }
+
+  async listAdminInvoices(req: any, query: any): Promise<PagedAdminInvoices> {
+    this.ensureAdmin(req);
+    const hasPage = this.hasOwn(query, 'page');
+    const hasPageSize = this.hasOwn(query, 'pageSize');
+    const page = hasPage ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = hasPageSize ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
+    const hasStatus = this.hasOwn(query, 'status');
+    const hasOrderId = this.hasOwn(query, 'orderId');
+    const status = hasStatus ? this.normalizeInvoiceStatus(query?.status) : 'APPLYING';
+    if (hasStatus && !status) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
+    }
+
+    const where: any = {};
+    if (hasOrderId && String(query?.orderId || '').trim()) {
+      where.id = this.parseUuidStrict(query.orderId, 'orderId');
+    } else if (status === 'ISSUED') {
+      where.invoiceFileId = { not: null };
+    } else if (status === 'APPLYING') {
+      where.invoiceNo = { not: null };
+      where.invoiceFileId = null;
+    } else if (status === 'WAIT_APPLY') {
+      where.invoiceNo = null;
+      where.invoiceFileId = null;
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        include: {
+          ...this.adminOrderContextInclude(),
+          invoiceFile: true,
+        },
+        orderBy: { updatedAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    const rules = await this.config.getTradeRules();
+    const mapped: AdminInvoiceItem[] = items.map((it: any) => {
+      const base = this.toOrderDto(it, it.listing, it.listing?.patent);
+      const settlement = this.computeSettlementAmounts(
+        { dealAmount: it.dealAmount, depositAmount: it.depositAmount, finalAmount: it.finalAmount },
+        rules,
+      );
+      let invoiceStatus: InvoiceStatus = 'WAIT_APPLY';
+      if (it.invoiceFileId) invoiceStatus = 'ISSUED';
+      else if (it.invoiceNo) invoiceStatus = 'APPLYING';
+      return {
+        ...base,
+        invoiceStatus,
+        amountFen: it.commissionAmount ?? settlement.commissionAmount,
+        itemName: '居间服务费',
+        invoiceNo: it.invoiceNo ?? null,
+        issuedAt: it.invoiceIssuedAt ? it.invoiceIssuedAt.toISOString() : null,
+        invoiceFileUrl: it.invoiceFile?.url ?? null,
+        requestedAt: it.invoiceNo ? it.updatedAt.toISOString() : null,
+        order: this.toAdminOrderContext(it),
+      };
+    });
+
+    return {
+      items: mapped,
       page: { page, pageSize, total },
     };
   }

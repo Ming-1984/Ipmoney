@@ -29,6 +29,27 @@ export class OrdersController {
   }
 
   @UseGuards(BearerAuthGuard)
+  @Get('/admin/refund-requests')
+  async listAdminRefundRequests(@Req() req: any, @Query() query: any) {
+    requirePermission(req, 'refund.read');
+    return await this.orders.listAdminRefundRequests(req, query);
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Get('/admin/settlements')
+  async listAdminSettlements(@Req() req: any, @Query() query: any) {
+    requirePermission(req, 'settlement.read');
+    return await this.orders.listAdminSettlements(req, query);
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Get('/admin/invoices')
+  async listAdminInvoices(@Req() req: any, @Query() query: any) {
+    requirePermission(req, 'invoice.manage');
+    return await this.orders.listAdminInvoices(req, query);
+  }
+
+  @UseGuards(BearerAuthGuard)
   @Get('/orders/:orderId')
   async getOrder(@Req() req: any, @Param('orderId') orderId: string) {
     return await this.orders.getOrderDetail(req, orderId);

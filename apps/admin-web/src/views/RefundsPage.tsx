@@ -1,14 +1,27 @@
-import { Button, Card, Input, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, Input, Select, Space, Table, Tag, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { apiGet, apiPost } from '../lib/api';
-import { formatTimeSmart } from '../lib/format';
+import { fenToYuan, formatTimeSmart } from '../lib/format';
+import { orderStatusLabel } from '../lib/labels';
 import { displayAdminInfo } from '../lib/userFacingText';
 import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
 import { confirmActionWithReason } from '../ui/confirm';
 
 type RefundRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'REFUNDING' | 'REFUNDED';
+
+type OrderContext = {
+  orderId: string;
+  orderStatus: string;
+  listingTitle?: string | null;
+  applicationNoDisplay?: string | null;
+  buyerDisplayName?: string | null;
+  sellerDisplayName?: string | null;
+  depositAmountFen?: number | null;
+  dealAmountFen?: number | null;
+  finalAmountFen?: number | null;
+};
 
 type RefundRequest = {
   id: string;
@@ -18,113 +31,128 @@ type RefundRequest = {
   status: RefundRequestStatus;
   createdAt: string;
   updatedAt?: string;
+  order?: OrderContext | null;
 };
 
+type PagedRefundRequest = {
+  items: RefundRequest[];
+  page: { page: number; pageSize: number; total: number };
+};
+
+const STATUS_OPTIONS = [
+  { value: 'PENDING', label: '待处理' },
+  { value: 'APPROVED', label: '已通过' },
+  { value: 'REFUNDING', label: '退款中' },
+  { value: 'REFUNDED', label: '已退款' },
+  { value: 'REJECTED', label: '已驳回' },
+  { value: '', label: '全部退款' },
+];
+
 const TEXT = {
-  title: '\u9000\u6b3e\u7ba1\u7406',
-  subtitle: '\u7528\u4e8e\u5904\u7406\u9000\u6b3e\u7533\u8bf7\u3001\u9a73\u56de\u8bf4\u660e\u4e0e\u9000\u6b3e\u5b8c\u6210\u786e\u8ba4\u3002',
-  orderIdPlaceholder: '\u8bf7\u8f93\u5165\u8ba2\u5355\u53f7',
-  load: '\u52a0\u8f7d',
-  loadFailed: '\u52a0\u8f7d\u5931\u8d25',
-  actionFailed: '\u64cd\u4f5c\u5931\u8d25',
-  auditHint: '\u9000\u6b3e\u5ba1\u6279\u6d89\u53ca\u8d44\u91d1\u5904\u7406\uff0c\u5efa\u8bae\u8865\u5145\u5ba1\u6279\u4f9d\u636e\u5e76\u4fdd\u7559\u76f8\u5173\u8bc1\u636e\u6750\u6599\u3002',
-  refundId: '\u9000\u6b3e\u5355\u53f7',
-  orderId: '\u8ba2\u5355\u53f7',
-  status: '\u72b6\u6001',
-  reason: '\u539f\u56e0',
-  createdAt: '\u521b\u5efa\u65f6\u95f4',
-  actions: '\u64cd\u4f5c',
-  approve: '\u901a\u8fc7',
-  reject: '\u9a73\u56de',
-  complete: '\u5b8c\u6210\u9000\u6b3e',
-  approveTitle: '\u786e\u8ba4\u901a\u8fc7\u9000\u6b3e\uff1f',
-  approveContent: '\u901a\u8fc7\u540e\u4f1a\u8fdb\u5165\u9000\u6b3e\u6d41\u7a0b\uff0c\u8bf7\u786e\u8ba4\u5df2\u6838\u9a8c\u9000\u6b3e\u4f9d\u636e\u3002',
-  approveOk: '\u786e\u8ba4\u901a\u8fc7',
-  approveReason: '\u540c\u610f\u9000\u6b3e',
-  approveReasonLabel: '\u5ba1\u6279\u5907\u6ce8',
-  approveReasonHint: '\u5efa\u8bae\u586b\u5199\u6838\u9a8c\u4f9d\u636e\u3001\u8d23\u4efb\u5224\u65ad\u548c\u64cd\u4f5c\u4eba\u4fe1\u606f\u3002',
-  approveSuccess: '\u5df2\u901a\u8fc7\u9000\u6b3e\u7533\u8bf7',
-  rejectTitle: '\u786e\u8ba4\u9a73\u56de\u9000\u6b3e\uff1f',
-  rejectContent: '\u9a73\u56de\u539f\u56e0\u5c06\u7528\u4e8e\u901a\u77e5\u548c\u540e\u7eed\u4e89\u8bae\u5904\u7406\u3002',
-  rejectOk: '\u786e\u8ba4\u9a73\u56de',
-  rejectReasonLabel: '\u9a73\u56de\u539f\u56e0',
-  rejectReasonPlaceholder: '\u4f8b\u5982\uff1a\u4e0d\u7b26\u5408\u9000\u6b3e\u6761\u4ef6\uff0c\u6216\u8bc1\u636e\u6750\u6599\u4e0d\u8db3\u3002',
-  rejectFallbackReason: '\u4e0d\u7b26\u5408\u9000\u6b3e\u6761\u4ef6',
-  rejectSuccess: '\u5df2\u9a73\u56de\u9000\u6b3e\u7533\u8bf7',
-  completeTitle: '\u786e\u8ba4\u9000\u6b3e\u5df2\u5b8c\u6210\uff1f',
-  completeContent: '\u786e\u8ba4\u540e\u5c06\u7ed3\u675f\u9000\u6b3e\u6d41\u7a0b\uff0c\u8bf7\u786e\u4fdd\u9000\u6b3e\u5df2\u7ecf\u5b9e\u9645\u5b8c\u6210\u3002',
-  completeOk: '\u786e\u8ba4\u5b8c\u6210',
-  completeReason: '\u9000\u6b3e\u5b8c\u6210\u786e\u8ba4',
-  completeReasonLabel: '\u5b8c\u6210\u5907\u6ce8',
-  completeReasonHint: '\u5efa\u8bae\u586b\u5199\u9000\u6b3e\u6e20\u9053\u3001\u6d41\u6c34\u53f7\u548c\u5b8c\u6210\u65f6\u95f4\u3002',
-  completeSuccess: '\u9000\u6b3e\u5df2\u5b8c\u6210',
-  approved: '\u5df2\u901a\u8fc7',
-  rejected: '\u5df2\u9a73\u56de',
-  refunding: '\u9000\u6b3e\u4e2d',
-  refunded: '\u5df2\u9000\u6b3e',
-  pending: '\u5f85\u5904\u7406',
+  title: '退款管理',
+  subtitle: '集中处理退款申请；默认展示待处理退款，支持按订单号直达。',
+  orderIdPlaceholder: '订单号（可选）',
+  loadFailed: '加载失败',
+  actionFailed: '操作失败',
+  auditHint: '退款审批涉及资金处理，建议补充审批依据并保留相关证据材料。',
+  approve: '通过',
+  reject: '驳回',
+  complete: '完成退款',
+  approveTitle: '确认通过退款？',
+  approveContent: '通过后会进入退款流程，请确认已核验退款依据。',
+  approveOk: '确认通过',
+  approveReason: '同意退款',
+  approveReasonLabel: '审批备注',
+  approveReasonHint: '建议填写核验依据、责任判断和操作人信息。',
+  approveSuccess: '已通过退款申请',
+  rejectTitle: '确认驳回退款？',
+  rejectContent: '驳回原因将用于通知和后续争议处理。',
+  rejectOk: '确认驳回',
+  rejectReasonLabel: '驳回原因',
+  rejectReasonPlaceholder: '例如：不符合退款条件，或证据材料不足。',
+  rejectFallbackReason: '不符合退款条件',
+  rejectSuccess: '已驳回退款申请',
+  completeTitle: '确认退款已完成？',
+  completeContent: '确认后将结束退款流程，请确保退款已经实际完成。',
+  completeOk: '确认完成',
+  completeReason: '退款完成确认',
+  completeReasonLabel: '完成备注',
+  completeReasonHint: '建议填写退款渠道、流水号和完成时间。',
+  completeSuccess: '退款已完成',
 } as const;
 
 function statusTag(status: RefundRequestStatus) {
-  if (status === 'APPROVED') return <Tag color="green">{TEXT.approved}</Tag>;
-  if (status === 'REJECTED') return <Tag color="red">{TEXT.rejected}</Tag>;
-  if (status === 'REFUNDING') return <Tag color="orange">{TEXT.refunding}</Tag>;
-  if (status === 'REFUNDED') return <Tag color="blue">{TEXT.refunded}</Tag>;
-  return <Tag color="gold">{TEXT.pending}</Tag>;
+  if (status === 'APPROVED') return <Tag color="green">已通过</Tag>;
+  if (status === 'REJECTED') return <Tag color="red">已驳回</Tag>;
+  if (status === 'REFUNDING') return <Tag color="orange">退款中</Tag>;
+  if (status === 'REFUNDED') return <Tag color="blue">已退款</Tag>;
+  return <Tag color="gold">待处理</Tag>;
+}
+
+function moneyText(value?: number | null): string {
+  return value == null ? '-' : `¥${fenToYuan(value)}`;
 }
 
 export function RefundsPage() {
-  const [orderId, setOrderId] = useState('');
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [orderId, setOrderId] = useState('');
+  const [status, setStatus] = useState<RefundRequestStatus | ''>('PENDING');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
-  const [data, setData] = useState<RefundRequest[] | null>(null);
-  const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
-  const orderIdRef = useRef(orderId);
+  const [data, setData] = useState<PagedRefundRequest | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const loadSeqRef = useRef(0);
   const actionSeqRef = useRef(0);
 
   useEffect(() => {
-    orderIdRef.current = orderId;
-    actionSeqRef.current += 1;
-  }, [orderId]);
+    const preset = String(searchParams.get('orderId') || '').trim();
+    if (!preset) return;
+    setOrderId(preset);
+    setStatus('');
+    setPage(1);
+  }, [searchParams]);
 
-  const load = useCallback(async (targetOrderId?: string) => {
-    const normalizedOrderId = String(targetOrderId ?? orderId).trim();
-    const requestSeq = ++loadSeqRef.current;
-    if (!normalizedOrderId) {
-      setLoading(false);
-      setError(null);
-      setData(null);
-      return;
-    }
+  const load = useCallback(async (opts?: { page?: number; pageSize?: number }) => {
+    const nextPage = opts?.page ?? page;
+    const nextPageSize = opts?.pageSize ?? pageSize;
+    const seq = ++loadSeqRef.current;
     setLoading(true);
     setError(null);
     try {
-      const next = await apiGet<RefundRequest[]>(`/orders/${normalizedOrderId}/refund-requests`);
-      if (loadSeqRef.current !== requestSeq || orderIdRef.current !== normalizedOrderId) return;
+      const next = await apiGet<PagedRefundRequest>('/admin/refund-requests', {
+        status: status || undefined,
+        orderId: orderId.trim() || undefined,
+        page: nextPage,
+        pageSize: nextPageSize,
+      });
+      if (seq !== loadSeqRef.current) return;
       setData(next);
     } catch (e: any) {
-      if (loadSeqRef.current !== requestSeq || orderIdRef.current !== normalizedOrderId) return;
+      if (seq !== loadSeqRef.current) return;
       setError(e);
       setData(null);
       message.error(e?.message || TEXT.loadFailed);
     } finally {
-      if (loadSeqRef.current !== requestSeq || orderIdRef.current !== normalizedOrderId) return;
+      if (seq !== loadSeqRef.current) return;
       setLoading(false);
     }
-  }, [orderId]);
+  }, [orderId, page, pageSize, status]);
 
   useEffect(() => {
-    const preset = String(searchParams.get('orderId') || '').trim();
-    if (!preset) return;
-    orderIdRef.current = preset;
-    setOrderId(preset);
-    void load(preset);
-  }, [load, searchParams]);
+    void load();
+  }, [load]);
 
-  const rows = useMemo(() => data || [], [data]);
+  useEffect(() => {
+    setPage(1);
+  }, [orderId, status]);
+
+  const rows = useMemo(() => data?.items || [], [data?.items]);
+
+  const refreshAfterAction = useCallback(() => {
+    void load({ page: data?.page.page || page, pageSize: data?.page.pageSize || pageSize });
+  }, [data?.page.page, data?.page.pageSize, load, page, pageSize]);
 
   return (
     <Card className="admin-refunds-page">
@@ -138,19 +166,17 @@ export function RefundsPage() {
           </Typography.Paragraph>
         </div>
 
-        <Space>
+        <Space wrap>
+          <Select value={status} options={STATUS_OPTIONS} style={{ width: 150 }} onChange={(v) => setStatus(v as RefundRequestStatus | '')} />
           <Input
             value={orderId}
-            onChange={(e) => {
-              setOrderId(e.target.value);
-              setLoading(false);
-              setError(null);
-              setData(null);
-            }}
-            style={{ width: 420 }}
+            onChange={(e) => setOrderId(e.target.value)}
+            onPressEnter={() => void load({ page: 1 })}
+            allowClear
+            style={{ width: 360 }}
             placeholder={TEXT.orderIdPlaceholder}
           />
-          <Button onClick={() => void load()}>{TEXT.load}</Button>
+          <Button onClick={() => void load({ page: 1 })}>查询</Button>
         </Space>
 
         {error ? <RequestErrorAlert error={error} onRetry={() => void load()} /> : <AuditHint text={TEXT.auditHint} />}
@@ -160,53 +186,73 @@ export function RefundsPage() {
           loading={loading}
           dataSource={rows}
           pagination={{
-            current: tablePage,
-            pageSize: tablePageSize,
-            total: rows.length,
+            current: data?.page.page || page,
+            pageSize: data?.page.pageSize || pageSize,
+            total: data?.page.total || 0,
             showSizeChanger: true,
             pageSizeOptions: ['10', '20', '50'],
             onChange: (nextPage, nextPageSize) => {
-              setTablePage(nextPage);
-              if (nextPageSize && nextPageSize !== tablePageSize) {
-                setTablePageSize(nextPageSize);
-                setTablePage(1);
+              const normalizedPageSize = nextPageSize || pageSize;
+              if (normalizedPageSize !== pageSize) {
+                setPageSize(normalizedPageSize);
+                setPage(1);
+                return;
               }
+              setPage(nextPage);
             },
           }}
           columns={[
             {
-              title: '退款摘要',
+              title: '退款/订单摘要',
               key: 'summary',
-              width: 360,
+              width: 420,
+              render: (_, record) => {
+                const order = record.order;
+                return (
+                  <Space direction="vertical" size={2}>
+                    <Typography.Text>{displayAdminInfo(order?.listingTitle, '交易标的待确认')}</Typography.Text>
+                    <Typography.Text type="secondary">{displayAdminInfo(record.reasonText, '退款原因待确认')}</Typography.Text>
+                    <Typography.Text type="secondary">
+                      买方：{displayAdminInfo(order?.buyerDisplayName, '买方待确认')} · 卖方：{displayAdminInfo(order?.sellerDisplayName, '卖方待确认')}
+                    </Typography.Text>
+                    <Typography.Text type="secondary" copyable={{ text: record.orderId }}>
+                      订单号：{record.orderId}
+                    </Typography.Text>
+                  </Space>
+                );
+              },
+            },
+            {
+              title: '订单状态',
+              key: 'orderStatus',
+              render: (_, record) => orderStatusLabel(record.order?.orderStatus as any),
+            },
+            {
+              title: '金额',
+              key: 'amount',
               render: (_, record) => (
-                <Space direction="vertical" size={2}>
-                  <Typography.Text>{displayAdminInfo(record.reasonText, '退款原因待确认')}</Typography.Text>
-                  <Typography.Text type="secondary">订单号：{displayAdminInfo(record.orderId)}</Typography.Text>
-                  <Typography.Text type="secondary" copyable={{ text: record.id }}>
-                    退款单号：{record.id}
-                  </Typography.Text>
+                <Space direction="vertical" size={0}>
+                  <Typography.Text>订金：{moneyText(record.order?.depositAmountFen)}</Typography.Text>
+                  <Typography.Text type="secondary">成交：{moneyText(record.order?.dealAmountFen)}</Typography.Text>
                 </Space>
               ),
             },
+            { title: '退款状态', dataIndex: 'status', render: (value: RefundRequestStatus) => statusTag(value) },
+            { title: '申请时间', dataIndex: 'createdAt', render: (value: string) => formatTimeSmart(value) },
             {
-              title: TEXT.status,
-              dataIndex: 'status',
-              render: (_, record) => statusTag(record.status),
-            },
-            { title: TEXT.createdAt, dataIndex: 'createdAt', render: (value) => formatTimeSmart(value) },
-            {
-              title: TEXT.actions,
+              title: '操作',
               key: 'actions',
+              width: 310,
               render: (_, record) => {
-                const disabled = record.status !== 'PENDING';
+                const canReview = record.status === 'PENDING';
                 const canComplete = record.status === 'REFUNDING';
                 return (
-                  <Space>
+                  <Space wrap>
+                    <Button onClick={() => navigate(`/orders/${record.orderId}`)}>查看订单</Button>
                     <Button
                       type="primary"
-                      disabled={disabled}
+                      disabled={!canReview}
                       onClick={async () => {
-                        const targetOrderId = String(record.orderId || orderIdRef.current || '').trim();
                         const { ok } = await confirmActionWithReason({
                           title: TEXT.approveTitle,
                           content: TEXT.approveContent,
@@ -216,14 +262,14 @@ export function RefundsPage() {
                           reasonHint: TEXT.approveReasonHint,
                         });
                         if (!ok) return;
-                        const requestSeq = ++actionSeqRef.current;
+                        const seq = ++actionSeqRef.current;
                         try {
                           await apiPost<RefundRequest>(`/admin/refund-requests/${record.id}/approve`, {});
-                          if (actionSeqRef.current !== requestSeq || orderIdRef.current !== targetOrderId) return;
+                          if (seq !== actionSeqRef.current) return;
                           message.success(TEXT.approveSuccess);
-                          void load(targetOrderId);
+                          refreshAfterAction();
                         } catch (e: any) {
-                          if (actionSeqRef.current !== requestSeq || orderIdRef.current !== targetOrderId) return;
+                          if (seq !== actionSeqRef.current) return;
                           message.error(e?.message || TEXT.actionFailed);
                         }
                       }}
@@ -232,9 +278,8 @@ export function RefundsPage() {
                     </Button>
                     <Button
                       danger
-                      disabled={disabled}
+                      disabled={!canReview}
                       onClick={async () => {
-                        const targetOrderId = String(record.orderId || orderIdRef.current || '').trim();
                         const { ok, reason } = await confirmActionWithReason({
                           title: TEXT.rejectTitle,
                           content: TEXT.rejectContent,
@@ -245,16 +290,16 @@ export function RefundsPage() {
                           reasonRequired: true,
                         });
                         if (!ok) return;
-                        const requestSeq = ++actionSeqRef.current;
+                        const seq = ++actionSeqRef.current;
                         try {
                           await apiPost<RefundRequest>(`/admin/refund-requests/${record.id}/reject`, {
                             reason: reason || TEXT.rejectFallbackReason,
                           });
-                          if (actionSeqRef.current !== requestSeq || orderIdRef.current !== targetOrderId) return;
+                          if (seq !== actionSeqRef.current) return;
                           message.success(TEXT.rejectSuccess);
-                          void load(targetOrderId);
+                          refreshAfterAction();
                         } catch (e: any) {
-                          if (actionSeqRef.current !== requestSeq || orderIdRef.current !== targetOrderId) return;
+                          if (seq !== actionSeqRef.current) return;
                           message.error(e?.message || TEXT.actionFailed);
                         }
                       }}
@@ -264,7 +309,6 @@ export function RefundsPage() {
                     <Button
                       disabled={!canComplete}
                       onClick={async () => {
-                        const targetOrderId = String(record.orderId || orderIdRef.current || '').trim();
                         const { ok, reason } = await confirmActionWithReason({
                           title: TEXT.completeTitle,
                           content: TEXT.completeContent,
@@ -274,16 +318,16 @@ export function RefundsPage() {
                           reasonHint: TEXT.completeReasonHint,
                         });
                         if (!ok) return;
-                        const requestSeq = ++actionSeqRef.current;
+                        const seq = ++actionSeqRef.current;
                         try {
                           await apiPost<RefundRequest>(`/admin/refund-requests/${record.id}/complete`, {
                             remark: reason || undefined,
                           });
-                          if (actionSeqRef.current !== requestSeq || orderIdRef.current !== targetOrderId) return;
+                          if (seq !== actionSeqRef.current) return;
                           message.success(TEXT.completeSuccess);
-                          void load(targetOrderId);
+                          refreshAfterAction();
                         } catch (e: any) {
-                          if (actionSeqRef.current !== requestSeq || orderIdRef.current !== targetOrderId) return;
+                          if (seq !== actionSeqRef.current) return;
                           message.error(e?.message || TEXT.actionFailed);
                         }
                       }}
