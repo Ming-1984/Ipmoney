@@ -22,7 +22,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { components } from '@ipmoney/api-types';
 
 import { apiDelete, apiGet, apiPost } from '../lib/api';
-import { formatTimeSmart } from '../lib/format';
+import { fenToYuan, formatTimeSmart } from '../lib/format';
 import {
   DEFAULT_LISTING_TOPIC_OPTIONS,
   fetchAdminListingTopicOptions,
@@ -105,6 +105,22 @@ type PatentDetail = {
   legalStatus?: 'PENDING' | 'GRANTED' | 'EXPIRED' | 'INVALIDATED' | 'UNKNOWN';
   sourcePrimary?: 'USER' | 'ADMIN' | 'PROVIDER';
   sourceUpdatedAt?: string;
+  tradeSnapshot?: {
+    listingId?: string | null;
+    priceType?: 'FIXED' | 'NEGOTIABLE' | null;
+    priceAmountFen?: number | null;
+    depositAmountFen?: number | null;
+    supplyType?: 'UNIVERSITY' | 'UNIVERSITY_985' | 'UNIVERSITY_211' | 'RESEARCH_INSTITUTE' | 'OTHER' | null;
+    seller?: {
+      id: string;
+      displayName?: string | null;
+      nickname?: string | null;
+      avatarUrl?: string | null;
+      verificationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
+      verificationType?: 'PERSON' | 'COMPANY' | 'ACADEMY' | 'GOVERNMENT' | 'ASSOCIATION' | 'TECH_MANAGER' | null;
+      orgCategory?: 'UNIVERSITY' | 'UNIVERSITY_985' | 'UNIVERSITY_211' | 'RESEARCH_INSTITUTE' | 'OTHER' | null;
+    } | null;
+  } | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -256,6 +272,21 @@ function patentSourceLabel(value?: PatentDetail['sourcePrimary']): string {
 function patentNamesLabel(values?: string[] | null): string {
   const list = (values || []).map((item) => normalizeUserFacingText(item)).filter(Boolean);
   return list.length ? list.join('、') : '-';
+}
+
+function patentTradeTypeLabel(value?: string | null): string {
+  if (value === 'FIXED') return '固定价';
+  if (value === 'NEGOTIABLE') return '可议价';
+  return '-';
+}
+
+function patentSupplyTypeLabel(value?: string | null): string {
+  if (value === 'UNIVERSITY') return '普通高校';
+  if (value === 'UNIVERSITY_985') return '985高校';
+  if (value === 'UNIVERSITY_211') return '211高校';
+  if (value === 'RESEARCH_INSTITUTE') return '科研院所';
+  if (value === 'OTHER') return '其他';
+  return '-';
 }
 
 export function PlatformConversationsPage() {
@@ -992,6 +1023,18 @@ export function PlatformConversationsPage() {
               <Descriptions.Item label="来源更新时间">{patentDetail.sourceUpdatedAt ? formatTimeSmart(patentDetail.sourceUpdatedAt) : '-'}</Descriptions.Item>
               <Descriptions.Item label="创建时间">{formatTimeSmart(patentDetail.createdAt)}</Descriptions.Item>
               <Descriptions.Item label="更新时间">{formatTimeSmart(patentDetail.updatedAt)}</Descriptions.Item>
+              <Descriptions.Item label="挂牌编号">{displayPatentText(patentDetail.tradeSnapshot?.listingId)}</Descriptions.Item>
+              <Descriptions.Item label="交易方式">{patentTradeTypeLabel(patentDetail.tradeSnapshot?.priceType)}</Descriptions.Item>
+              <Descriptions.Item label="挂牌价格">
+                {patentDetail.tradeSnapshot?.priceAmountFen != null ? `${fenToYuan(patentDetail.tradeSnapshot.priceAmountFen)} 元` : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="订金">
+                {patentDetail.tradeSnapshot?.depositAmountFen != null ? `${fenToYuan(patentDetail.tradeSnapshot.depositAmountFen)} 元` : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="供给类型">{patentSupplyTypeLabel(patentDetail.tradeSnapshot?.supplyType)}</Descriptions.Item>
+              <Descriptions.Item label="卖家" span={2}>
+                {displayPatentText(patentDetail.tradeSnapshot?.seller?.displayName || patentDetail.tradeSnapshot?.seller?.nickname)}
+              </Descriptions.Item>
               <Descriptions.Item label="摘要" span={2}>
                 <Typography.Paragraph style={{ marginBottom: 0, whiteSpace: 'pre-wrap' }}>
                   {displayPatentText(patentDetail.abstract)}
