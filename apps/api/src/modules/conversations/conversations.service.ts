@@ -32,6 +32,9 @@ type ConversationSummary = {
   contentType: ConversationContentType;
   contentId: string;
   contentTitle: string;
+  orderId?: string | null;
+  orderStatus?: string | null;
+  orderTitle?: string | null;
   patentId?: string | null;
   patentTitle?: string | null;
   patentNoDisplay?: string | null;
@@ -278,6 +281,9 @@ export class ConversationsService {
       contentType,
       contentId,
       contentTitle,
+      orderId: it.orderId ?? it.order?.id ?? null,
+      orderStatus: it.order?.status ?? null,
+      orderTitle: it.order ? this.resolveDisputeTitle(it.order) : null,
       patentId:
         contentType === 'MAINTENANCE'
           ? it.order?.schedule?.patentId ?? null

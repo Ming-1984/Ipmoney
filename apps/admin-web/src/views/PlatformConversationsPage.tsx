@@ -23,6 +23,7 @@ import {
 } from 'antd';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { components } from '@ipmoney/api-types';
+import { useNavigate } from 'react-router-dom';
 
 import { apiDelete, apiGet, apiPatch, apiPost } from '../lib/api';
 import { fenToYuan, fenToYuanNumber, formatTimeSmart, yuanToFen } from '../lib/format';
@@ -31,6 +32,7 @@ import {
   fetchAdminListingTopicOptions,
   topicLabelFromOptions,
 } from '../lib/homeLandingConfig';
+import { orderStatusLabel } from '../lib/labels';
 import { displayAdminTitleWithSecondary, displayUserInitial, displayUserName, normalizeUserFacingText } from '../lib/userFacingText';
 import { RequestErrorAlert } from '../ui/RequestState';
 import { confirmAction } from '../ui/confirm';
@@ -45,6 +47,9 @@ type ConversationSummary = {
   contentType: 'LISTING' | 'ACHIEVEMENT' | 'TECH_MANAGER' | 'SUPPORT' | 'DISPUTE' | 'MAINTENANCE';
   contentId: string;
   contentTitle: string;
+  orderId?: string | null;
+  orderStatus?: components['schemas']['OrderStatus'] | string | null;
+  orderTitle?: string | null;
   patentId?: string | null;
   patentTitle?: string | null;
   patentNoDisplay?: string | null;
@@ -321,7 +326,16 @@ function patentSupplyTypeLabel(value?: string | null): string {
   return '-';
 }
 
+function orderProgressColor(status?: string | null): string {
+  if (status === 'COMPLETED') return 'green';
+  if (status === 'CANCELLED' || status === 'REFUNDED') return 'red';
+  if (status === 'FINAL_PAID_ESCROW' || status === 'READY_TO_SETTLE') return 'blue';
+  if (status === 'DEPOSIT_PAID' || status === 'WAIT_FINAL_PAYMENT') return 'gold';
+  return 'default';
+}
+
 export function PlatformConversationsPage() {
+  const navigate = useNavigate();
   const screens = Grid.useBreakpoint();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
@@ -934,6 +948,11 @@ export function PlatformConversationsPage() {
                   <Space size={[6, 6]} wrap>
                     <Tag color={safeChannelTagColor(activeConversation.contentType)}>{safeChannelLabel(activeConversation.contentType)}</Tag>
                     <Tag color="processing">咨询人：{conversationCounterpartName(activeConversation)}</Tag>
+                    {activeConversation.orderId ? (
+                      <Tag color={orderProgressColor(activeConversation.orderStatus)}>
+                        订单进度：{orderStatusLabel(activeConversation.orderStatus as components['schemas']['OrderStatus'], { empty: '待确认' })}
+                      </Tag>
+                    ) : null}
                     {(activeConversation.listingTopics || []).map((topic) => (
                       <Tag key={`active-topic-${topic}`} color={topicColor(topic)}>
                         {topicLabel(topic)}
@@ -942,6 +961,11 @@ export function PlatformConversationsPage() {
                   </Space>
 
                   <Space wrap>
+                    {activeConversation.orderId ? (
+                      <Button size="small" type="primary" onClick={() => navigate(`/orders/${activeConversation.orderId}`)}>
+                        查看订单
+                      </Button>
+                    ) : null}
                     {activeConversation.patentId ? (
                       <Button size="small" loading={patentDetailLoading && patentDetailOpen} onClick={() => void openPatentDetail()}>
                         专利详情
