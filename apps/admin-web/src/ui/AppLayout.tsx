@@ -53,6 +53,7 @@ const menuConfig: AppMenuItem[] = [
   { key: 'tech-managers', icon: <TeamOutlined />, label: '技术经理人', to: '/tech-managers', permission: 'listing.read' },
   { key: 'achievements', icon: <CameraOutlined />, label: '专利成果', to: '/achievements', permission: 'listing.read' },
   { key: 'comments', icon: <MessageOutlined />, label: '留言管理', to: '/comments', permission: 'listing.read' },
+  { key: 'platform-conversations', icon: <MessageOutlined />, label: '平台咨询会话', to: '/conversations/platform', permission: 'conversation.platform.manage' },
   { key: 'alerts', icon: <BellOutlined />, label: '告警中心', to: '/alerts', permission: 'alert.manage' },
   { key: 'audit-logs', icon: <ProfileOutlined />, label: '审计日志', to: '/audit-logs', permission: 'auditLog.read' },
   { key: 'orders', label: '订单管理', to: '/orders', permission: 'order.read' },
@@ -70,7 +71,6 @@ const menuConfig: AppMenuItem[] = [
   { key: 'patent-ops', icon: <BookOutlined />, label: '专利批量运营', to: '/patents/operations', permission: 'patent.import' },
   { key: 'bulk-import', icon: <BookOutlined />, label: '统一批量导入', to: '/imports/bulk', permission: 'patent.import' },
   { key: 'patent-claims', icon: <BookOutlined />, label: '专利认领审核', to: '/patents/claims', permission: 'patent.claim.review' },
-  { key: 'platform-conversations', icon: <MessageOutlined />, label: '平台咨询会话', to: '/conversations/platform', permission: 'conversation.platform.manage' },
   { key: 'rbac', icon: <LockOutlined />, label: '账号权限', to: '/rbac', permission: 'rbac.manage' },
 ];
 
