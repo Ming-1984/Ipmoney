@@ -15,6 +15,7 @@ type PayType = 'DEPOSIT' | 'FINAL';
 type WebhookEvent = {
   eventType: string;
   orderId?: string;
+  paymentId?: string;
   refundRequestId?: string;
   payType?: PayType | null;
   amountFen?: number;
@@ -50,11 +51,26 @@ export class WebhooksService {
     const normalized = String(value).toUpperCase();
     if (normalized.includes('FINAL')) return 'FINAL';
     if (normalized.includes('DEPOSIT')) return 'DEPOSIT';
+    if (normalized.startsWith('IPF')) return 'FINAL';
+    if (normalized.startsWith('IPD')) return 'DEPOSIT';
     return null;
+  }
+
+  private parseAttach(value: unknown): Record<string, unknown> {
+    if (!value) return {};
+    if (typeof value === 'object' && !Array.isArray(value)) return value as Record<string, unknown>;
+    if (typeof value !== 'string') return {};
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
   }
 
   private normalizeEvent(body: any): WebhookEvent {
     const resource = body?.resource ?? {};
+    const attach = this.parseAttach(this.pickString(body?.attach, resource?.attach));
     const eventType =
       this.pickString(body?.eventType, body?.event_type, body?.type, body?.notify_type)?.toUpperCase() ?? '';
 
@@ -72,15 +88,27 @@ export class WebhooksService {
     const refundNo = this.pickString(body?.out_refund_no, resource?.out_refund_no);
 
     const orderId =
-      this.pickString(body?.orderId, body?.order_id, resource?.orderId, resource?.order_id) ??
+      this.pickString(body?.orderId, body?.order_id, resource?.orderId, resource?.order_id, attach?.orderId, attach?.order_id) ??
       this.extractUuid(this.pickString(body?.out_trade_no, resource?.out_trade_no, tradeNo));
+
+    const paymentId = this.pickString(body?.paymentId, body?.payment_id, resource?.paymentId, resource?.payment_id, attach?.paymentId, attach?.payment_id);
 
     const refundRequestId =
       this.pickString(body?.refundRequestId, body?.refund_request_id, resource?.refundRequestId, resource?.refund_request_id) ??
       this.extractUuid(refundNo);
 
     const payType = this.normalizePayType(
-      this.pickString(body?.payType, body?.pay_type, resource?.payType, resource?.pay_type, body?.trade_type),
+      this.pickString(
+        body?.payType,
+        body?.pay_type,
+        resource?.payType,
+        resource?.pay_type,
+        attach?.payType,
+        attach?.pay_type,
+        body?.trade_type,
+        resource?.out_trade_no,
+        body?.out_trade_no,
+      ),
     );
 
     const amountRaw = body?.amountFen ?? body?.amount ?? body?.total_amount ?? resource?.amount?.total ?? resource?.amount;
@@ -89,6 +117,7 @@ export class WebhooksService {
     return {
       eventType,
       orderId,
+      paymentId,
       refundRequestId,
       payType,
       amountFen: Number.isFinite(amountFen) ? amountFen : undefined,
@@ -319,7 +348,14 @@ export class WebhooksService {
   }
 
   private async handlePaymentSuccess(req: any, event: WebhookEvent) {
-    const orderId = event.orderId;
+    let orderId = event.orderId;
+    const paymentFromAttach = event.paymentId
+      ? await this.prisma.payment.findFirst({
+          where: { id: event.paymentId, status: { in: ['PENDING', 'PAID'] } },
+          orderBy: { createdAt: 'desc' },
+        })
+      : null;
+    if (!orderId && paymentFromAttach?.orderId) orderId = paymentFromAttach.orderId;
     if (!orderId) return;
 
     const order = await this.prisma.order.findUnique({
@@ -344,10 +380,13 @@ export class WebhooksService {
           : order.depositAmount;
 
     const tradeNo = event.tradeNo || `webhook-${orderId}-${now.getTime()}`;
-    const existingPayment = await this.prisma.payment.findFirst({
-      where: { orderId, payType, status: { in: ['PENDING', 'PAID'] } },
-      orderBy: { createdAt: 'desc' },
-    });
+    const existingPayment =
+      paymentFromAttach && paymentFromAttach.orderId === orderId && paymentFromAttach.payType === payType
+        ? paymentFromAttach
+        : await this.prisma.payment.findFirst({
+            where: { orderId, payType, status: { in: ['PENDING', 'PAID'] } },
+            orderBy: { createdAt: 'desc' },
+          });
 
     if (!existingPayment) {
       await this.prisma.payment.create({
@@ -475,4 +514,3 @@ export class WebhooksService {
     }
   }
 }
-

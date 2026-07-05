@@ -84,6 +84,37 @@ describe('WebhooksService strictness suite', () => {
     );
   });
 
+  it('normalizes order metadata from wechat resource attach', () => {
+    const { service } = createService();
+    const orderId = '10101010-1010-4101-8101-101010101010';
+    const paymentId = '20202020-2020-4202-8202-202020202020';
+
+    const normalized = (service as any).normalizeEvent({
+      event_type: 'transaction.success',
+      resource: {
+        out_trade_no: 'IPD1010101010104101810112345678',
+        transaction_id: '4200000000000000001',
+        attach: JSON.stringify({
+          orderId,
+          payType: 'DEPOSIT',
+          paymentId,
+        }),
+        amount: { total: 100 },
+      },
+    });
+
+    expect(normalized).toEqual(
+      expect.objectContaining({
+        eventType: 'TRANSACTION.SUCCESS',
+        orderId,
+        paymentId,
+        payType: 'DEPOSIT',
+        tradeNo: '4200000000000000001',
+        amountFen: 100,
+      }),
+    );
+  });
+
   it('ignores non-object notify body', async () => {
     const { service, prisma } = createService();
 
@@ -222,6 +253,74 @@ describe('WebhooksService strictness suite', () => {
     );
     expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'ORDER_DEPOSIT_PAID', targetId: orderId }));
     expect(notifications.createMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('processes wechat payment success using attach when out_trade_no cannot restore order id', async () => {
+    const { service, prisma } = createService();
+    const orderId = '30303030-3030-4303-8303-303030303030';
+    const paymentId = '40404040-4040-4404-8404-404040404040';
+    const order = {
+      id: orderId,
+      status: 'DEPOSIT_PENDING',
+      depositAmount: 100,
+      finalAmount: null,
+      dealAmount: 20000,
+      buyerUserId: 'buyer-attach',
+      listing: {
+        title: 'Attach Patent Listing',
+        sellerUserId: 'seller-attach',
+      },
+    };
+
+    prisma.payment.findFirst.mockResolvedValue({
+      id: paymentId,
+      orderId,
+      payType: 'DEPOSIT',
+      status: 'PENDING',
+      tradeNo: 'IPD3030303030304303830312345678',
+    });
+    prisma.order.findUnique.mockResolvedValue(order);
+    prisma.order.update.mockResolvedValue({ ...order, status: 'DEPOSIT_PAID' });
+
+    await service.handleWechatPayNotify(
+      { headers: { 'x-request-id': 'rid-attach-1', 'user-agent': 'vitest' }, ip: '127.0.0.1' },
+      {
+        id: 'evt-attach-1',
+        event_type: 'TRANSACTION.SUCCESS',
+        resource: {
+          out_trade_no: 'IPD3030303030304303830312345678',
+          transaction_id: '4200000000000000002',
+          attach: JSON.stringify({
+            orderId,
+            payType: 'DEPOSIT',
+            paymentId,
+          }),
+          amount: { total: 100 },
+        },
+      },
+    );
+
+    expect(prisma.payment.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: paymentId, status: { in: ['PENDING', 'PAID'] } },
+      }),
+    );
+    expect(prisma.payment.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: paymentId },
+        data: expect.objectContaining({
+          status: 'PAID',
+          tradeNo: '4200000000000000002',
+          amount: 100,
+        }),
+      }),
+    );
+    expect(prisma.order.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: orderId },
+        data: expect.objectContaining({ status: 'DEPOSIT_PAID' }),
+      }),
+    );
   });
 
   it('processes refund success and transitions request/order to REFUNDED', async () => {
