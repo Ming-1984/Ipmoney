@@ -74,7 +74,7 @@ const menuConfig: AppMenuItem[] = [
   { key: 'regions', icon: <EnvironmentOutlined />, label: '地区/行业标签', to: '/regions', permission: 'config.manage' },
   { key: 'patents', icon: <BookOutlined />, label: '专利主数据', to: '/patents', permission: 'listing.read' },
   { key: 'patent-ops', icon: <BookOutlined />, label: '专利批量运营', to: '/patents/operations', permission: 'patent.import' },
-  { key: 'bulk-import', icon: <BookOutlined />, label: '统一批量导入', to: '/imports/bulk', permission: 'patent.import' },
+  { key: 'bulk-import', icon: <BookOutlined />, label: '成果/经理人导入', to: '/imports/bulk', permission: 'patent.import' },
   { key: 'patent-claims', icon: <BookOutlined />, label: '专利认领审核', to: '/patents/claims', permission: 'patent.claim.review' },
   { key: 'rbac', icon: <LockOutlined />, label: '账号权限', to: '/rbac', permission: 'rbac.manage' },
 ];

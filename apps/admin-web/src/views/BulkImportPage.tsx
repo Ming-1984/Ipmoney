@@ -232,7 +232,7 @@ export function BulkImportPage() {
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <div>
           <Typography.Title level={3} style={{ marginTop: 0 }}>
-            统一批量导入
+            成果/经理人导入
           </Typography.Title>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
             统一处理技术经理人与成果导入，支持预检、执行、评分补齐策略与错误明细，避免离线脚本造成字段漂移。
