@@ -10,6 +10,7 @@ import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
 import { confirmActionWithReason } from '../ui/confirm';
 
 type InvoiceStatus = 'WAIT_APPLY' | 'APPLYING' | 'ISSUED';
+type InvoiceStatusFilter = InvoiceStatus | 'ALL';
 
 type OrderContext = {
   orderId: string;
@@ -61,7 +62,7 @@ const STATUS_OPTIONS = [
   { value: 'APPLYING', label: '待上传发票' },
   { value: 'ISSUED', label: '已开票' },
   { value: 'WAIT_APPLY', label: '未申请' },
-  { value: '', label: '全部订单' },
+  { value: 'ALL', label: '全部状态' },
 ];
 
 const TEXT = {
@@ -114,7 +115,7 @@ export function InvoicesPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [orderId, setOrderId] = useState('');
-  const [status, setStatus] = useState<InvoiceStatus | ''>('APPLYING');
+  const [status, setStatus] = useState<InvoiceStatusFilter>('APPLYING');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
   const [data, setData] = useState<PagedInvoice | null>(null);
@@ -135,7 +136,7 @@ export function InvoicesPage() {
     const preset = String(searchParams.get('orderId') || '').trim();
     if (!preset) return;
     setOrderId(preset);
-    setStatus('');
+    setStatus('ALL');
     setPage(1);
   }, [searchParams]);
 
@@ -153,7 +154,7 @@ export function InvoicesPage() {
     setError(null);
     try {
       const next = await apiGet<PagedInvoice>('/admin/invoices', {
-        status: status || undefined,
+        status,
         orderId: orderId.trim() || undefined,
         page: nextPage,
         pageSize: nextPageSize,
@@ -205,7 +206,7 @@ export function InvoicesPage() {
         </div>
 
         <Space wrap>
-          <Select value={status} options={STATUS_OPTIONS} style={{ width: 160 }} onChange={(v) => setStatus(v as InvoiceStatus | '')} />
+          <Select value={status} options={STATUS_OPTIONS} style={{ width: 160 }} onChange={(v) => setStatus(v as InvoiceStatusFilter)} />
           <Input
             value={orderId}
             onChange={(e) => setOrderId(e.target.value)}

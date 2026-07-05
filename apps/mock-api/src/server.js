@@ -859,7 +859,7 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
       };
     });
 
-    const filtered = statusFilter ? mapped.filter((it) => it.invoiceStatus === statusFilter) : mapped;
+    const filtered = statusFilter && statusFilter !== 'ALL' ? mapped.filter((it) => it.invoiceStatus === statusFilter) : mapped;
     const start = Math.max(0, (page - 1) * pageSize);
     const paged = filtered.slice(start, start + pageSize);
     sendFixture(res, { status: 200, body: { items: paged, page: { page, pageSize, total: filtered.length } } });

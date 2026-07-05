@@ -199,6 +199,55 @@ describe('OrdersService list filter strictness suite', () => {
     expect(result.page).toEqual({ page: 2, pageSize: 50, total: 0 });
   });
 
+  it('treats admin invoice status ALL as no invoice status filter', async () => {
+    const req = { auth: { userId: 'admin-1', isAdmin: true } };
+    prisma.order.findMany.mockResolvedValueOnce([
+      {
+        id: '58888888-8888-4888-8888-888888888888',
+        listingId: '57777777-7777-4777-8777-777777777777',
+        buyerUserId: 'buyer-1',
+        status: 'COMPLETED',
+        depositAmount: 2000,
+        dealAmount: 10000,
+        finalAmount: 8000,
+        commissionAmount: 500,
+        createdAt: new Date('2026-03-13T00:00:00.000Z'),
+        updatedAt: new Date('2026-03-13T01:00:00.000Z'),
+        invoiceNo: null,
+        invoiceIssuedAt: null,
+        invoiceFileId: null,
+        buyer: { nickname: 'buyer nick', verifications: [] },
+        listing: {
+          title: 'Patent Admin Invoice',
+          sellerUserId: 'seller-1',
+          patent: { applicationNoDisplay: 'CNALL' },
+          seller: { nickname: 'seller nick', verifications: [] },
+        },
+        invoiceFile: null,
+      },
+    ]);
+    prisma.order.count.mockResolvedValueOnce(1);
+
+    const result = await service.listAdminInvoices(req, {
+      page: '1',
+      pageSize: '20',
+      status: 'ALL',
+    });
+
+    expect(prisma.order.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {},
+        skip: 0,
+        take: 20,
+      }),
+    );
+    expect(prisma.order.count).toHaveBeenCalledWith({ where: {} });
+    expect(result.items[0]).toMatchObject({
+      id: '58888888-8888-4888-8888-888888888888',
+      invoiceStatus: 'WAIT_APPLY',
+    });
+  });
+
   it('rejects invalid listInvoices filters strictly', async () => {
     const req = { auth: { userId: 'u-1' } };
     await expect(service.listInvoices(req, { page: '0' })).rejects.toBeInstanceOf(BadRequestException);

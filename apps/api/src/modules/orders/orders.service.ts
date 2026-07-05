@@ -172,6 +172,7 @@ type OrderInvoiceDto = {
 };
 
 type InvoiceStatus = 'WAIT_APPLY' | 'APPLYING' | 'ISSUED';
+type InvoiceStatusFilter = InvoiceStatus | 'ALL';
 type InvoiceItem = OrderDto & {
   invoiceStatus: InvoiceStatus;
   amountFen?: number | null;
@@ -286,8 +287,9 @@ export class OrdersService {
     return undefined;
   }
 
-  private normalizeInvoiceStatus(value: any): InvoiceStatus | undefined {
+  private normalizeInvoiceStatus(value: any): InvoiceStatusFilter | undefined {
     const raw = String(value || '').trim().toUpperCase();
+    if (raw === 'ALL') return raw;
     if ((INVOICE_STATUSES as readonly string[]).includes(raw)) return raw as InvoiceStatus;
     return undefined;
   }
