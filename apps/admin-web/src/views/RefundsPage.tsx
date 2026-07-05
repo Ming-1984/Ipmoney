@@ -10,6 +10,7 @@ import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
 import { confirmActionWithReason } from '../ui/confirm';
 
 type RefundRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'REFUNDING' | 'REFUNDED';
+type RefundStatusFilter = RefundRequestStatus | 'ALL';
 
 type OrderContext = {
   orderId: string;
@@ -41,11 +42,10 @@ type PagedRefundRequest = {
 
 const STATUS_OPTIONS = [
   { value: 'PENDING', label: '待处理' },
-  { value: 'APPROVED', label: '已通过' },
   { value: 'REFUNDING', label: '退款中' },
   { value: 'REFUNDED', label: '已退款' },
   { value: 'REJECTED', label: '已驳回' },
-  { value: '', label: '全部退款' },
+  { value: 'ALL', label: '全部退款' },
 ];
 
 const TEXT = {
@@ -64,7 +64,7 @@ const TEXT = {
   approveReason: '同意退款',
   approveReasonLabel: '审批备注',
   approveReasonHint: '建议填写核验依据、责任判断和操作人信息。',
-  approveSuccess: '已通过退款申请',
+  approveSuccess: '已通过退款申请，已进入退款中',
   rejectTitle: '确认驳回退款？',
   rejectContent: '驳回原因将用于通知和后续争议处理。',
   rejectOk: '确认驳回',
@@ -97,7 +97,7 @@ export function RefundsPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [orderId, setOrderId] = useState('');
-  const [status, setStatus] = useState<RefundRequestStatus | ''>('PENDING');
+  const [status, setStatus] = useState<RefundStatusFilter>('PENDING');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
   const [data, setData] = useState<PagedRefundRequest | null>(null);
@@ -110,7 +110,7 @@ export function RefundsPage() {
     const preset = String(searchParams.get('orderId') || '').trim();
     if (!preset) return;
     setOrderId(preset);
-    setStatus('');
+    setStatus('ALL');
     setPage(1);
   }, [searchParams]);
 
@@ -122,7 +122,7 @@ export function RefundsPage() {
     setError(null);
     try {
       const next = await apiGet<PagedRefundRequest>('/admin/refund-requests', {
-        status: status || undefined,
+        status,
         orderId: orderId.trim() || undefined,
         page: nextPage,
         pageSize: nextPageSize,
@@ -167,7 +167,7 @@ export function RefundsPage() {
         </div>
 
         <Space wrap>
-          <Select value={status} options={STATUS_OPTIONS} style={{ width: 150 }} onChange={(v) => setStatus(v as RefundRequestStatus | '')} />
+          <Select value={status} options={STATUS_OPTIONS} style={{ width: 150 }} onChange={(v) => setStatus(v as RefundStatusFilter)} />
           <Input
             value={orderId}
             onChange={(e) => setOrderId(e.target.value)}

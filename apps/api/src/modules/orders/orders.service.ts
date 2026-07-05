@@ -702,6 +702,7 @@ export class OrdersService {
 
   private normalizeRefundStatus(value: unknown): string | undefined {
     const raw = String(value || '').trim().toUpperCase();
+    if (raw === 'ALL') return raw;
     if (['PENDING', 'APPROVED', 'REJECTED', 'REFUNDING', 'REFUNDED'].includes(raw)) return raw;
     return undefined;
   }
@@ -979,7 +980,7 @@ export class OrdersService {
     }
 
     const where: any = {};
-    if (status) where.status = status;
+    if (status && status !== 'ALL') where.status = status;
     if (hasOrderId && String(query?.orderId || '').trim()) {
       where.orderId = this.parseUuidStrict(query.orderId, 'orderId');
     }
