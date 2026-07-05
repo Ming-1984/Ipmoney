@@ -133,6 +133,20 @@ function legalStatusTag(value?: LegalStatus) {
   return <Typography.Text type="secondary">-</Typography.Text>;
 }
 
+function renderPatentNumber(value?: string, fallback?: string): string {
+  return normalizeUserFacingText(value) || normalizeUserFacingText(fallback) || '-';
+}
+
+function patentIdentifiersText(row: Patent): string {
+  const parts = [
+    `申请号：${renderPatentNumber(row.applicationNoDisplay, row.applicationNoNorm)}`,
+    row.publicationNoDisplay ? `公开号：${renderPatentNumber(row.publicationNoDisplay)}` : '',
+    row.patentNoDisplay ? `专利号：${renderPatentNumber(row.patentNoDisplay)}` : '',
+    row.grantPublicationNoDisplay ? `授权公告号：${renderPatentNumber(row.grantPublicationNoDisplay)}` : '',
+  ].filter(Boolean);
+  return parts.length ? parts.join(' / ') : '-';
+}
+
 export function PatentsPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -474,7 +488,7 @@ export function PatentsPage() {
               render: (v: string, row: Patent) => (
                 <Space direction="vertical" size={2}>
                   <Typography.Text>{displayAdminTitle(v, '未命名专利')}</Typography.Text>
-                  <Typography.Text type="secondary">{displayAdminInfo(row.applicationNoDisplay || row.applicationNoNorm)}</Typography.Text>
+                  <Typography.Text type="secondary">{patentIdentifiersText(row)}</Typography.Text>
                 </Space>
               ),
             },
