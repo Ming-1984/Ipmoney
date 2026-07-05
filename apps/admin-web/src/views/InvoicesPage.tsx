@@ -111,6 +111,10 @@ function moneyText(value?: number | null): string {
   return value == null ? '-' : `¥${fenToYuan(value)}`;
 }
 
+function canProcessInvoice(item?: InvoiceItem | null): item is InvoiceItem {
+  return Boolean(item && item.invoiceStatus !== 'WAIT_APPLY');
+}
+
 export function InvoicesPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -162,7 +166,8 @@ export function InvoicesPage() {
       if (seq !== loadSeqRef.current) return;
       setData(next);
       setActive((current) => {
-        const selected = current ? next.items.find((it) => it.orderId === current.orderId) : next.items[0];
+        const currentItem = current ? next.items.find((it) => it.orderId === current.orderId) : null;
+        const selected = canProcessInvoice(currentItem) ? currentItem : next.items.find(canProcessInvoice);
         resetInvoiceForm(selected || null);
         return selected || null;
       });
@@ -321,15 +326,17 @@ export function InvoicesPage() {
               render: (_, row) => (
                 <Space wrap>
                   <Button onClick={() => navigate(`/orders/${row.orderId}`)}>查看订单</Button>
-                  <Button
-                    type={row.orderId === active?.orderId ? 'primary' : 'default'}
-                    onClick={() => {
-                      setActive(row);
-                      resetInvoiceForm(row);
-                    }}
-                  >
-                    处理发票
-                  </Button>
+                  {canProcessInvoice(row) ? (
+                    <Button
+                      type={row.orderId === active?.orderId ? 'primary' : 'default'}
+                      onClick={() => {
+                        setActive(row);
+                        resetInvoiceForm(row);
+                      }}
+                    >
+                      处理发票
+                    </Button>
+                  ) : null}
                 </Space>
               ),
             },
