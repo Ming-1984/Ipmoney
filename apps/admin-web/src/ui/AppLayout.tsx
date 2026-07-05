@@ -33,6 +33,7 @@ type SessionInfo = {
   isAdmin: boolean;
   role?: string;
   roleNames?: string[];
+  roleIds?: string[];
   permissions?: string[];
   nickname?: string;
   displayName?: string;
@@ -80,6 +81,14 @@ function hasPermission(perms: Set<string>, permission?: string): boolean {
   return perms.has(permission);
 }
 
+function isSuperAdminSession(session?: SessionInfo | null): boolean {
+  if (!session) return false;
+  if ((session.permissions || []).includes('*')) return true;
+  if (String(session.role || '').toLowerCase() === 'admin') return true;
+  if ((session.roleNames || []).some((item) => String(item || '').toLowerCase() === 'admin')) return true;
+  return (session.roleIds || []).some((item) => String(item || '') === 'role-admin');
+}
+
 export function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -113,7 +122,11 @@ export function AppLayout() {
     void loadSession();
   }, []);
 
-  const permissionSet = useMemo(() => new Set(session?.permissions || []), [session?.permissions]);
+  const permissionSet = useMemo(() => {
+    const next = new Set(session?.permissions || []);
+    if (isSuperAdminSession(session)) next.add('*');
+    return next;
+  }, [session]);
   const sessionDisplayName = useMemo(
     () => displayUserName(session, '平台成员'),
     [session?.displayName, session?.nickname],
