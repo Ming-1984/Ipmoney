@@ -7,6 +7,7 @@
   Form,
   Input,
   InputNumber,
+  Modal,
   Segmented,
   Row,
   Select,
@@ -20,8 +21,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { components } from '@ipmoney/api-types';
 
-import { apiGet, apiPost, apiUploadFile } from '../lib/api';
-import { fenToYuan, formatTimeSmart, yuanToFen } from '../lib/format';
+import { apiGet, apiPatch, apiPost, apiUploadFile } from '../lib/api';
+import { fenToYuan, fenToYuanNumber, formatTimeSmart, yuanToFen } from '../lib/format';
 import { displayAdminInfo, normalizeUserFacingText } from '../lib/userFacingText';
 import {
   DEFAULT_LISTING_TOPIC_OPTIONS,
@@ -146,6 +147,17 @@ type ImportRow = {
   raw?: Record<string, any>;
   normalized?: Record<string, any> | null;
 };
+
+type ListingEditFormValues = {
+  priceType?: 'FIXED' | 'NEGOTIABLE';
+  priceAmountYuan?: number | null;
+  depositAmountYuan?: number | null;
+};
+
+const priceTypeOptions: Array<{ value: 'FIXED' | 'NEGOTIABLE'; label: string }> = [
+  { value: 'NEGOTIABLE', label: '面议' },
+  { value: 'FIXED', label: '固定价' },
+];
 
 function actionLabel(action: BatchAction) {
   if (action === 'APPROVE') return '批量通过';
@@ -325,6 +337,9 @@ export function ListingsAuditPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [activeListing, setActiveListing] = useState<Listing | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editForm] = Form.useForm<ListingEditFormValues>();
 
   const [batchJobsLoading, setBatchJobsLoading] = useState(false);
   const [batchJobs, setBatchJobs] = useState<Paged<BatchJob> | null>(null);
@@ -551,6 +566,53 @@ export function ListingsAuditPage() {
       setDetailLoading(false);
     }
   }, []);
+
+  const openListingEdit = useCallback(() => {
+    if (!activeListing) return;
+    editForm.setFieldsValue({
+      priceType: activeListing.priceType || 'NEGOTIABLE',
+      priceAmountYuan: activeListing.priceAmountFen == null ? undefined : fenToYuanNumber(activeListing.priceAmountFen),
+      depositAmountYuan: activeListing.depositAmountFen == null ? 0 : fenToYuanNumber(activeListing.depositAmountFen),
+    });
+    setEditOpen(true);
+  }, [activeListing, editForm]);
+
+  const submitListingEdit = useCallback(async () => {
+    if (!activeListing) return;
+    try {
+      const values = await editForm.validateFields();
+      const payload: Record<string, unknown> = {
+        priceType: values.priceType || 'NEGOTIABLE',
+        depositAmountFen: yuanToFen(values.depositAmountYuan ?? 0),
+      };
+      if ((values.priceType || 'NEGOTIABLE') === 'FIXED') {
+        if (values.priceAmountYuan == null) {
+          message.error('固定价需要填写价格');
+          return;
+        }
+        payload.priceAmountFen = yuanToFen(values.priceAmountYuan);
+      } else {
+        payload.priceAmountFen = null;
+      }
+
+      setEditSubmitting(true);
+      await apiPatch(
+        `/admin/listings/${activeListing.id}`,
+        payload,
+        { idempotencyKey: `admin-listing-price-edit-${activeListing.id}-${Date.now()}` },
+      );
+      message.success('挂牌价格已更新');
+      setEditOpen(false);
+      const detail = await apiGet<Listing>(`/admin/listings/${activeListing.id}`);
+      setActiveListing(detail);
+      await loadListings();
+    } catch (e: any) {
+      if (e?.errorFields) return;
+      message.error(translateApiMessage(e?.message || '更新挂牌价格失败'));
+    } finally {
+      setEditSubmitting(false);
+    }
+  }, [activeListing, editForm, loadListings]);
 
   const updateFileModeration = useCallback(
     async (fileId: string, status: 'APPROVED' | 'REJECTED') => {
@@ -1364,14 +1426,19 @@ export function ListingsAuditPage() {
         title={activeListing ? `挂牌详情：${displayText(activeListing.title, activeListing.id)}` : '挂牌详情'}
         onClose={() => setDetailOpen(false)}
         extra={
-          activeListing && activeListing.status !== 'DRAFT' && activeListing.auditStatus === 'PENDING' ? (
+          activeListing ? (
             <Space>
-              <Button onClick={() => void rejectListing(activeListing)} danger>
-                驳回
-              </Button>
-              <Button type="primary" onClick={() => void approveListing(activeListing)}>
-                通过
-              </Button>
+              {activeListing.status !== 'DRAFT' && activeListing.auditStatus === 'PENDING' ? (
+                <>
+                  <Button onClick={() => void rejectListing(activeListing)} danger>
+                    驳回
+                  </Button>
+                  <Button type="primary" onClick={() => void approveListing(activeListing)}>
+                    通过
+                  </Button>
+                </>
+              ) : null}
+              <Button onClick={openListingEdit}>编辑价格/保证金</Button>
             </Space>
           ) : null
         }
@@ -1468,6 +1535,41 @@ export function ListingsAuditPage() {
           <Typography.Text type="secondary">暂未获取到挂牌详情。</Typography.Text>
         )}
       </Drawer>
+
+      <Modal
+        title="编辑挂牌价格/保证金"
+        open={editOpen}
+        onCancel={() => setEditOpen(false)}
+        onOk={() => void submitListingEdit()}
+        okText="保存"
+        confirmLoading={editSubmitting}
+        destroyOnClose
+      >
+        <Form form={editForm} layout="vertical">
+          <Form.Item label="价格方式" name="priceType" rules={[{ required: true, message: '请选择价格方式' }]}>
+            <Select options={priceTypeOptions} />
+          </Form.Item>
+          <Form.Item
+            label="价格（元）"
+            name="priceAmountYuan"
+            rules={[
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (getFieldValue('priceType') === 'FIXED' && (value === null || value === undefined)) {
+                    return Promise.reject(new Error('固定价需要填写价格'));
+                  }
+                  return Promise.resolve();
+                },
+              }),
+            ]}
+          >
+            <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="面议时可留空" />
+          </Form.Item>
+          <Form.Item label="订金（元）" name="depositAmountYuan">
+            <InputNumber min={0} precision={2} style={{ width: '100%' }} />
+          </Form.Item>
+        </Form>
+      </Modal>
 
       <Drawer
         width={980}
