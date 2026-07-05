@@ -25,6 +25,8 @@ type PayTarget = {
   depositAmountFen: number;
   priceType: 'FIXED' | 'NEGOTIABLE';
   priceAmountFen?: number;
+  tradeLocked?: boolean;
+  tradeAvailability?: 'AVAILABLE' | 'LOCKED' | 'SOLD';
 };
 
 type Order = { id: string; status: string; depositAmountFen: number; createdAt: string };
@@ -249,6 +251,11 @@ export default function DepositPayPage() {
     } catch (e: any) {
       if (seq !== paySeqRef.current || listingIdRef.current !== targetListingId) return;
       if (e instanceof ApiError) {
+        if (e.code === 'LISTING_LOCKED' || e.code === 'LISTING_SOLD') {
+          toast(e.code === 'LISTING_SOLD' ? '该专利已成交，暂不可购买' : '该专利已有用户支付订金，暂不可购买');
+          await load();
+          return;
+        }
         if (e.kind === 'auth' && e.statusCode === 403) {
           toast('请先完成实名认证后再支付');
           goOnboarding();
@@ -303,9 +310,14 @@ export default function DepositPayPage() {
 
   const isOwnListing = Boolean(target?.sellerUserId && currentUserId && target.sellerUserId === currentUserId);
   const hasValidDepositAmount = Boolean(target && Number.isFinite(target.depositAmountFen) && target.depositAmountFen > 0);
-  const payDisabled = paying || isOwnListing || !hasValidDepositAmount;
+  const tradeLocked = Boolean(target?.tradeLocked || target?.tradeAvailability === 'LOCKED' || target?.tradeAvailability === 'SOLD');
+  const payDisabled = paying || isOwnListing || tradeLocked || !hasValidDepositAmount;
   const payButtonText = isOwnListing
     ? '不能购买自己的专利'
+    : target?.tradeAvailability === 'SOLD'
+      ? '已成交'
+      : tradeLocked
+        ? '已锁定'
     : !hasValidDepositAmount
       ? '该专利暂未配置订金'
       : paying
@@ -359,6 +371,9 @@ export default function DepositPayPage() {
               订金支付后平台将启动合同/材料核验与权属变更流程。退款与争议处理以平台规则与人工审核为准。
             </Text>
             {isOwnListing ? <Text className="pay-note">当前账号是该专利的提交方，不能对自己的展示信息发起订金支付。</Text> : null}
+            {tradeLocked ? (
+              <Text className="pay-note">{target?.tradeAvailability === 'SOLD' ? '该专利已成交，不能再次下单支付订金。' : '该专利已有用户支付订金，暂时锁定。'}</Text>
+            ) : null}
             {!hasValidDepositAmount ? <Text className="pay-note">当前挂牌尚未配置有效订金，请先补全挂牌定金后再支付。</Text> : null}
           </Surface>
 

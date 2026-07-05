@@ -73,6 +73,9 @@ type PatentDto = {
     priceType?: PriceType;
     priceAmountFen?: number;
     depositAmountFen?: number;
+    tradeLocked?: boolean;
+    tradeAvailability?: 'AVAILABLE' | 'LOCKED' | 'SOLD';
+    lockingOrderStatus?: string | null;
     supplyType?: 'UNIVERSITY' | 'UNIVERSITY_985' | 'UNIVERSITY_211' | 'RESEARCH_INSTITUTE' | 'OTHER';
     seller?: {
       id: string;
@@ -222,11 +225,11 @@ const LISTING_TOPIC_VALUE_SET = new Set<ListingTopic>([
   'OPEN_LICENSE',
 ]);
 const ORDER_BLOCKING_STATUS_SET = new Set<string>([
-  'DEPOSIT_PENDING',
   'DEPOSIT_PAID',
   'WAIT_FINAL_PAYMENT',
   'FINAL_PAID_ESCROW',
   'READY_TO_SETTLE',
+  'COMPLETED',
   'REFUNDING',
 ]);
 const PATENT_PARTY_ROLE = {
@@ -688,11 +691,18 @@ export class PatentsService {
     const listing = Array.isArray(record?.listings) ? record.listings[0] : null;
     if (!listing) return undefined;
     const orgCategory = this.resolveSellerOrgCategory(listing);
+    const lockingOrder = Array.isArray(listing.orders)
+      ? listing.orders.find((order: any) => ORDER_BLOCKING_STATUS_SET.has(String(order?.status || '').toUpperCase()))
+      : null;
+    const lockingOrderStatus = lockingOrder ? String(lockingOrder.status || '').toUpperCase() : null;
     return {
       listingId: listing.id,
       priceType: listing.priceType ?? undefined,
       priceAmountFen: typeof listing.priceAmount === 'number' ? listing.priceAmount : undefined,
       depositAmountFen: typeof listing.depositAmount === 'number' ? listing.depositAmount : undefined,
+      tradeLocked: Boolean(lockingOrder),
+      tradeAvailability: lockingOrderStatus ? (lockingOrderStatus === 'COMPLETED' ? 'SOLD' : 'LOCKED') : 'AVAILABLE',
+      lockingOrderStatus,
       supplyType: orgCategory ?? undefined,
       seller: listing.seller
         ? {
@@ -1175,6 +1185,12 @@ export class PatentsService {
           orderBy: [{ featuredLevel: 'desc' }, { featuredRank: 'asc' }, { createdAt: 'desc' }],
           take: 1,
           include: {
+            orders: {
+              where: { status: { in: [...ORDER_BLOCKING_STATUS_SET] } },
+              orderBy: { createdAt: 'asc' },
+              take: 1,
+              select: { id: true, status: true },
+            },
             seller: {
               include: {
                 verifications: {

@@ -26,6 +26,11 @@ describe('WebhooksService strictness suite', () => {
         create: vi.fn(),
         update: vi.fn(),
       },
+      order: {
+        findUnique: vi.fn(),
+        findFirst: vi.fn(),
+        update: vi.fn(),
+      },
       refundRequest: {
         findUnique: vi.fn(),
         findFirst: vi.fn(),
@@ -218,6 +223,7 @@ describe('WebhooksService strictness suite', () => {
     };
 
     prisma.order.findUnique.mockResolvedValue(order);
+    prisma.order.findFirst.mockResolvedValue(null);
     prisma.payment.findFirst.mockResolvedValue(null);
     prisma.order.update.mockResolvedValue({ ...order, status: 'DEPOSIT_PAID' });
 
@@ -253,6 +259,42 @@ describe('WebhooksService strictness suite', () => {
     );
     expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'ORDER_DEPOSIT_PAID', targetId: orderId }));
     expect(notifications.createMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores deposit webhook when another paid order already locks the same listing', async () => {
+    const { service, prisma } = createService();
+    const orderId = '50505050-5050-4505-8505-505050505050';
+    const order = {
+      id: orderId,
+      status: 'DEPOSIT_PENDING',
+      depositAmount: 5000,
+      finalAmount: null,
+      dealAmount: 20000,
+      buyerUserId: 'buyer-lock',
+      listingId: 'listing-lock-1',
+      listing: {
+        title: 'Locked Patent Listing',
+        sellerUserId: 'seller-lock',
+      },
+    };
+
+    prisma.order.findUnique.mockResolvedValue(order);
+    prisma.order.findFirst.mockResolvedValueOnce({ id: 'other-order', status: 'DEPOSIT_PAID' });
+
+    await service.handleWechatPayNotify(
+      { headers: { 'x-request-id': 'rid-lock-1', 'user-agent': 'vitest' }, ip: '127.0.0.1' },
+      {
+        id: 'evt-lock-1',
+        eventType: 'TRANSACTION.SUCCESS',
+        orderId,
+        payType: 'DEPOSIT',
+        amountFen: 5000,
+        tradeNo: 'wx-lock-1',
+      },
+    );
+
+    expect(prisma.payment.create).not.toHaveBeenCalled();
+    expect(prisma.order.update).not.toHaveBeenCalled();
   });
 
   it('processes wechat payment success using attach when out_trade_no cannot restore order id', async () => {

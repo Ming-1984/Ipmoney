@@ -9210,6 +9210,17 @@ components:
         depositAmountFen:
           type: integer
           minimum: 0
+        tradeLocked:
+          type: boolean
+        tradeAvailability:
+          type: string
+          enum:
+            - AVAILABLE
+            - LOCKED
+            - SOLD
+        lockingOrderStatus:
+          type: string
+          nullable: true
         seller:
           $ref: '#/components/schemas/UserBrief'
         supplyType:
@@ -9463,6 +9474,17 @@ components:
           $ref: '#/components/schemas/MoneyFen'
         depositAmountFen:
           $ref: '#/components/schemas/MoneyFen'
+        tradeLocked:
+          type: boolean
+        tradeAvailability:
+          type: string
+          enum:
+            - AVAILABLE
+            - LOCKED
+            - SOLD
+        lockingOrderStatus:
+          type: string
+          nullable: true
         regionCode:
           type: string
         industryTags:

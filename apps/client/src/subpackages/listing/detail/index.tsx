@@ -425,10 +425,15 @@ export default function ListingDetailPage() {
   }, [data?.stats?.favoriteCount, favoritedState, listingId]);
 
   const isOwnListing = Boolean(data?.seller?.id && currentUserId && data.seller.id === currentUserId);
+  const tradeLocked = Boolean(data?.tradeLocked || data?.tradeAvailability === 'LOCKED' || data?.tradeAvailability === 'SOLD');
   const hasValidDepositAmount = Boolean(data && Number.isFinite(data.depositAmountFen) && data.depositAmountFen > 0);
   const favoriteCountText = String(Math.max(0, (data?.stats?.favoriteCount ?? 0) + favoriteCountOffset));
   const tradeButtonText = isOwnListing
     ? '我的专利'
+    : data?.tradeAvailability === 'SOLD'
+      ? '已成交'
+      : tradeLocked
+        ? '已锁定'
     : !hasValidDepositAmount
       ? '暂未配置订金'
       : `订金 ￥${fenToYuan(data?.depositAmountFen)}`;
@@ -803,6 +808,10 @@ export default function ListingDetailPage() {
                 if (!ensureApproved()) return;
                 if (isOwnListing) {
                   toast('这是你自己发布的专利');
+                  return;
+                }
+                if (tradeLocked) {
+                  toast(data?.tradeAvailability === 'SOLD' ? '该专利已成交，暂不可购买' : '该专利已有用户支付订金，暂不可购买');
                   return;
                 }
                 if (!hasValidDepositAmount) {

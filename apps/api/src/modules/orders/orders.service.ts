@@ -50,6 +50,14 @@ const ORDER_STATUSES = [
 const ORDER_STATUS_GROUPS = ['PAYMENT_PENDING', 'IN_PROGRESS', 'REFUND', 'DONE'] as const;
 const INVOICE_STATUSES = ['WAIT_APPLY', 'APPLYING', 'ISSUED'] as const;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const LISTING_LOCKING_ORDER_STATUSES = [
+  'DEPOSIT_PAID',
+  'WAIT_FINAL_PAYMENT',
+  'FINAL_PAID_ESCROW',
+  'READY_TO_SETTLE',
+  'COMPLETED',
+  'REFUNDING',
+] as const;
 
 type OrderStatus =
   | 'DEPOSIT_PENDING'
@@ -486,6 +494,26 @@ export class OrdersService {
     return true;
   }
 
+  private async findListingLockingOrder(listingId: string, excludeOrderId?: string) {
+    return await this.prisma.order.findFirst({
+      where: {
+        listingId,
+        status: { in: [...LISTING_LOCKING_ORDER_STATUSES] },
+        ...(excludeOrderId ? { id: { not: excludeOrderId } } : {}),
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  private ensureListingNotLocked(lockingOrder: any, currentOrderId?: string) {
+    if (!lockingOrder) return;
+    if (currentOrderId && lockingOrder.id === currentOrderId) return;
+    if (lockingOrder.status === 'COMPLETED') {
+      throw new ConflictException({ code: 'LISTING_SOLD', message: 'listing already sold' });
+    }
+    throw new ConflictException({ code: 'LISTING_LOCKED', message: 'listing already locked by another order' });
+  }
+
   private toFileObject(file: any): FileObjectDto {
     return {
       id: file.id,
@@ -594,6 +622,8 @@ export class OrdersService {
       if (existingPendingOrder) {
         return this.toOrderDto(existingPendingOrder, listing, listing.patent);
       }
+
+      this.ensureListingNotLocked(await this.findListingLockingOrder(listingId));
 
       const order = await this.prisma.order.create({
         data: {
@@ -860,6 +890,9 @@ export class OrdersService {
       if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
       if (order.buyerUserId !== req.auth.userId) {
         throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
+      }
+      if (payType === 'DEPOSIT') {
+        this.ensureListingNotLocked(await this.findListingLockingOrder(order.listingId, normalizedOrderId), normalizedOrderId);
       }
       if (payType === 'DEPOSIT' && order.status !== 'DEPOSIT_PENDING') {
         throw new ConflictException({ code: 'CONFLICT', message: 'deposit payment not allowed in current status' });

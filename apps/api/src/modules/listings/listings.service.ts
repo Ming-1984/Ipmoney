@@ -218,6 +218,14 @@ const LISTING_BATCH_ACTION_SET = new Set<ListingBatchAction>(['APPROVE', 'REJECT
 const LISTING_BATCH_ITEM_STATUS_SET = new Set<ListingBatchItemStatus>(['PENDING', 'SUCCEEDED', 'FAILED', 'SKIPPED']);
 const LISTING_IMPORT_DUPLICATE_POLICY_SET = new Set<ListingImportDuplicatePolicy>(['SKIP', 'OVERWRITE']);
 const LISTING_IMPORT_ROW_STATUS_SET = new Set<ListingImportRowStatus>(['PENDING', 'VALID', 'INVALID', 'SUCCEEDED', 'FAILED', 'SKIPPED']);
+const LISTING_LOCKING_ORDER_STATUSES = [
+  'DEPOSIT_PAID',
+  'WAIT_FINAL_PAYMENT',
+  'FINAL_PAID_ESCROW',
+  'READY_TO_SETTLE',
+  'COMPLETED',
+  'REFUNDING',
+] as const;
 @Injectable()
 export class ListingsService {
   constructor(
@@ -904,6 +912,23 @@ export class ListingsService {
     return {
       ...summary,
       orgCategory: this.resolveSellerOrgCategory(listing) ?? undefined,
+    };
+  }
+
+  private resolveTradeAvailability(listing: any) {
+    const order = Array.isArray(listing?.orders) ? listing.orders[0] : null;
+    if (!order) {
+      return {
+        tradeLocked: false,
+        tradeAvailability: 'AVAILABLE',
+        lockingOrderStatus: null,
+      };
+    }
+    const status = String(order.status || '').trim().toUpperCase();
+    return {
+      tradeLocked: true,
+      tradeAvailability: status === 'COMPLETED' ? 'SOLD' : 'LOCKED',
+      lockingOrderStatus: status || null,
     };
   }
 
@@ -4247,6 +4272,12 @@ export class ListingsService {
         seller: { include: { verifications: { orderBy: [{ submittedAt: 'desc' as const }], take: 1 } } },
         stats: true,
         media: { include: { file: true } },
+        orders: {
+          where: { status: { in: [...LISTING_LOCKING_ORDER_STATUSES] } },
+          orderBy: { createdAt: 'asc' },
+          take: 1,
+          select: { id: true, status: true },
+        },
       },
     });
     if (!it) throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
@@ -4257,6 +4288,7 @@ export class ListingsService {
           ?.file
       : null;
     return {
+      ...this.resolveTradeAvailability(it),
       id: it.id,
       source: it.source ?? 'USER',
       patentId: it.patentId,

@@ -3982,6 +3982,10 @@ export interface components {
             priceType?: components["schemas"]["PriceType"];
             priceAmountFen?: number;
             depositAmountFen?: number;
+            tradeLocked?: boolean;
+            /** @enum {string} */
+            tradeAvailability?: "AVAILABLE" | "LOCKED" | "SOLD";
+            lockingOrderStatus?: string | null;
             seller?: components["schemas"]["UserBrief"];
             supplyType?: components["schemas"]["SupplyType"];
         };
@@ -4076,6 +4080,10 @@ export interface components {
             priceType: components["schemas"]["PriceType"];
             priceAmountFen?: components["schemas"]["MoneyFen"];
             depositAmountFen: components["schemas"]["MoneyFen"];
+            tradeLocked?: boolean;
+            /** @enum {string} */
+            tradeAvailability?: "AVAILABLE" | "LOCKED" | "SOLD";
+            lockingOrderStatus?: string | null;
             regionCode?: string;
             industryTags?: string[];
             listingTopics?: components["schemas"]["ListingTopic"][];

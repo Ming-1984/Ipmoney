@@ -242,9 +242,14 @@ const tradeSnapshot = data?.tradeSnapshot ?? null;
   const depositAmountFen = tradeSnapshot?.depositAmountFen ?? null;
   const canTrade = Boolean(listingId);
   const isOwnListing = Boolean(tradeSnapshot?.seller?.id && currentUserId && tradeSnapshot.seller.id === currentUserId);
+  const tradeLocked = Boolean(tradeSnapshot?.tradeLocked || tradeSnapshot?.tradeAvailability === 'LOCKED' || tradeSnapshot?.tradeAvailability === 'SOLD');
   const hasValidDepositAmount = depositAmountFen != null && Number.isFinite(depositAmountFen) && depositAmountFen > 0;
   const depositLabel = isOwnListing
     ? '我的专利'
+    : tradeSnapshot?.tradeAvailability === 'SOLD'
+      ? '已成交'
+      : tradeLocked
+        ? '已锁定'
     : hasValidDepositAmount
       ? `订金 ￥${fenToYuan(depositAmountFen)}`
       : '暂未配置订金';
@@ -725,6 +730,10 @@ const tradeSnapshot = data?.tradeSnapshot ?? null;
                 if (!ensureApproved()) return;
                 if (isOwnListing) {
                   toast('这是你自己发布的专利');
+                  return;
+                }
+                if (tradeLocked) {
+                  toast(tradeSnapshot?.tradeAvailability === 'SOLD' ? '该专利已成交，暂不可购买' : '该专利已有用户支付订金，暂不可购买');
                   return;
                 }
                 if (!hasValidDepositAmount) {

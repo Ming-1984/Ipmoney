@@ -118,6 +118,16 @@ describe('OrdersService write-first suite', () => {
     await expect(service.createOrder(buyerReq, { listingId: LISTING_ID })).rejects.toBeInstanceOf(ConflictException);
   });
 
+  it('rejects createOrder when listing already has a locking paid order', async () => {
+    prisma.listing.findUnique.mockResolvedValueOnce(makeListing());
+    prisma.order.findFirst.mockResolvedValueOnce(null);
+    prisma.order.findFirst.mockResolvedValueOnce({ id: 'locking-order-1', status: 'DEPOSIT_PAID' });
+
+    await expect(service.createOrder(buyerReq, { listingId: LISTING_ID })).rejects.toMatchObject({
+      response: expect.objectContaining({ code: 'LISTING_LOCKED' }),
+    });
+  });
+
   it('rejects createOrder when listing deposit amount is invalid', async () => {
     prisma.listing.findUnique.mockResolvedValueOnce(makeListing({ depositAmount: 0, priceType: 'FIXED', priceAmount: null }));
     await expect(service.createOrder(buyerReq, { listingId: LISTING_ID })).rejects.toBeInstanceOf(ConflictException);
@@ -193,6 +203,15 @@ describe('OrdersService write-first suite', () => {
     await expect(service.createPaymentIntent(buyerReq, ORDER_ID, { payType: 'FINAL' })).rejects.toBeInstanceOf(
       ConflictException,
     );
+  });
+
+  it('rejects deposit payment intent when another paid order already locks the listing', async () => {
+    prisma.order.findUnique.mockResolvedValueOnce(makeOrder({ status: 'DEPOSIT_PENDING' }));
+    prisma.order.findFirst.mockResolvedValueOnce({ id: 'other-paid-order', status: 'DEPOSIT_PAID' });
+
+    await expect(service.createPaymentIntent(buyerReq, ORDER_ID, { payType: 'DEPOSIT' })).rejects.toMatchObject({
+      response: expect.objectContaining({ code: 'LISTING_LOCKED' }),
+    });
   });
 
   it('rejects createPaymentIntent if paid payment already exists', async () => {

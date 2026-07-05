@@ -9,6 +9,14 @@ import { WechatPayClient, WechatPayError } from '../../common/wechat-pay.client'
 import { NotificationsService } from '../notifications/notifications.service';
 
 const SYSTEM_ACTOR_USER_ID = '00000000-0000-0000-0000-000000000001';
+const LISTING_LOCKING_ORDER_STATUSES = [
+  'DEPOSIT_PAID',
+  'WAIT_FINAL_PAYMENT',
+  'FINAL_PAID_ESCROW',
+  'READY_TO_SETTLE',
+  'COMPLETED',
+  'REFUNDING',
+] as const;
 
 type PayType = 'DEPOSIT' | 'FINAL';
 
@@ -370,6 +378,17 @@ export class WebhooksService {
       if (order.status === 'WAIT_FINAL_PAYMENT') payType = 'FINAL';
     }
     if (!payType) return;
+    if (payType === 'DEPOSIT') {
+      const lockingOrder = await this.prisma.order.findFirst({
+        where: {
+          listingId: order.listingId,
+          status: { in: [...LISTING_LOCKING_ORDER_STATUSES] },
+          id: { not: order.id },
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+      if (lockingOrder) return;
+    }
 
     const now = new Date();
     const amountFen =
