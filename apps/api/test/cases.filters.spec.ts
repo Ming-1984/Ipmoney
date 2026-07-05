@@ -66,10 +66,31 @@ describe('CasesService list filter strictness suite', () => {
         title: '   ',
         type: 'REFUND',
         status: 'OPEN',
-        orderId: null,
-        requesterName: 'Alice',
+        orderId: '22222222-2222-2222-2222-222222222222',
+        requesterName: null,
         csUserId: 'cs-1',
         csUser: { nickname: 'CS' },
+        order: {
+          id: '22222222-2222-2222-2222-222222222222',
+          status: 'DEPOSIT_PAID',
+          assignedCsUserId: 'cs-1',
+          depositAmount: 10000,
+          dealAmount: null,
+          finalAmount: null,
+          buyer: {
+            phone: '13434213794',
+            nickname: 'Buyer',
+            verifications: [{ displayName: 'Alice Buyer' }],
+          },
+          listing: {
+            title: 'Patent listing',
+            seller: {
+              phone: '13900000000',
+              nickname: 'Seller',
+              verifications: [{ displayName: 'Seller Company' }],
+            },
+          },
+        },
         priority: 'HIGH',
         description: 'desc',
         createdAt: new Date('2026-03-13T00:00:00.000Z'),
@@ -94,6 +115,14 @@ describe('CasesService list filter strictness suite', () => {
             createdAt: new Date('2026-03-13T00:00:00.000Z'),
           },
         ],
+        milestones: [
+          {
+            id: 'm-1',
+            name: 'CONTRACT_SIGNED',
+            status: 'PENDING',
+            createdAt: new Date('2026-03-13T00:00:00.000Z'),
+          },
+        ],
       },
     ]);
     prisma.csCase.count.mockResolvedValueOnce(1);
@@ -105,8 +134,19 @@ describe('CasesService list filter strictness suite', () => {
       title: '退款争议',
       status: 'OPEN',
       slaStatus: 'OVERDUE',
+      requesterName: 'Alice Buyer',
       assigneeId: 'cs-1',
       assigneeName: 'CS',
+      assigneeIsDefault: true,
+      order: {
+        id: '22222222-2222-2222-2222-222222222222',
+        status: 'DEPOSIT_PAID',
+        listingTitle: 'Patent listing',
+        buyerName: 'Alice Buyer',
+        buyerPhone: '13434213794',
+        sellerName: 'Seller Company',
+      },
+      milestones: [{ id: 'm-1', name: 'CONTRACT_SIGNED', status: 'PENDING' }],
       notes: [{ id: 'n-1', authorName: 'Admin', content: 'note' }],
       evidenceFiles: [{ id: 'f-1', name: 'evidence.pdf' }],
     });

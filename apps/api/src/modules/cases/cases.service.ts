@@ -17,6 +17,25 @@ type CaseNote = {
   createdAt: string;
 };
 
+type CaseOrderSummary = {
+  id: string;
+  status: string;
+  listingTitle?: string | null;
+  buyerName?: string | null;
+  buyerPhone?: string | null;
+  sellerName?: string | null;
+  depositAmountFen?: number | null;
+  dealAmountFen?: number | null;
+  finalAmountFen?: number | null;
+};
+
+type CaseMilestone = {
+  id: string;
+  name: string;
+  status: string;
+  createdAt: string;
+};
+
 type CaseRecord = {
   id: string;
   title: string;
@@ -26,12 +45,15 @@ type CaseRecord = {
   requesterName?: string;
   assigneeId?: string;
   assigneeName?: string;
+  assigneeIsDefault?: boolean;
   priority?: CasePriority;
   description?: string;
   createdAt: string;
   updatedAt?: string;
   notes: CaseNote[];
   evidenceFiles?: { id: string; name: string; url?: string }[];
+  order?: CaseOrderSummary | null;
+  milestones?: CaseMilestone[];
   dueAt?: string;
   slaStatus?: CaseSlaStatus;
 };
@@ -152,8 +174,41 @@ export class CasesService {
     return dt.getTime() < Date.now() ? 'OVERDUE' : 'ON_TIME';
   }
 
+  private resolveUserDisplayName(user: any): string | null {
+    const verifiedName = String(user?.verifications?.[0]?.displayName || '').trim();
+    const nickname = String(user?.nickname || '').trim();
+    const phone = String(user?.phone || '').trim();
+    return verifiedName || nickname || phone || null;
+  }
+
+  private toCaseMilestone(milestone: any): CaseMilestone {
+    return {
+      id: String(milestone?.id || ''),
+      name: String(milestone?.name || ''),
+      status: String(milestone?.status || 'PENDING'),
+      createdAt: milestone?.createdAt instanceof Date ? milestone.createdAt.toISOString() : new Date().toISOString(),
+    };
+  }
+
+  private toCaseOrderSummary(order: any): CaseOrderSummary | null {
+    if (!order) return null;
+    return {
+      id: order.id,
+      status: String(order.status || ''),
+      listingTitle: order.listing?.title ?? null,
+      buyerName: this.resolveUserDisplayName(order.buyer),
+      buyerPhone: order.buyer?.phone ?? null,
+      sellerName: this.resolveUserDisplayName(order.listing?.seller),
+      depositAmountFen: order.depositAmount ?? null,
+      dealAmountFen: order.dealAmount ?? null,
+      finalAmountFen: order.finalAmount ?? null,
+    };
+  }
+
   private toCaseRecord(item: any): CaseRecord {
     const title = String(item.title || '').trim() || DEFAULT_TITLES[item.type as CaseType] || '客服工单';
+    const orderSummary = this.toCaseOrderSummary(item.order);
+    const requesterName = String(item.requesterName || '').trim() || orderSummary?.buyerName || undefined;
     const notes = (item.notes || []).map((note: any) => ({
       id: note.id,
       authorId: note.authorId,
@@ -177,21 +232,64 @@ export class CasesService {
       type: item.type,
       status: item.status,
       orderId: item.orderId ?? null,
-      requesterName: item.requesterName ?? undefined,
+      requesterName,
       assigneeId: item.csUserId ?? undefined,
       assigneeName:
         String(item.csUser?.verifications?.[0]?.displayName || '').trim() ||
         item.csUser?.nickname ||
         item.csUser?.phone ||
         undefined,
+      assigneeIsDefault: Boolean(item.csUserId && item.csUserId === item.order?.assignedCsUserId),
       priority: item.priority ?? undefined,
       description: item.description ?? undefined,
       createdAt: item.createdAt.toISOString(),
       updatedAt: item.updatedAt ? item.updatedAt.toISOString() : undefined,
       notes,
       evidenceFiles,
+      order: orderSummary,
+      milestones: (item.milestones || []).map((milestone: any) => this.toCaseMilestone(milestone)),
       dueAt: item.dueAt ? item.dueAt.toISOString() : undefined,
       slaStatus: this.getSlaStatus(item.dueAt),
+    };
+  }
+
+  private caseInclude() {
+    return {
+      order: {
+        include: {
+          buyer: {
+            select: {
+              phone: true,
+              nickname: true,
+              verifications: {
+                orderBy: { submittedAt: 'desc' as const },
+                take: 1,
+                select: { displayName: true },
+              },
+            },
+          },
+          listing: {
+            select: {
+              title: true,
+              seller: {
+                select: {
+                  phone: true,
+                  nickname: true,
+                  verifications: {
+                    orderBy: { submittedAt: 'desc' as const },
+                    take: 1,
+                    select: { displayName: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      csUser: { include: { verifications: { orderBy: [{ submittedAt: 'desc' as const }], take: 1 } } },
+      milestones: { orderBy: { createdAt: 'asc' as const } },
+      notes: { orderBy: { createdAt: 'desc' as const } },
+      evidences: { orderBy: { createdAt: 'desc' as const }, include: { file: true } },
     };
   }
 
@@ -199,11 +297,7 @@ export class CasesService {
     const normalizedCaseId = this.parseUuidStrict(caseId, 'caseId');
     return await this.prisma.csCase.findUnique({
       where: { id: normalizedCaseId },
-      include: {
-        csUser: { include: { verifications: { orderBy: [{ submittedAt: 'desc' as const }], take: 1 } } },
-        notes: { orderBy: { createdAt: 'desc' } },
-        evidences: { orderBy: { createdAt: 'desc' }, include: { file: true } },
-      },
+      include: this.caseInclude(),
     });
   }
 
@@ -260,11 +354,7 @@ export class CasesService {
     const [items, total] = await Promise.all([
       this.prisma.csCase.findMany({
         where,
-        include: {
-          csUser: { include: { verifications: { orderBy: [{ submittedAt: 'desc' as const }], take: 1 } } },
-          notes: { orderBy: { createdAt: 'desc' } },
-          evidences: { orderBy: { createdAt: 'desc' }, include: { file: true } },
-        },
+        include: this.caseInclude(),
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -337,11 +427,7 @@ export class CasesService {
         description,
         dueAt: normalizedDueAt,
       },
-        include: {
-          csUser: { include: { verifications: { orderBy: [{ submittedAt: 'desc' as const }], take: 1 } } },
-          notes: { orderBy: { createdAt: 'desc' } },
-          evidences: { orderBy: { createdAt: 'desc' }, include: { file: true } },
-        },
+        include: this.caseInclude(),
     });
 
     return this.toCaseRecord(created);
@@ -359,11 +445,7 @@ export class CasesService {
     const updated = await this.prisma.csCase.update({
       where: { id: caseId },
       data: { csUserId: assigneeId },
-        include: {
-          csUser: { include: { verifications: { orderBy: [{ submittedAt: 'desc' as const }], take: 1 } } },
-          notes: { orderBy: { createdAt: 'desc' } },
-          evidences: { orderBy: { createdAt: 'desc' }, include: { file: true } },
-        },
+        include: this.caseInclude(),
     });
     return this.toCaseRecord(updated);
   }
@@ -379,11 +461,7 @@ export class CasesService {
     const updated = await this.prisma.csCase.update({
       where: { id: caseId },
       data: { status },
-        include: {
-          csUser: { include: { verifications: { orderBy: [{ submittedAt: 'desc' as const }], take: 1 } } },
-          notes: { orderBy: { createdAt: 'desc' } },
-          evidences: { orderBy: { createdAt: 'desc' }, include: { file: true } },
-        },
+        include: this.caseInclude(),
     });
     return this.toCaseRecord(updated);
   }
@@ -457,11 +535,7 @@ export class CasesService {
     const updated = await this.prisma.csCase.update({
       where: { id: caseId },
       data: { dueAt },
-        include: {
-          csUser: { include: { verifications: { orderBy: [{ submittedAt: 'desc' as const }], take: 1 } } },
-          notes: { orderBy: { createdAt: 'desc' } },
-          evidences: { orderBy: { createdAt: 'desc' }, include: { file: true } },
-        },
+        include: this.caseInclude(),
     });
 
     return this.toCaseRecord(updated);

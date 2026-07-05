@@ -1,14 +1,45 @@
 ﻿import { Button, Card, Descriptions, Divider, Drawer, Form, Input, Modal, Select, Space, Table, Tag, Typography, Upload, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { apiGet, apiPost, apiUploadFile } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
+import { orderStatusLabel } from '../lib/labels';
 import { normalizeUserFacingText } from '../lib/userFacingText';
 import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
 import { confirmActionWithReason } from '../ui/confirm';
 
 type CaseType = 'FOLLOWUP' | 'REFUND' | 'DISPUTE';
 type CaseStatus = 'OPEN' | 'IN_PROGRESS' | 'CLOSED';
+type OrderStatus =
+  | 'DEPOSIT_PENDING'
+  | 'DEPOSIT_PAID'
+  | 'WAIT_FINAL_PAYMENT'
+  | 'FINAL_PAID_ESCROW'
+  | 'READY_TO_SETTLE'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'REFUNDING'
+  | 'REFUNDED';
+
+type CaseOrderSummary = {
+  id: string;
+  status: OrderStatus;
+  listingTitle?: string | null;
+  buyerName?: string | null;
+  buyerPhone?: string | null;
+  sellerName?: string | null;
+  depositAmountFen?: number | null;
+  dealAmountFen?: number | null;
+  finalAmountFen?: number | null;
+};
+
+type CaseMilestone = {
+  id: string;
+  name: string;
+  status: string;
+  createdAt: string;
+};
 
 type CaseSummary = {
   id: string;
@@ -16,8 +47,10 @@ type CaseSummary = {
   type: CaseType;
   status: CaseStatus;
   orderId?: string;
+  order?: CaseOrderSummary | null;
   requesterName?: string;
   assigneeName?: string;
+  assigneeIsDefault?: boolean;
   priority?: 'LOW' | 'MEDIUM' | 'HIGH';
   createdAt: string;
   updatedAt?: string;
@@ -37,6 +70,7 @@ type CaseDetail = CaseSummary & {
   assigneeId?: string;
   notes?: CaseNote[];
   evidenceFiles?: { id: string; name: string; url?: string }[];
+  milestones?: CaseMilestone[];
 };
 
 type PagedCases = {
@@ -98,6 +132,13 @@ function caseStatusActionLabel(status: CaseStatus): string {
   return '待确认';
 }
 
+function milestoneNameLabel(name?: string | null): string {
+  if (name === 'CONTRACT_SIGNED') return '合同签署';
+  if (name === 'TRANSFER_SUBMITTED') return '权属变更提交';
+  if (name === 'TRANSFER_COMPLETED') return '权属变更完成';
+  return '节点待确认';
+}
+
 function statusTag(status: CaseStatus) {
   if (status === 'CLOSED') return <Tag color="default">已关闭</Tag>;
   if (status === 'IN_PROGRESS') return <Tag color="blue">处理中</Tag>;
@@ -109,6 +150,7 @@ function displayCaseText(value: unknown, fallback = '-'): string {
 }
 
 export function CasesPage() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
   const [data, setData] = useState<PagedCases | null>(null);
@@ -346,10 +388,14 @@ export function CasesPage() {
                 <Space direction="vertical" size={2}>
                   <Typography.Text>{normalizeUserFacingText(row.title) || '工单主题待确认'}</Typography.Text>
                   <Typography.Text type="secondary">
-                    类型：{caseTypeLabel(row.type)} · 发起人：{displayCaseText(row.requesterName, '待确认')}
+                    类型：{caseTypeLabel(row.type)} · 发起人：{displayCaseText(row.requesterName || row.order?.buyerName, '待确认')}
                   </Typography.Text>
                   <Typography.Text type="secondary">
-                    {normalizeUserFacingText(row.orderId) ? `关联订单：${displayCaseText(row.orderId)}` : '未关联订单'}
+                    {row.order
+                      ? `${displayCaseText(row.order.listingTitle, '未命名标的')} · ${orderStatusLabel(row.order.status)}`
+                      : normalizeUserFacingText(row.orderId)
+                        ? `关联订单：${displayCaseText(row.orderId)}`
+                        : '未关联订单'}
                   </Typography.Text>
                   <Typography.Text type="secondary" copyable={{ text: row.id }}>
                     工单号：{row.id}
@@ -358,7 +404,16 @@ export function CasesPage() {
               ),
             },
             { title: '状态', dataIndex: 'status', render: (_, r) => statusTag(r.status) },
-            { title: '跟单客服', dataIndex: 'assigneeName', render: (v) => displayCaseText(v) },
+            {
+              title: '跟单客服',
+              dataIndex: 'assigneeName',
+              render: (v, r) => (
+                <Space size={6}>
+                  <Typography.Text>{displayCaseText(v, '待分配')}</Typography.Text>
+                  {r.assigneeIsDefault ? <Tag>订单客服</Tag> : null}
+                </Space>
+              ),
+            },
             {
               title: 'SLA',
               dataIndex: 'slaStatus',
@@ -380,6 +435,7 @@ export function CasesPage() {
               key: 'actions',
               render: (_, r) => (
                 <Space>
+                  {r.orderId ? <Button onClick={() => navigate(`/orders/${r.orderId}`)}>查看订单</Button> : null}
                   <Button onClick={() => void openDetail(r.id)}>详情</Button>
                 </Space>
               ),
@@ -492,9 +548,24 @@ export function CasesPage() {
               <Descriptions.Item label="工单号">{detail.id}</Descriptions.Item>
               <Descriptions.Item label="类型">{caseTypeLabel(detail.type)}</Descriptions.Item>
               <Descriptions.Item label="状态">{statusTag(detail.status)}</Descriptions.Item>
-              <Descriptions.Item label="关联订单">{displayCaseText(detail.orderId, '未关联订单')}</Descriptions.Item>
-              <Descriptions.Item label="发起人">{displayCaseText(detail.requesterName, '待确认')}</Descriptions.Item>
-              <Descriptions.Item label="跟单客服">{displayCaseText(detail.assigneeName, '待分配')}</Descriptions.Item>
+              <Descriptions.Item label="关联订单">
+                {detail.orderId ? (
+                  <Button size="small" onClick={() => navigate(`/orders/${detail.orderId}`)}>
+                    查看订单
+                  </Button>
+                ) : (
+                  '未关联订单'
+                )}
+              </Descriptions.Item>
+              <Descriptions.Item label="发起人">
+                {displayCaseText(detail.requesterName || detail.order?.buyerName, '待确认')}
+              </Descriptions.Item>
+              <Descriptions.Item label="跟单客服">
+                <Space size={6}>
+                  <Typography.Text>{displayCaseText(detail.assigneeName, '待分配')}</Typography.Text>
+                  {detail.assigneeIsDefault ? <Tag>订单客服</Tag> : null}
+                </Space>
+              </Descriptions.Item>
               <Descriptions.Item label="优先级">{priorityLabel(detail.priority)}</Descriptions.Item>
               <Descriptions.Item label="创建时间">{formatTimeSmart(detail.createdAt)}</Descriptions.Item>
               <Descriptions.Item label="SLA 截止">
@@ -510,6 +581,38 @@ export function CasesPage() {
                 )}
               </Descriptions.Item>
             </Descriptions>
+
+            {detail.order ? (
+              <div>
+                <Typography.Text strong>关联订单</Typography.Text>
+                <Descriptions size="small" bordered column={2} style={{ marginTop: 8 }}>
+                  <Descriptions.Item label="订单状态">{orderStatusLabel(detail.order.status)}</Descriptions.Item>
+                  <Descriptions.Item label="标的">{displayCaseText(detail.order.listingTitle, '未命名标的')}</Descriptions.Item>
+                  <Descriptions.Item label="买家">{displayCaseText(detail.order.buyerName, '待确认')}</Descriptions.Item>
+                  <Descriptions.Item label="卖家">{displayCaseText(detail.order.sellerName, '待确认')}</Descriptions.Item>
+                  <Descriptions.Item label="买家电话">{displayCaseText(detail.order.buyerPhone, '未记录')}</Descriptions.Item>
+                </Descriptions>
+              </div>
+            ) : null}
+
+            {detail.milestones?.length ? (
+              <div>
+                <Typography.Text strong>订单节点</Typography.Text>
+                <Space direction="vertical" size={8} style={{ width: '100%', marginTop: 8 }}>
+                  {detail.milestones.map((milestone) => (
+                    <Card key={milestone.id} size="small">
+                      <Space>
+                        <Tag color={milestone.status === 'DONE' ? 'green' : 'default'}>
+                          {milestone.status === 'DONE' ? '已完成' : '待完成'}
+                        </Tag>
+                        <Typography.Text>{milestoneNameLabel(milestone.name)}</Typography.Text>
+                        <Typography.Text type="secondary">{formatTimeSmart(milestone.createdAt)}</Typography.Text>
+                      </Space>
+                    </Card>
+                  ))}
+                </Space>
+              </div>
+            ) : null}
 
             <div>
               <Typography.Text strong>描述</Typography.Text>
