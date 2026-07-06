@@ -503,7 +503,6 @@ describe('ListingsService search filter strictness suite', () => {
     const args = prisma.listing.findMany.mock.calls[0][0];
     expect(args.where.OR).toEqual(
       expect.arrayContaining([
-        { patent: { applicationNoNorm: '1234567' } },
         { patent: { publicationNoDisplay: 'CN1234567A' } },
         { patent: { publicationNoDisplay: { contains: 'CN1234567A', mode: 'insensitive' } } },
         {

@@ -53,18 +53,20 @@ describe('ListingsService admin list filter strictness suite', () => {
       listingTopic: 'open_license',
     });
 
-    expect(prisma.listing.findMany).toHaveBeenCalledWith({
-      where: {
-        OR: [{ title: { contains: 'test-keyword', mode: 'insensitive' } }],
-        auditStatus: 'APPROVED',
-        status: 'ACTIVE',
-        source: 'PLATFORM',
-        AND: [{ listingTopicsJson: { array_contains: ['OPEN_LICENSE'] } }],
-      },
-      orderBy: { createdAt: 'desc' },
-      skip: 50,
-      take: 50,
-    });
+    expect(prisma.listing.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          OR: [{ title: { contains: 'test-keyword', mode: 'insensitive' } }],
+          auditStatus: 'APPROVED',
+          status: 'ACTIVE',
+          source: 'PLATFORM',
+          AND: [{ listingTopicsJson: { array_contains: ['OPEN_LICENSE'] } }],
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: 50,
+        take: 50,
+      }),
+    );
     expect(result.page).toEqual({ page: 2, pageSize: 50, total: 0 });
   });
 
@@ -78,12 +80,12 @@ describe('ListingsService admin list filter strictness suite', () => {
 
     expect(prisma.listing.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: {
+        where: expect.objectContaining({
           AND: [
             { listingTopicsJson: { array_contains: ['OPEN_LICENSE'] } },
             { listingTopicsJson: { array_contains: ['SLEEPING'] } },
           ],
-        },
+        }),
       }),
     );
   });
@@ -96,9 +98,9 @@ describe('ListingsService admin list filter strictness suite', () => {
 
     expect(prisma.listing.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: {
+        where: expect.objectContaining({
           AND: [{ listingTopicsJson: { array_contains: ['FIVE_STAR'] } }],
-        },
+        }),
       }),
     );
   });

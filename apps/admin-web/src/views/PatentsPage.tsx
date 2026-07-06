@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { apiGet, apiPatch, apiPost } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
-import { displayAdminInfo, displayAdminTitle, normalizeUserFacingText } from '../lib/userFacingText';
+import { displayAdminTitle, normalizeUserFacingText } from '../lib/userFacingText';
 import { RequestErrorAlert } from '../ui/RequestState';
 import { confirmActionWithReason } from '../ui/confirm';
 

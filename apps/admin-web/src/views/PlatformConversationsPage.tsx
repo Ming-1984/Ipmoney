@@ -88,7 +88,13 @@ type StaffUser = {
   roleIds: string[];
 };
 
-type AuthSession = { userId: string };
+type AuthSession = {
+  userId: string;
+  role?: string;
+  roleNames?: string[];
+  roleIds?: string[];
+  permissions?: string[];
+};
 
 type Paged<T> = { items: T[]; page: { page: number; pageSize: number; total: number } };
 type PagedMessages = { items: ConversationMessage[]; nextCursor?: string | null };
@@ -165,6 +171,14 @@ const CHANNEL_FILTER_OPTIONS: Array<{ value: ConversationChannelFilter; label: s
   { value: 'DISPUTE', label: '争议' },
   { value: 'MAINTENANCE', label: '年费托管' },
 ];
+
+function hasFullPlatformConversationAccess(session?: AuthSession | null): boolean {
+  if (!session) return false;
+  if ((session.permissions || []).includes('*')) return true;
+  if (String(session.role || '').toLowerCase() === 'admin') return true;
+  if ((session.roleNames || []).some((item) => String(item || '').toLowerCase() === 'admin')) return true;
+  return (session.roleIds || []).some((item) => String(item || '') === 'role-admin');
+}
 
 function toDateKey(value: string): string {
   const date = new Date(value);
@@ -263,18 +277,6 @@ function displayPatentText(value?: string | null): string {
   return normalizeUserFacingText(value) || '-';
 }
 
-function parseNames(text?: string): string[] {
-  const values = String(text || '')
-    .split(/[\n,，;；、]/g)
-    .map((item) => item.trim())
-    .filter(Boolean);
-  return Array.from(new Set(values));
-}
-
-function namesToText(values?: string[] | null): string {
-  return (values || []).join('\n');
-}
-
 function patentTypeLabel(value?: PatentDetail['patentType']): string {
   if (value === 'UTILITY_MODEL') return '实用新型';
   if (value === 'DESIGN') return '外观设计';
@@ -365,6 +367,7 @@ export function PlatformConversationsPage() {
   const [targetUserId, setTargetUserId] = useState('');
   const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
   const [currentUserId, setCurrentUserId] = useState('');
+  const [fullConversationAccess, setFullConversationAccess] = useState<boolean | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [patentDetailOpen, setPatentDetailOpen] = useState(false);
   const [patentDetailLoading, setPatentDetailLoading] = useState(false);
@@ -426,6 +429,7 @@ export function PlatformConversationsPage() {
       ]);
       setStaffUsers(staffRes.items || []);
       setCurrentUserId(String(sessionRes?.userId || ''));
+      setFullConversationAccess(hasFullPlatformConversationAccess(sessionRes));
     } catch {
       // fail open
     }
@@ -530,16 +534,18 @@ export function PlatformConversationsPage() {
 
   const applyFilters = useCallback(() => {
     const shouldDropListingTopic = draftChannel !== 'ALL' && draftChannel !== 'CONSULTATION';
+    const nextAssigned = fullConversationAccess === false ? 'MINE' : draftAssigned;
     setPage(1);
     setAppliedQ(draftQ);
-    setAppliedAssigned(draftAssigned);
+    setDraftAssigned(nextAssigned);
+    setAppliedAssigned(nextAssigned);
     setAppliedChannel(draftChannel);
     setAppliedListingTopic(shouldDropListingTopic ? '' : draftListingTopic);
     setAppliedUpdatedRange(draftUpdatedRange);
     if (shouldDropListingTopic && draftListingTopic) {
       setDraftListingTopic('');
     }
-  }, [draftAssigned, draftChannel, draftListingTopic, draftQ, draftUpdatedRange]);
+  }, [draftAssigned, draftChannel, draftListingTopic, draftQ, draftUpdatedRange, fullConversationAccess]);
 
   const applyAssignedFilter = useCallback((value: AssignedFilter) => {
     setPage(1);
@@ -572,18 +578,27 @@ export function PlatformConversationsPage() {
   );
 
   const resetFilters = useCallback(() => {
+    const nextAssigned = fullConversationAccess === false ? 'MINE' : 'ALL';
     setPage(1);
     setDraftQ('');
-    setDraftAssigned('ALL');
+    setDraftAssigned(nextAssigned);
     setDraftChannel('ALL');
     setDraftListingTopic('');
     setDraftUpdatedRange(null);
     setAppliedQ('');
-    setAppliedAssigned('ALL');
+    setAppliedAssigned(nextAssigned);
     setAppliedChannel('ALL');
     setAppliedListingTopic('');
     setAppliedUpdatedRange(null);
-  }, []);
+  }, [fullConversationAccess]);
+
+  const assignedFilterOptions = useMemo(
+    () =>
+      fullConversationAccess === false
+        ? ASSIGNED_FILTER_OPTIONS.filter((item) => item.value === 'MINE')
+        : ASSIGNED_FILTER_OPTIONS,
+    [fullConversationAccess],
+  );
 
   const refreshCurrent = useCallback(async () => {
     await loadConversations();
@@ -750,6 +765,15 @@ export function PlatformConversationsPage() {
   }, [loadStaffContext]);
 
   useEffect(() => {
+    if (fullConversationAccess !== false) return;
+    if (draftAssigned !== 'MINE') setDraftAssigned('MINE');
+    if (appliedAssigned !== 'MINE') {
+      setPage(1);
+      setAppliedAssigned('MINE');
+    }
+  }, [appliedAssigned, draftAssigned, fullConversationAccess]);
+
+  useEffect(() => {
     (async () => {
       const options = await fetchAdminListingTopicOptions();
       setListingTopicOptions(options);
@@ -840,7 +864,8 @@ export function PlatformConversationsPage() {
               <Select<AssignedFilter>
                 value={draftAssigned}
                 style={{ width: 140 }}
-                options={ASSIGNED_FILTER_OPTIONS}
+                options={assignedFilterOptions}
+                disabled={fullConversationAccess === false}
                 onChange={applyAssignedFilter}
               />
               <Select<ConversationChannelFilter>

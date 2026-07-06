@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 
 import { apiGet, apiPost } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
-import { displayAdminInfo, normalizeUserFacingText } from '../lib/userFacingText';
+import { normalizeUserFacingText } from '../lib/userFacingText';
 import { RequestErrorAlert } from '../ui/RequestState';
 import { confirmActionWithReason } from '../ui/confirm';
 

@@ -1,4 +1,4 @@
-﻿import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -851,16 +851,6 @@ export class ConversationsService {
     const maintenanceTitleMap = new Map(
       maintenanceOrders.map((item: any) => [item.id, this.resolveMaintenanceTitle(item)]),
     );
-    const maintenanceMetaMap = new Map(
-      maintenanceOrders.map((item: any) => [
-        item.id,
-        {
-          patentTitle: item.schedule?.patent?.title ?? null,
-          yearNo: Number.isSafeInteger(Number(item.schedule?.yearNo || 0)) ? Number(item.schedule?.yearNo) : null,
-        },
-      ]),
-    );
-
     const unreadCounts = await Promise.all(
       items.map((item: any) => {
         const lastReadAt = Array.isArray(item.participants) ? item.participants[0]?.lastReadAt : null;

@@ -576,7 +576,7 @@ describe('ConversationsService write flow suite', () => {
       auth: {
         userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         isAdmin: true,
-        permissions: new Set(['conversation.platform.manage']),
+        permissions: new Set(['*']),
         wechatOpenid: null,
       },
     };
@@ -624,7 +624,7 @@ describe('ConversationsService write flow suite', () => {
       auth: {
         userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         isAdmin: true,
-        permissions: new Set(['conversation.platform.manage']),
+        permissions: new Set(['*']),
       },
     };
     const orderId = '55555555-5555-4555-8555-555555555555';
@@ -766,7 +766,7 @@ describe('ConversationsService write flow suite', () => {
       auth: {
         userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         isAdmin: true,
-        permissions: new Set(['conversation.platform.manage']),
+        permissions: new Set(['*']),
       },
     };
 
