@@ -10,6 +10,7 @@ export type FileObject = {
 };
 export type ApiRequestOptions = { idempotencyKey?: string; retry?: number; retryDelayMs?: number };
 export type ApiErrorKind = 'auth' | 'network' | 'business' | 'http' | 'unknown';
+export const ADMIN_BADGES_REFRESH_EVENT = 'ipmoney:admin-badges-refresh';
 
 export class ApiError extends Error {
   kind: ApiErrorKind;
@@ -105,6 +106,11 @@ async function readJsonSafe<T>(res: Response): Promise<T | undefined> {
   } catch {
     return undefined;
   }
+}
+
+function notifyAdminBadgesRefresh() {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new Event(ADMIN_BADGES_REFRESH_EVENT));
 }
 
 function normalizeHttpError(status: number, data: unknown): ApiError {
@@ -242,7 +248,11 @@ export async function apiPost<TResponse>(
     throw normalizeFetchError(e);
   }
 
-  if (res.ok) return (await readJsonSafe<TResponse>(res)) as TResponse;
+  if (res.ok) {
+    const data = (await readJsonSafe<TResponse>(res)) as TResponse;
+    notifyAdminBadgesRefresh();
+    return data;
+  }
   const err = await readJsonSafe<ApiErrorShape>(res);
   throw normalizeHttpError(res.status, err);
 }
@@ -267,7 +277,11 @@ export async function apiPut<TResponse>(
     throw normalizeFetchError(e);
   }
 
-  if (res.ok) return (await readJsonSafe<TResponse>(res)) as TResponse;
+  if (res.ok) {
+    const data = (await readJsonSafe<TResponse>(res)) as TResponse;
+    notifyAdminBadgesRefresh();
+    return data;
+  }
   const err = await readJsonSafe<ApiErrorShape>(res);
   throw normalizeHttpError(res.status, err);
 }
@@ -312,8 +326,14 @@ export async function apiDelete(path: string, opts?: ApiRequestOptions): Promise
     throw normalizeFetchError(e);
   }
 
-  if (res.status === 204) return;
-  if (res.ok) return;
+  if (res.status === 204) {
+    notifyAdminBadgesRefresh();
+    return;
+  }
+  if (res.ok) {
+    notifyAdminBadgesRefresh();
+    return;
+  }
   const err = await readJsonSafe<ApiErrorShape>(res);
   throw normalizeHttpError(res.status, err);
 }
@@ -338,7 +358,11 @@ export async function apiPostForm<TResponse>(
     throw normalizeFetchError(e);
   }
 
-  if (res.ok) return (await readJsonSafe<TResponse>(res)) as TResponse;
+  if (res.ok) {
+    const data = (await readJsonSafe<TResponse>(res)) as TResponse;
+    notifyAdminBadgesRefresh();
+    return data;
+  }
   const err = await readJsonSafe<ApiErrorShape>(res);
   throw normalizeHttpError(res.status, err);
 }

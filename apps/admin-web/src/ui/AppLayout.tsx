@@ -26,7 +26,7 @@ import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import logoPng from '../assets/brand/logo.png';
-import { apiGet } from '../lib/api';
+import { ADMIN_BADGES_REFRESH_EVENT, apiGet } from '../lib/api';
 import { clearAdminToken, hasAdminToken } from '../lib/auth';
 import { displayUserName, normalizeUserFacingText } from '../lib/userFacingText';
 
@@ -147,13 +147,29 @@ export function AppLayout() {
         if (alive) setBadges({});
       }
     };
-    void loadBadges();
-    const timer = window.setInterval(() => {
+    const refreshBadges = () => {
       void loadBadges();
-    }, 60000);
+    };
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') refreshBadges();
+    };
+    const refreshWhenFocused = () => {
+      refreshBadges();
+    };
+
+    refreshBadges();
+    const timer = window.setInterval(() => {
+      refreshBadges();
+    }, 15000);
+    window.addEventListener(ADMIN_BADGES_REFRESH_EVENT, refreshBadges);
+    window.addEventListener('focus', refreshWhenFocused);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
     return () => {
       alive = false;
       window.clearInterval(timer);
+      window.removeEventListener(ADMIN_BADGES_REFRESH_EVENT, refreshBadges);
+      window.removeEventListener('focus', refreshWhenFocused);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
     };
   }, [session, location.pathname]);
 
