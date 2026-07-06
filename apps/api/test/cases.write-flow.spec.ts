@@ -60,11 +60,12 @@ describe('CasesService write flow suite', () => {
         create: vi.fn(),
         update: vi.fn(),
       },
-      order: { findUnique: vi.fn() },
+      order: { findUnique: vi.fn(), update: vi.fn() },
       user: { findUnique: vi.fn() },
       csCaseNote: { create: vi.fn() },
       csCaseEvidence: { findFirst: vi.fn(), create: vi.fn() },
       file: { findUnique: vi.fn() },
+      $transaction: vi.fn(async (handler: any) => await handler(prisma)),
     };
     service = new CasesService(prisma);
   });
@@ -133,6 +134,26 @@ describe('CasesService write flow suite', () => {
       assigneeId: ASSIGNEE_ID,
       assigneeName: 'CS User',
     });
+    expect(prisma.order.update).not.toHaveBeenCalled();
+  });
+
+  it('create syncs assigned customer service to linked followup order', async () => {
+    prisma.order.findUnique.mockResolvedValueOnce({ id: ORDER_ID });
+    prisma.user.findUnique.mockResolvedValueOnce({ id: ASSIGNEE_ID, role: 'cs', rbacRoles: [] });
+    prisma.order.update.mockResolvedValueOnce({ id: ORDER_ID, assignedCsUserId: ASSIGNEE_ID });
+    prisma.csCase.create.mockResolvedValueOnce(buildCase({ type: 'FOLLOWUP', csUserId: ASSIGNEE_ID }));
+
+    await service.create(REQ, {
+      type: 'followup',
+      orderId: ORDER_ID,
+      assigneeId: ASSIGNEE_ID,
+    });
+
+    expect(prisma.$transaction).toHaveBeenCalledOnce();
+    expect(prisma.order.update).toHaveBeenCalledWith({
+      where: { id: ORDER_ID },
+      data: { assignedCsUserId: ASSIGNEE_ID },
+    });
   });
 
   it('does not auto-fill requesterName with system placeholder when omitted', async () => {
@@ -175,6 +196,7 @@ describe('CasesService write flow suite', () => {
     prisma.csCase.update.mockResolvedValueOnce(buildCase({ csUserId: ASSIGNEE_ID, csUser: { nickname: 'CS User' } }));
 
     const result = await service.assign(REQ, CASE_ID, { assigneeId: ASSIGNEE_ID });
+    expect(prisma.order.update).not.toHaveBeenCalled();
     expect(prisma.csCase.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: CASE_ID },
@@ -182,6 +204,21 @@ describe('CasesService write flow suite', () => {
       }),
     );
     expect(result.assigneeId).toBe(ASSIGNEE_ID);
+  });
+
+  it('assign syncs linked followup case owner back to order assigned customer service', async () => {
+    prisma.csCase.findUnique.mockResolvedValueOnce({ id: CASE_ID, orderId: ORDER_ID, type: 'FOLLOWUP' });
+    prisma.user.findUnique.mockResolvedValueOnce({ id: ASSIGNEE_ID, role: 'cs', rbacRoles: [] });
+    prisma.order.update.mockResolvedValueOnce({ id: ORDER_ID, assignedCsUserId: ASSIGNEE_ID });
+    prisma.csCase.update.mockResolvedValueOnce(buildCase({ csUserId: ASSIGNEE_ID, csUser: { nickname: 'CS User' } }));
+
+    await service.assign(REQ, CASE_ID, { assigneeId: ASSIGNEE_ID });
+
+    expect(prisma.$transaction).toHaveBeenCalledOnce();
+    expect(prisma.order.update).toHaveBeenCalledWith({
+      where: { id: ORDER_ID },
+      data: { assignedCsUserId: ASSIGNEE_ID },
+    });
   });
 
   it('updateStatus validates status and not-found branch', async () => {
