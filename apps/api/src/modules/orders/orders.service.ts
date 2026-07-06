@@ -571,6 +571,38 @@ export class OrdersService {
     throw new ConflictException({ code: 'LISTING_LOCKED', message: 'listing already locked by another order' });
   }
 
+  private async resolveAssignedCsUserIdFromListingConversation(listingId: string, buyerUserId: string): Promise<string | null> {
+    const conversation = await this.prisma.conversation.findFirst({
+      where: {
+        contentType: 'LISTING',
+        listingId,
+        buyerUserId,
+      },
+      include: {
+        agents: {
+          where: { active: true },
+          orderBy: { assignedAt: 'desc' },
+          take: 1,
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+    return conversation?.agents?.[0]?.operatorUserId ?? null;
+  }
+
+  private async bindListingConversationToOrder(listingId: string, buyerUserId: string, orderId: string) {
+    if (typeof (this.prisma as any).conversation?.updateMany !== 'function') return;
+    await (this.prisma as any).conversation.updateMany({
+      where: {
+        contentType: 'LISTING',
+        listingId,
+        buyerUserId,
+        orderId: null,
+      },
+      data: { orderId },
+    });
+  }
+
   private async updateOrderAndMaybeOffShelf(orderId: string, data: any, listingId?: string | null, offShelf?: boolean) {
     const tx = (this.prisma as any).$transaction;
     if (typeof tx === 'function') {
@@ -765,14 +797,17 @@ export class OrdersService {
 
       this.ensureListingNotLocked(await this.findListingLockingOrder(listingId));
 
+      const assignedCsUserId = await this.resolveAssignedCsUserIdFromListingConversation(listingId, req.auth.userId);
       const order = await this.prisma.order.create({
         data: {
           listingId,
           buyerUserId: req.auth.userId,
+          assignedCsUserId: assignedCsUserId ?? undefined,
           status: 'DEPOSIT_PENDING',
           depositAmount,
         },
       });
+      await this.bindListingConversationToOrder(listingId, req.auth.userId, order.id);
       await this.audit.log({
         actorUserId: req.auth.userId,
         action: 'ORDER_CREATE',

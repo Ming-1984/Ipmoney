@@ -61,6 +61,7 @@ describe('OrdersService write-first suite', () => {
     prisma = {
       listing: { findUnique: vi.fn() },
       order: { findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
+      conversation: { findFirst: vi.fn(), updateMany: vi.fn() },
       payment: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
       refundRequest: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), findUnique: vi.fn(), findMany: vi.fn() },
       settlement: { upsert: vi.fn() },
@@ -136,30 +137,91 @@ describe('OrdersService write-first suite', () => {
   it('computes fallback deposit amount for negotiable listing createOrder', async () => {
     prisma.listing.findUnique.mockResolvedValueOnce(makeListing({ depositAmount: 0, priceType: 'NEGOTIABLE', priceAmount: null }));
     prisma.order.findFirst.mockResolvedValueOnce(null);
+    prisma.conversation.findFirst.mockResolvedValueOnce(null);
     prisma.order.create.mockResolvedValueOnce(makeOrder({ status: 'DEPOSIT_PENDING', depositAmount: 20000 }));
 
     await service.createOrder(buyerReq, { listingId: LISTING_ID });
 
     expect(prisma.order.create).toHaveBeenCalledWith({
-      data: { listingId: LISTING_ID, buyerUserId: USER_ID, status: 'DEPOSIT_PENDING', depositAmount: 20000 },
+      data: {
+        listingId: LISTING_ID,
+        buyerUserId: USER_ID,
+        assignedCsUserId: undefined,
+        status: 'DEPOSIT_PENDING',
+        depositAmount: 20000,
+      },
     });
   });
 
   it('creates order and emits audit/notifications', async () => {
     prisma.listing.findUnique.mockResolvedValueOnce(makeListing());
     prisma.order.findFirst.mockResolvedValueOnce(null);
+    prisma.conversation.findFirst.mockResolvedValueOnce(null);
     prisma.order.create.mockResolvedValueOnce(makeOrder({ status: 'DEPOSIT_PENDING' }));
 
     const result = await service.createOrder(buyerReq, { listingId: LISTING_ID });
 
     expect(prisma.order.create).toHaveBeenCalledWith({
-      data: { listingId: LISTING_ID, buyerUserId: USER_ID, status: 'DEPOSIT_PENDING', depositAmount: 2000 },
+      data: {
+        listingId: LISTING_ID,
+        buyerUserId: USER_ID,
+        assignedCsUserId: undefined,
+        status: 'DEPOSIT_PENDING',
+        depositAmount: 2000,
+      },
+    });
+    expect(prisma.conversation.updateMany).toHaveBeenCalledWith({
+      where: {
+        contentType: 'LISTING',
+        listingId: LISTING_ID,
+        buyerUserId: USER_ID,
+        orderId: null,
+      },
+      data: { orderId: ORDER_ID },
     });
     expect(audit.log).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'ORDER_CREATE', targetType: 'ORDER', targetId: ORDER_ID }),
     );
     expect(notifications.create).toHaveBeenCalledTimes(2);
     expect(result).toMatchObject({ id: ORDER_ID, listingId: LISTING_ID, buyerUserId: USER_ID, status: 'DEPOSIT_PENDING' });
+  });
+
+  it('creates order with assigned customer service inherited from listing conversation agent', async () => {
+    const csUserId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    prisma.listing.findUnique.mockResolvedValueOnce(makeListing());
+    prisma.order.findFirst.mockResolvedValueOnce(null);
+    prisma.conversation.findFirst.mockResolvedValueOnce({
+      id: 'conv-1',
+      agents: [{ operatorUserId: csUserId }],
+    });
+    prisma.order.create.mockResolvedValueOnce(makeOrder({ status: 'DEPOSIT_PENDING', assignedCsUserId: csUserId }));
+
+    await service.createOrder(buyerReq, { listingId: LISTING_ID });
+
+    expect(prisma.conversation.findFirst).toHaveBeenCalledWith({
+      where: {
+        contentType: 'LISTING',
+        listingId: LISTING_ID,
+        buyerUserId: USER_ID,
+      },
+      include: {
+        agents: {
+          where: { active: true },
+          orderBy: { assignedAt: 'desc' },
+          take: 1,
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+    expect(prisma.order.create).toHaveBeenCalledWith({
+      data: {
+        listingId: LISTING_ID,
+        buyerUserId: USER_ID,
+        assignedCsUserId: csUserId,
+        status: 'DEPOSIT_PENDING',
+        depositAmount: 2000,
+      },
+    });
   });
 
   it('reuses existing pending order for the same buyer and listing', async () => {

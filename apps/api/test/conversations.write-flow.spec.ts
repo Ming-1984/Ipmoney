@@ -22,6 +22,7 @@ describe('ConversationsService write flow suite', () => {
       },
       order: {
         findUnique: vi.fn(),
+        findFirst: vi.fn(),
         update: vi.fn(),
       },
       patentMaintenanceOrder: {
@@ -69,6 +70,7 @@ describe('ConversationsService write flow suite', () => {
         update: vi.fn(),
         create: vi.fn(),
       },
+      $transaction: vi.fn(async (handler: any) => await handler(prisma)),
     };
     events = { recordConsult: vi.fn().mockResolvedValue(undefined) };
     contentSecurity = { assertSafeText: vi.fn().mockResolvedValue(undefined) };
@@ -617,6 +619,49 @@ describe('ConversationsService write flow suite', () => {
     });
   });
 
+  it('auto-assign reply syncs linked trade order followup assignee when present', async () => {
+    const req = {
+      auth: {
+        userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        isAdmin: true,
+        permissions: new Set(['conversation.platform.manage']),
+      },
+    };
+    const orderId = '55555555-5555-4555-8555-555555555555';
+    prisma.conversation.findUnique.mockResolvedValueOnce({
+      id: CONVERSATION_ID,
+      contentType: 'LISTING',
+      orderId,
+      buyerUserId: 'buyer-1',
+      sellerUserId: 'seller-1',
+    });
+    prisma.conversationAgent.upsert.mockResolvedValueOnce({});
+    prisma.order.findUnique.mockResolvedValueOnce({ id: orderId, assignedCsUserId: 'old-cs' });
+    prisma.order.update.mockResolvedValueOnce({ id: orderId, assignedCsUserId: req.auth.userId });
+    prisma.csCase.findFirst.mockResolvedValueOnce({ id: 'case-1', csUserId: 'old-cs' });
+    prisma.csCase.update.mockResolvedValueOnce({ id: 'case-1', csUserId: req.auth.userId });
+    prisma.conversationMessage.create.mockResolvedValueOnce({
+      id: MESSAGE_ID,
+      conversationId: CONVERSATION_ID,
+      senderUserId: req.auth.userId,
+      type: 'TEXT',
+      text: 'hello',
+      createdAt: new Date('2026-03-13T01:00:00.000Z'),
+    });
+    prisma.conversation.update.mockResolvedValueOnce({});
+
+    await service.sendMessage(req, CONVERSATION_ID, { text: 'hello' });
+
+    expect(prisma.order.update).toHaveBeenCalledWith({
+      where: { id: orderId },
+      data: { assignedCsUserId: req.auth.userId },
+    });
+    expect(prisma.csCase.update).toHaveBeenCalledWith({
+      where: { id: 'case-1' },
+      data: { csUserId: req.auth.userId },
+    });
+  });
+
   it('sendMessage persists owned file messages without text security check', async () => {
     const req = { auth: { userId: 'buyer-1', wechatOpenid: 'openid-buyer-1' } };
     const fileId = '55555555-5555-4555-8555-555555555555';
@@ -801,6 +846,54 @@ describe('ConversationsService write flow suite', () => {
       userId: operatorUserId,
       active: true,
       assignedAt: '2026-03-13T02:00:00.000Z',
+    });
+    expect(prisma.order.update).not.toHaveBeenCalled();
+  });
+
+  it('assignPlatformAgent syncs linked listing order and followup case assignee', async () => {
+    const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } };
+    const operatorUserId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const orderId = '55555555-5555-4555-8555-555555555555';
+    prisma.conversation.findUnique.mockResolvedValueOnce({
+      id: CONVERSATION_ID,
+      contentType: 'LISTING',
+      listingId: LISTING_ID,
+      orderId: null,
+      buyerUserId: 'buyer-1',
+      listing: { consultationRouting: 'PLATFORM' },
+    });
+    prisma.user.findUnique.mockResolvedValueOnce({
+      id: operatorUserId,
+      role: 'cs',
+      rbacRoles: [],
+    });
+    prisma.conversationAgent.upsert.mockResolvedValueOnce({
+      id: 'agent-1',
+      conversationId: CONVERSATION_ID,
+      operatorUserId,
+      active: true,
+      assignedAt: new Date('2026-03-13T02:00:00.000Z'),
+    });
+    prisma.order.findFirst.mockResolvedValueOnce({ id: orderId, assignedCsUserId: 'old-cs' });
+    prisma.conversation.update.mockResolvedValueOnce({ id: CONVERSATION_ID, orderId });
+    prisma.order.update.mockResolvedValueOnce({ id: orderId, assignedCsUserId: operatorUserId });
+    prisma.csCase.findFirst.mockResolvedValueOnce({ id: 'case-1', csUserId: 'old-cs' });
+    prisma.csCase.update.mockResolvedValueOnce({ id: 'case-1', csUserId: operatorUserId });
+
+    await service.assignPlatformAgent(req, CONVERSATION_ID, { userId: operatorUserId });
+
+    expect(prisma.$transaction).toHaveBeenCalledOnce();
+    expect(prisma.conversation.update).toHaveBeenCalledWith({
+      where: { id: CONVERSATION_ID },
+      data: { orderId },
+    });
+    expect(prisma.order.update).toHaveBeenCalledWith({
+      where: { id: orderId },
+      data: { assignedCsUserId: operatorUserId },
+    });
+    expect(prisma.csCase.update).toHaveBeenCalledWith({
+      where: { id: 'case-1' },
+      data: { csUserId: operatorUserId },
     });
   });
 

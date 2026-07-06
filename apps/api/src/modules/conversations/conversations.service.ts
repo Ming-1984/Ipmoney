@@ -528,6 +528,69 @@ export class ConversationsService {
         active: true,
       },
     });
+    await this.syncTradeOrderAssigneeFromPlatformAgent(conv, req.auth.userId);
+  }
+
+  private async resolveLinkedTradeOrderForConversation(conv: any): Promise<any | null> {
+    const orderId = String(conv?.orderId || '').trim();
+    if (orderId) {
+      return await this.prisma.order.findUnique({
+        where: { id: orderId },
+        select: { id: true, assignedCsUserId: true },
+      });
+    }
+
+    if (String(conv?.contentType || '').toUpperCase() !== 'LISTING') return null;
+    const listingId = String(conv?.listingId || '').trim();
+    const buyerUserId = String(conv?.buyerUserId || '').trim();
+    if (!listingId || !buyerUserId) return null;
+
+    return await this.prisma.order.findFirst({
+      where: {
+        listingId,
+        buyerUserId,
+        status: { not: 'CANCELLED' },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, assignedCsUserId: true },
+    });
+  }
+
+  private async syncTradeOrderAssigneeFromPlatformAgent(conv: any, operatorUserId: string): Promise<void> {
+    const order = await this.resolveLinkedTradeOrderForConversation(conv);
+    if (!order?.id) return;
+
+    const apply = async (client: any) => {
+      if (!conv?.orderId && typeof client.conversation?.update === 'function') {
+        await client.conversation.update({
+          where: { id: conv.id },
+          data: { orderId: order.id },
+        });
+      }
+      if (order.assignedCsUserId !== operatorUserId) {
+        await client.order.update({
+          where: { id: order.id },
+          data: { assignedCsUserId: operatorUserId },
+        });
+      }
+      const followupCase = await client.csCase.findFirst({
+        where: { orderId: order.id, type: 'FOLLOWUP' },
+        select: { id: true, csUserId: true },
+      });
+      if (followupCase && followupCase.csUserId !== operatorUserId) {
+        await client.csCase.update({
+          where: { id: followupCase.id },
+          data: { csUserId: operatorUserId },
+        });
+      }
+    };
+
+    const tx = (this.prisma as any).$transaction;
+    if (typeof tx === 'function') {
+      await tx(async (client: any) => apply(client));
+      return;
+    }
+    await apply(this.prisma);
   }
 
   private async assertConversationAccessible(conv: any, req: any, options: { allowPlatformManager?: boolean } = {}): Promise<void> {
@@ -1493,7 +1556,7 @@ export class ConversationsService {
     const operatorUserId = this.hasOwn(body, 'userId')
       ? this.parseUuidStrict(body?.userId, 'userId')
       : this.parseUuidStrict(req?.auth?.userId, 'userId');
-    await this.ensurePlatformManageableConversation(normalizedConversationId);
+    const conversation = await this.ensurePlatformManageableConversation(normalizedConversationId);
     await this.ensureAssignablePlatformAgentUser(operatorUserId);
     const assigned = await this.prisma.conversationAgent.upsert({
       where: {
@@ -1513,6 +1576,7 @@ export class ConversationsService {
         active: true,
       },
     });
+    await this.syncTradeOrderAssigneeFromPlatformAgent(conversation, operatorUserId);
     return {
       id: assigned.id,
       conversationId: assigned.conversationId,

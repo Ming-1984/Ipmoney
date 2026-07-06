@@ -307,20 +307,6 @@ export class CasesService {
     if (!found) throw new NotFoundException({ code: 'NOT_FOUND', message: '工单不存在' });
   }
 
-  private async getCaseAssignmentTarget(caseId: string) {
-    const normalizedCaseId = this.parseUuidStrict(caseId, 'caseId');
-    const found = await this.prisma.csCase.findUnique({
-      where: { id: normalizedCaseId },
-      select: { id: true, orderId: true, type: true },
-    });
-    if (!found) throw new NotFoundException({ code: 'NOT_FOUND', message: '工单不存在' });
-    return found;
-  }
-
-  private shouldSyncOrderAssignee(csCase: { orderId?: string | null; type?: CaseType | string | null }) {
-    return Boolean(csCase.orderId && csCase.type === 'FOLLOWUP');
-  }
-
   private async assertStaffAssignee(assigneeId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: assigneeId },
@@ -429,7 +415,7 @@ export class CasesService {
       csUserId = assigneeId;
     }
 
-    const caseCreateArgs = {
+    const created = await this.prisma.csCase.create({
       data: {
         orderId: orderId ?? null,
         csUserId: csUserId || null,
@@ -442,18 +428,7 @@ export class CasesService {
         dueAt: normalizedDueAt,
       },
       include: this.caseInclude(),
-    };
-
-    const shouldSyncOrder = Boolean(orderId && csUserId && type === 'FOLLOWUP');
-    const created = shouldSyncOrder
-      ? await this.prisma.$transaction(async (tx: any) => {
-          await tx.order.update({
-            where: { id: orderId! },
-            data: { assignedCsUserId: csUserId },
-          });
-          return await tx.csCase.create(caseCreateArgs);
-        })
-      : await this.prisma.csCase.create(caseCreateArgs);
+    });
 
     return this.toCaseRecord(created);
   }
@@ -463,24 +438,15 @@ export class CasesService {
     requirePermission(req, 'case.manage');
     const assigneeId = this.parseUuidStrict(body?.assigneeId, 'assigneeId');
 
-    const existing = await this.getCaseAssignmentTarget(caseId);
+    await this.ensureCaseExists(caseId);
 
     await this.assertStaffAssignee(assigneeId);
 
-    const caseUpdateArgs = {
-      where: { id: existing.id },
+    const updated = await this.prisma.csCase.update({
+      where: { id: caseId },
       data: { csUserId: assigneeId },
       include: this.caseInclude(),
-    };
-    const updated = this.shouldSyncOrderAssignee(existing)
-      ? await this.prisma.$transaction(async (tx: any) => {
-          await tx.order.update({
-            where: { id: existing.orderId! },
-            data: { assignedCsUserId: assigneeId },
-          });
-          return await tx.csCase.update(caseUpdateArgs);
-        })
-      : await this.prisma.csCase.update(caseUpdateArgs);
+    });
     return this.toCaseRecord(updated);
   }
 
