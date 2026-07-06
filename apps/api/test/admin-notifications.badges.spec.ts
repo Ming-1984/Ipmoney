@@ -72,6 +72,12 @@ describe('AdminNotificationsService', () => {
     expect(prisma.order.count).toHaveBeenNthCalledWith(1, {
       where: { status: { in: ['DEPOSIT_PAID', 'FINAL_PAID_ESCROW'] } },
     });
+    expect(prisma.listing.count).toHaveBeenCalledWith({
+      where: { auditStatus: 'PENDING', status: { not: 'DRAFT' } },
+    });
+    expect(prisma.achievement.count).toHaveBeenCalledWith({
+      where: { auditStatus: 'PENDING', status: { not: 'DRAFT' } },
+    });
     expect(prisma.order.count).toHaveBeenNthCalledWith(2, {
       where: {
         OR: [

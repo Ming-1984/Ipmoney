@@ -63,12 +63,12 @@ export class AdminNotificationsService {
       {
         key: 'listings',
         permission: 'listing.read',
-        count: () => this.prisma.listing.count({ where: { auditStatus: 'PENDING' } }),
+        count: () => this.prisma.listing.count({ where: { auditStatus: 'PENDING', status: { not: 'DRAFT' } } }),
       },
       {
         key: 'achievements',
         permission: 'listing.read',
-        count: () => this.prisma.achievement.count({ where: { auditStatus: 'PENDING' } }),
+        count: () => this.prisma.achievement.count({ where: { auditStatus: 'PENDING', status: { not: 'DRAFT' } } }),
       },
       {
         key: 'platform-conversations',
