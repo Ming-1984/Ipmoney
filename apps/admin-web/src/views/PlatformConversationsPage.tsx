@@ -541,6 +541,36 @@ export function PlatformConversationsPage() {
     }
   }, [draftAssigned, draftChannel, draftListingTopic, draftQ, draftUpdatedRange]);
 
+  const applyAssignedFilter = useCallback((value: AssignedFilter) => {
+    setPage(1);
+    setDraftAssigned(value);
+    setAppliedAssigned(value);
+  }, []);
+
+  const applyChannelFilter = useCallback(
+    (value: ConversationChannelFilter) => {
+      const shouldDropListingTopic = value !== 'ALL' && value !== 'CONSULTATION';
+      setPage(1);
+      setDraftChannel(value);
+      setAppliedChannel(value);
+      if (shouldDropListingTopic) {
+        setDraftListingTopic('');
+        setAppliedListingTopic('');
+      }
+    },
+    [],
+  );
+
+  const applyListingTopicFilter = useCallback(
+    (value: string) => {
+      const next = (value as ListingTopic) || '';
+      setPage(1);
+      setDraftListingTopic(next);
+      setAppliedListingTopic(draftChannel !== 'ALL' && draftChannel !== 'CONSULTATION' ? '' : next);
+    },
+    [draftChannel],
+  );
+
   const resetFilters = useCallback(() => {
     setPage(1);
     setDraftQ('');
@@ -811,24 +841,19 @@ export function PlatformConversationsPage() {
                 value={draftAssigned}
                 style={{ width: 140 }}
                 options={ASSIGNED_FILTER_OPTIONS}
-                onChange={setDraftAssigned}
+                onChange={applyAssignedFilter}
               />
               <Select<ConversationChannelFilter>
                 value={draftChannel}
                 style={{ width: 140 }}
                 options={CHANNEL_FILTER_OPTIONS}
-                onChange={(value) => {
-                  setDraftChannel(value);
-                  if (value !== 'ALL' && value !== 'CONSULTATION') {
-                    setDraftListingTopic('');
-                  }
-                }}
+                onChange={applyChannelFilter}
               />
               <Select
                 value={draftListingTopic}
                 style={{ width: 180 }}
                 options={[{ value: '', label: '全部标签' }, ...listingTopicOptions]}
-                onChange={(value) => setDraftListingTopic((value as ListingTopic) || '')}
+                onChange={applyListingTopicFilter}
                 placeholder="特色标签"
                 disabled={draftChannel !== 'ALL' && draftChannel !== 'CONSULTATION'}
               />

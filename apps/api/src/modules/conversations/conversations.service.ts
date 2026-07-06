@@ -507,6 +507,29 @@ export class ConversationsService {
     return Boolean(req?.auth?.isAdmin && this.hasPermission(req, 'conversation.platform.manage') && this.isPlatformConversation(conv));
   }
 
+  private async autoAssignPlatformAgentOnReply(req: any, conv: any): Promise<void> {
+    if (!this.canManagePlatformConversation(req, conv)) return;
+    if (conv.buyerUserId === req.auth.userId || conv.sellerUserId === req.auth.userId) return;
+    await this.prisma.conversationAgent.upsert({
+      where: {
+        conversationId_operatorUserId: {
+          conversationId: conv.id,
+          operatorUserId: req.auth.userId,
+        },
+      },
+      create: {
+        conversationId: conv.id,
+        operatorUserId: req.auth.userId,
+        assignedByUserId: req.auth.userId,
+        active: true,
+      },
+      update: {
+        assignedByUserId: req.auth.userId,
+        active: true,
+      },
+    });
+  }
+
   private async assertConversationAccessible(conv: any, req: any, options: { allowPlatformManager?: boolean } = {}): Promise<void> {
     const userId = req?.auth?.userId;
     if (options.allowPlatformManager && this.canManagePlatformConversation(req, conv)) return;
@@ -1110,7 +1133,8 @@ export class ConversationsService {
 
     const conv = await this.prisma.conversation.findUnique({ where: { id: normalizedConversationId } });
     if (!conv) throw new NotFoundException({ code: 'NOT_FOUND', message: 'conversation not found' });
-    await this.assertConversationAccessible(conv, req);
+    await this.assertConversationAccessible(conv, req, { allowPlatformManager: true });
+    await this.autoAssignPlatformAgentOnReply(req, conv);
     let file: any = null;
     let fileId: string | undefined;
     if (type === 'IMAGE' || type === 'FILE') {

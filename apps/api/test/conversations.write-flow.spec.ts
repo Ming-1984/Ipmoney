@@ -569,6 +569,54 @@ describe('ConversationsService write flow suite', () => {
     delete process.env.WECHAT_CONTENT_SECURITY_ENFORCE;
   });
 
+  it('auto-assigns platform conversation to admin agent when replying', async () => {
+    const req = {
+      auth: {
+        userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        isAdmin: true,
+        permissions: new Set(['conversation.platform.manage']),
+        wechatOpenid: null,
+      },
+    };
+    prisma.conversation.findUnique.mockResolvedValueOnce({
+      id: CONVERSATION_ID,
+      contentType: 'SUPPORT',
+      buyerUserId: 'buyer-1',
+      sellerUserId: 'seller-1',
+    });
+    prisma.conversationAgent.upsert.mockResolvedValueOnce({});
+    prisma.conversationMessage.create.mockResolvedValueOnce({
+      id: MESSAGE_ID,
+      conversationId: CONVERSATION_ID,
+      senderUserId: req.auth.userId,
+      type: 'TEXT',
+      text: 'hello',
+      createdAt: new Date('2026-03-13T01:00:00.000Z'),
+    });
+    prisma.conversation.update.mockResolvedValueOnce({});
+
+    await service.sendMessage(req, CONVERSATION_ID, { text: 'hello' });
+
+    expect(prisma.conversationAgent.upsert).toHaveBeenCalledWith({
+      where: {
+        conversationId_operatorUserId: {
+          conversationId: CONVERSATION_ID,
+          operatorUserId: req.auth.userId,
+        },
+      },
+      create: {
+        conversationId: CONVERSATION_ID,
+        operatorUserId: req.auth.userId,
+        assignedByUserId: req.auth.userId,
+        active: true,
+      },
+      update: {
+        assignedByUserId: req.auth.userId,
+        active: true,
+      },
+    });
+  });
+
   it('sendMessage persists owned file messages without text security check', async () => {
     const req = { auth: { userId: 'buyer-1', wechatOpenid: 'openid-buyer-1' } };
     const fileId = '55555555-5555-4555-8555-555555555555';
