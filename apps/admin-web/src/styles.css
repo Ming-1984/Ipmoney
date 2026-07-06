@@ -80,6 +80,26 @@ body {
   color: inherit;
 }
 
+.ipm-menu-link-with-badge {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ipm-menu-link-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ipm-sider.ant-layout-sider-collapsed .ipm-menu-link-with-badge .ant-badge {
+  display: none;
+}
+
 .ipm-sider .ipm-logo-text span {
   color: var(--ipm-text) !important;
 }

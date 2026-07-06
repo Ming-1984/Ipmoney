@@ -20,7 +20,7 @@
   UserOutlined,
   WalletOutlined,
 } from '@ant-design/icons';
-import { Avatar, Button, Layout, Menu, Spin, Typography, message } from 'antd';
+import { Avatar, Badge, Button, Layout, Menu, Spin, Typography, message } from 'antd';
 import type { MenuProps } from 'antd';
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -49,6 +49,11 @@ type AppMenuItem = {
   label: string;
   to: string;
   permission?: string;
+};
+
+type AdminBadgesResponse = {
+  badges?: Record<string, number>;
+  updatedAt?: string;
 };
 
 const menuConfig: AppMenuItem[] = [
@@ -99,6 +104,7 @@ export function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [loadingSession, setLoadingSession] = useState(true);
   const [session, setSession] = useState<SessionInfo | null>(null);
+  const [badges, setBadges] = useState<Record<string, number>>({});
 
   const loadSession = async () => {
     if (!hasAdminToken()) {
@@ -126,6 +132,31 @@ export function AppLayout() {
     void loadSession();
   }, []);
 
+  useEffect(() => {
+    if (!session) {
+      setBadges({});
+      return;
+    }
+    let alive = true;
+    const loadBadges = async () => {
+      try {
+        const data = await apiGet<AdminBadgesResponse>('/admin/notifications/badges');
+        if (!alive) return;
+        setBadges(data?.badges || {});
+      } catch {
+        if (alive) setBadges({});
+      }
+    };
+    void loadBadges();
+    const timer = window.setInterval(() => {
+      void loadBadges();
+    }, 60000);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, [session, location.pathname]);
+
   const permissionSet = useMemo(() => {
     const next = new Set(session?.permissions || []);
     if (isSuperAdminSession(session)) next.add('*');
@@ -145,12 +176,20 @@ export function AppLayout() {
     () =>
       menuConfig
         .filter((item) => hasPermission(permissionSet, item.permission))
-        .map((item) => ({
-          key: item.key,
-          icon: item.icon,
-          label: <Link to={item.to}>{item.label}</Link>,
-        })),
-    [permissionSet],
+        .map((item) => {
+          const badgeCount = Math.max(0, Number(badges[item.key] || 0));
+          return {
+            key: item.key,
+            icon: item.icon,
+            label: (
+              <Link to={item.to} className="ipm-menu-link-with-badge">
+                <span className="ipm-menu-link-label">{item.label}</span>
+                {badgeCount > 0 ? <Badge count={badgeCount > 99 ? '99+' : badgeCount} size="small" /> : null}
+              </Link>
+            ),
+          };
+        }),
+    [badges, permissionSet],
   );
 
   useEffect(() => {
