@@ -9,7 +9,7 @@ function makePrisma() {
     userVerification: { count: vi.fn() },
     listing: { count: vi.fn() },
     achievement: { count: vi.fn() },
-    conversation: { count: vi.fn() },
+    conversation: { count: vi.fn(), findMany: vi.fn() },
     alertEvent: { count: vi.fn() },
     csCase: { count: vi.fn() },
     refundRequest: { count: vi.fn() },
@@ -89,5 +89,75 @@ describe('AdminNotificationsService', () => {
     expect(prisma.order.count).toHaveBeenNthCalledWith(3, {
       where: { invoiceNo: { not: null }, invoiceFileId: null },
     });
+  });
+
+  it('counts assigned unread platform conversations for non-wildcard conversation managers', async () => {
+    const prisma = makePrisma();
+    prisma.conversation.findMany.mockResolvedValueOnce([
+      {
+        participants: [{ lastReadAt: new Date('2026-03-14T01:00:00.000Z') }],
+        messages: [{ createdAt: new Date('2026-03-14T01:05:00.000Z') }],
+      },
+      {
+        participants: [{ lastReadAt: new Date('2026-03-14T01:10:00.000Z') }],
+        messages: [{ createdAt: new Date('2026-03-14T01:05:00.000Z') }],
+      },
+      {
+        participants: [],
+        messages: [{ createdAt: new Date('2026-03-14T01:06:00.000Z') }],
+      },
+      {
+        participants: [],
+        messages: [],
+      },
+    ]);
+    const service = new AdminNotificationsService(prisma as any);
+
+    const result = await service.getBadges({
+      auth: {
+        isAdmin: true,
+        userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        permissions: new Set(['conversation.platform.manage']),
+      },
+    });
+
+    expect(result.badges['platform-conversations']).toBe(2);
+    expect(prisma.conversation.findMany).toHaveBeenCalledWith({
+      where: {
+        AND: [
+          {
+            OR: [
+              { contentType: 'SUPPORT' },
+              { contentType: 'DISPUTE' },
+              { contentType: 'MAINTENANCE' },
+              { contentType: 'ACHIEVEMENT' },
+              { contentType: 'LISTING', listing: { consultationRouting: 'PLATFORM' } },
+            ],
+          },
+          {
+            agents: {
+              some: {
+                operatorUserId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+                active: true,
+              },
+            },
+          },
+        ],
+      },
+      select: {
+        participants: {
+          where: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
+          select: { lastReadAt: true },
+          take: 1,
+        },
+        messages: {
+          where: { senderUserId: { not: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { createdAt: true },
+        },
+      },
+    });
+    expect(prisma.conversation.count).not.toHaveBeenCalled();
   });
 });

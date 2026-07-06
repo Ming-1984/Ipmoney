@@ -36,6 +36,42 @@ export class AdminNotificationsService {
     return !!perms && (perms.has('*') || perms.has(permission));
   }
 
+  private hasWildcardPermission(req: any): boolean {
+    const perms: Set<string> | undefined = req?.auth?.permissions;
+    return !!perms && perms.has('*');
+  }
+
+  private async countAssignedUnreadPlatformConversations(req: any, managedConversationScope: any): Promise<number> {
+    const userId = String(req?.auth?.userId || '').trim();
+    if (!userId) return 0;
+
+    const rows = await this.prisma.conversation.findMany({
+      where: {
+        AND: [managedConversationScope, { agents: { some: { operatorUserId: userId, active: true } } }],
+      },
+      select: {
+        participants: {
+          where: { userId },
+          select: { lastReadAt: true },
+          take: 1,
+        },
+        messages: {
+          where: { senderUserId: { not: userId } },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { createdAt: true },
+        },
+      },
+    });
+
+    return rows.filter((row: any) => {
+      const latestIncomingAt = row?.messages?.[0]?.createdAt;
+      if (!latestIncomingAt) return false;
+      const lastReadAt = row?.participants?.[0]?.lastReadAt;
+      return !lastReadAt || latestIncomingAt > lastReadAt;
+    }).length;
+  }
+
   async getBadges(req: any) {
     this.ensureAdmin(req);
 
@@ -74,11 +110,13 @@ export class AdminNotificationsService {
         key: 'platform-conversations',
         permission: 'conversation.platform.manage',
         count: () =>
-          this.prisma.conversation.count({
-            where: {
-              AND: [managedConversationScope, { agents: { none: { active: true } } }],
-            },
-          }),
+          this.hasWildcardPermission(req)
+            ? this.prisma.conversation.count({
+                where: {
+                  AND: [managedConversationScope, { agents: { none: { active: true } } }],
+                },
+              })
+            : this.countAssignedUnreadPlatformConversations(req, managedConversationScope),
       },
       {
         key: 'alerts',

@@ -493,6 +493,11 @@ export class ConversationsService {
     return Boolean(perms && (perms.has('*') || perms.has(permission)));
   }
 
+  private hasWildcardPermission(req: any): boolean {
+    const perms: Set<string> | undefined = req?.auth?.permissions;
+    return Boolean(perms && perms.has('*'));
+  }
+
   private isPlatformConversation(conv: any): boolean {
     return (
       conv.contentType === 'SUPPORT' ||
@@ -595,7 +600,7 @@ export class ConversationsService {
 
   private async assertConversationAccessible(conv: any, req: any, options: { allowPlatformManager?: boolean } = {}): Promise<void> {
     const userId = req?.auth?.userId;
-    if (options.allowPlatformManager && this.canManagePlatformConversation(req, conv)) return;
+    if (options.allowPlatformManager && this.canManagePlatformConversation(req, conv) && this.hasWildcardPermission(req)) return;
     if (conv.buyerUserId === userId || conv.sellerUserId === userId) return;
     const isAgent = await this.isConversationAgent(conv.id, userId);
     if (!isAgent) {
@@ -1293,7 +1298,8 @@ export class ConversationsService {
     const channel = this.hasOwn(query, 'channel')
       ? this.parsePlatformConversationChannelStrict(query?.channel, 'channel')
       : 'ALL';
-    const effectiveAssignedFilter = mineOnly ? ('MINE' as const) : assignedFilter;
+    const fullAccess = this.hasWildcardPermission(req);
+    const effectiveAssignedFilter = !fullAccess || mineOnly ? ('MINE' as const) : assignedFilter;
     const q = String(query?.q || '').trim();
     const listingTopic = this.hasOwn(query, 'listingTopic')
       ? this.parseListingTopicStrict(query?.listingTopic, 'listingTopic')

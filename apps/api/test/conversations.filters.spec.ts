@@ -365,7 +365,7 @@ describe('ConversationsService pagination and id strictness suite', () => {
       auth: {
         userId: 'admin-1',
         isAdmin: true,
-        permissions: new Set(['conversation.platform.manage']),
+        permissions: new Set(['*']),
       },
     };
     const id = '11111111-1111-1111-1111-111111111111';
@@ -504,7 +504,7 @@ describe('ConversationsService pagination and id strictness suite', () => {
   });
 
   it('applies platform conversation filters in listPlatformConversations', async () => {
-    const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } };
+    const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', permissions: new Set(['*']) } };
     prisma.conversation.findMany.mockResolvedValueOnce([]);
     prisma.conversation.count.mockResolvedValueOnce(0);
 
@@ -544,7 +544,7 @@ describe('ConversationsService pagination and id strictness suite', () => {
   });
 
   it('supports FIVE_STAR listingTopic filter for consultation channel', async () => {
-    const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } };
+    const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', permissions: new Set(['*']) } };
     prisma.conversation.findMany.mockResolvedValueOnce([]);
     prisma.conversation.count.mockResolvedValueOnce(0);
 
@@ -567,8 +567,68 @@ describe('ConversationsService pagination and id strictness suite', () => {
     );
   });
 
+  it('forces non-wildcard platform conversation managers to only list assigned conversations', async () => {
+    const req = {
+      auth: {
+        userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        isAdmin: true,
+        permissions: new Set(['conversation.platform.manage']),
+      },
+    };
+    prisma.conversation.findMany.mockResolvedValueOnce([]);
+    prisma.conversation.count.mockResolvedValueOnce(0);
+
+    await service.listPlatformConversations(req, { assigned: 'ALL' });
+
+    expect(prisma.conversation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [
+            {
+              OR: [
+                { contentType: 'SUPPORT' },
+                { contentType: 'DISPUTE' },
+                { contentType: 'MAINTENANCE' },
+                { contentType: 'ACHIEVEMENT' },
+                { contentType: 'LISTING', listing: { consultationRouting: 'PLATFORM' } },
+              ],
+            },
+            {
+              agents: {
+                some: {
+                  operatorUserId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+                  active: true,
+                },
+              },
+            },
+          ],
+        },
+      }),
+    );
+  });
+
+  it('does not let non-wildcard platform managers read unassigned platform conversation messages by id', async () => {
+    const req = {
+      auth: {
+        userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        isAdmin: true,
+        permissions: new Set(['conversation.platform.manage']),
+      },
+    };
+    const id = '11111111-1111-1111-1111-111111111111';
+    prisma.conversation.findUnique.mockResolvedValueOnce({
+      id,
+      contentType: 'SUPPORT',
+      buyerUserId: 'u-1',
+      sellerUserId: 'u-2',
+    });
+    prisma.conversationAgent.findFirst.mockResolvedValueOnce(null);
+
+    await expect(service.listMessages(req, id, {})).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
   it('returns patent metadata for platform conversations', async () => {
-    const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } };
+    const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', permissions: new Set(['*']) } };
     prisma.conversation.findMany.mockResolvedValueOnce([
       {
         id: '11111111-1111-1111-1111-111111111111',
@@ -611,7 +671,7 @@ describe('ConversationsService pagination and id strictness suite', () => {
   });
 
   it('uses exact UUID matching for id fields when q looks like UUID', async () => {
-    const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } };
+    const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', permissions: new Set(['*']) } };
     prisma.conversation.findMany.mockResolvedValueOnce([]);
     prisma.conversation.count.mockResolvedValueOnce(0);
 
@@ -649,7 +709,7 @@ describe('ConversationsService pagination and id strictness suite', () => {
   });
 
   it('supports maintenance channel in platform conversation filters', async () => {
-    const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } };
+    const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', permissions: new Set(['*']) } };
     prisma.conversation.findMany.mockResolvedValueOnce([]);
     prisma.conversation.count.mockResolvedValueOnce(0);
 

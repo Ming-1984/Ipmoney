@@ -306,7 +306,11 @@ export async function apiPatch<TResponse>(
     throw normalizeFetchError(e);
   }
 
-  if (res.ok) return (await readJsonSafe<TResponse>(res)) as TResponse;
+  if (res.ok) {
+    const data = (await readJsonSafe<TResponse>(res)) as TResponse;
+    notifyAdminBadgesRefresh();
+    return data;
+  }
   const err = await readJsonSafe<ApiErrorShape>(res);
   throw normalizeHttpError(res.status, err);
 }
