@@ -1,3 +1,4 @@
+import { PaperClipOutlined, SmileOutlined } from '@ant-design/icons';
 import {
   Avatar,
   Badge,
@@ -13,6 +14,7 @@ import {
   List,
   Pagination,
   Modal,
+  Popover,
   Select,
   Space,
   Switch,
@@ -25,7 +27,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { components } from '@ipmoney/api-types';
 import { useNavigate } from 'react-router-dom';
 
-import { apiDelete, apiGet, apiPatch, apiPost } from '../lib/api';
+import { apiDelete, apiGet, apiPatch, apiPost, apiUploadFile } from '../lib/api';
 import { fenToYuan, fenToYuanNumber, formatTimeSmart, yuanToFen } from '../lib/format';
 import {
   DEFAULT_LISTING_TOPIC_OPTIONS,
@@ -78,6 +80,11 @@ type ConversationMessage = {
   senderUserId: string;
   type: 'TEXT' | 'EMOJI' | 'IMAGE' | 'FILE' | 'SYSTEM';
   text?: string | null;
+  fileId?: string | null;
+  fileUrl?: string | null;
+  fileName?: string | null;
+  mimeType?: string | null;
+  sizeBytes?: number | null;
   createdAt: string;
 };
 
@@ -151,6 +158,8 @@ type ListingEditFormValues = {
   depositAmountYuan?: number | null;
 };
 type TimelineLine = { kind: 'divider'; key: string; label: string } | { kind: 'message'; key: string; message: ConversationMessage };
+
+const EMOJI_PRESETS = ['😀', '😂', '😍', '👍', '🙏', '🎉', '🔥', '❤️'];
 
 const priceTypeOptions: Array<{ value: 'FIXED' | 'NEGOTIABLE'; label: string }> = [
   { value: 'NEGOTIABLE', label: '面议' },
@@ -270,7 +279,35 @@ function conversationMessageTypeLabel(type: ConversationMessage['type']): string
 function conversationMessageBody(messageItem: ConversationMessage): string {
   const text = normalizeUserFacingText(messageItem.text);
   if (text) return text;
+  const fileName = normalizeUserFacingText(messageItem.fileName);
+  if (fileName) return fileName;
   return conversationMessageTypeLabel(messageItem.type);
+}
+
+function conversationMessageFileName(messageItem: ConversationMessage): string {
+  const fileName = normalizeUserFacingText(messageItem.fileName);
+  if (fileName) return fileName;
+  const text = normalizeUserFacingText(messageItem.text);
+  if (text) return text;
+  const rawUrl = normalizeUserFacingText(messageItem.fileUrl);
+  if (!rawUrl) return 'file';
+  try {
+    const parsed = new URL(rawUrl);
+    const path = parsed.pathname || '';
+    return decodeURIComponent(path.split('/').pop() || 'file');
+  } catch {
+    return decodeURIComponent(rawUrl.split('/').pop() || 'file');
+  }
+}
+
+function formatFileSize(sizeBytes?: number | null): string {
+  if (typeof sizeBytes !== 'number' || !Number.isFinite(sizeBytes) || sizeBytes <= 0) return '';
+  if (sizeBytes < 1024) return `${sizeBytes} B`;
+  const kb = sizeBytes / 1024;
+  if (kb < 1024) return `${kb >= 100 ? Math.round(kb) : kb.toFixed(1)} KB`;
+  const mb = kb / 1024;
+  if (mb < 1024) return `${mb >= 100 ? Math.round(mb) : mb.toFixed(1)} MB`;
+  return `${(mb / 1024).toFixed(1)} GB`;
 }
 
 function displayPatentText(value?: string | null): string {
@@ -363,6 +400,7 @@ export function PlatformConversationsPage() {
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [sending, setSending] = useState(false);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [targetUserId, setTargetUserId] = useState('');
   const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
@@ -380,6 +418,7 @@ export function PlatformConversationsPage() {
     useState<Array<{ value: ListingTopic; label: string }>>(DEFAULT_LISTING_TOPIC_OPTIONS);
 
   const messageListRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const olderAnchorRef = useRef<number | null>(null);
   const activeConversationIdRef = useRef<string | null>(null);
   const latestMessageLoadIdRef = useRef(0);
@@ -607,6 +646,86 @@ export function PlatformConversationsPage() {
     }
   }, [activeConversationId, loadConversations, loadLatestMessages]);
 
+  const sendConversationPayload = useCallback(
+    async (payload: { type: 'TEXT' | 'EMOJI' | 'IMAGE' | 'FILE'; text?: string; fileId?: string }) => {
+      if (!activeConversationId) {
+        message.warning('请先选择会话');
+        return false;
+      }
+      try {
+        setSending(true);
+        await apiPost(
+          `/conversations/${activeConversationId}/messages`,
+          payload,
+          { idempotencyKey: `admin-conv-send-${activeConversationId}-${Date.now()}` },
+        );
+        await Promise.all([loadLatestMessages(activeConversationId), loadConversations()]);
+        return true;
+      } catch (err: any) {
+        message.error(err?.message || '发送失败，请确认当前账号已分配到该会话');
+        return false;
+      } finally {
+        setSending(false);
+      }
+    },
+    [activeConversationId, loadConversations, loadLatestMessages],
+  );
+
+  const sendEmoji = useCallback(
+    async (emojiText: string) => {
+      const text = String(emojiText || '').trim();
+      if (!text) return;
+      const ok = await sendConversationPayload({ type: 'EMOJI', text });
+      if (ok) {
+        setEmojiPickerOpen(false);
+      }
+    },
+    [sendConversationPayload],
+  );
+
+  const openFilePicker = useCallback(() => {
+    if (!activeConversationId) {
+      message.warning('请先选择会话');
+      return;
+    }
+    fileInputRef.current?.click();
+  }, [activeConversationId]);
+
+  const handleFileChange = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = '';
+      if (!file) return;
+      if (!activeConversationId) {
+        message.warning('请先选择会话');
+        return;
+      }
+      try {
+        setSending(true);
+        const uploaded = await apiUploadFile(file, 'OTHER');
+        const nextType: 'IMAGE' | 'FILE' = String(uploaded?.mimeType || '').toLowerCase().startsWith('image/')
+          ? 'IMAGE'
+          : 'FILE';
+        await apiPost(
+          `/conversations/${activeConversationId}/messages`,
+          {
+            type: nextType,
+            fileId: uploaded.id,
+            text: file.name || undefined,
+          },
+          { idempotencyKey: `admin-conv-file-${activeConversationId}-${Date.now()}` },
+        );
+        await Promise.all([loadLatestMessages(activeConversationId), loadConversations()]);
+        message.success(nextType === 'IMAGE' ? '图片已发送' : '文件已发送');
+      } catch (err: any) {
+        message.error(err?.message || '文件发送失败');
+      } finally {
+        setSending(false);
+      }
+    },
+    [activeConversationId, loadConversations, loadLatestMessages],
+  );
+
   const sendMessage = useCallback(async () => {
     const text = String(messageText || '').trim();
     if (!activeConversationId) {
@@ -617,21 +736,11 @@ export function PlatformConversationsPage() {
       message.warning('请输入消息内容');
       return;
     }
-    try {
-      setSending(true);
-      await apiPost(
-        `/conversations/${activeConversationId}/messages`,
-        { type: 'TEXT', text },
-        { idempotencyKey: `admin-conv-send-${activeConversationId}-${Date.now()}` },
-      );
+    const ok = await sendConversationPayload({ type: 'TEXT', text });
+    if (ok) {
       setMessageText('');
-      await Promise.all([loadLatestMessages(activeConversationId), loadConversations()]);
-    } catch (err: any) {
-      message.error(err?.message || '发送失败，请确认当前账号已分配到该会话');
-    } finally {
-      setSending(false);
     }
-  }, [activeConversationId, loadConversations, loadLatestMessages, messageText]);
+  }, [activeConversationId, messageText, sendConversationPayload]);
 
   const assignAgent = useCallback(
     async (userId?: string) => {
@@ -1119,7 +1228,33 @@ export function PlatformConversationsPage() {
                                   {formatTimeSmart(msg.createdAt)}
                                 </Typography.Text>
                               </Space>
-                              <Typography.Text>{conversationMessageBody(msg)}</Typography.Text>
+                              {msg.type === 'IMAGE' && msg.fileUrl ? (
+                                <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                                  <a href={msg.fileUrl} target="_blank" rel="noreferrer">
+                                    <img
+                                      src={msg.fileUrl}
+                                      alt={conversationMessageFileName(msg)}
+                                      style={{ maxWidth: 260, maxHeight: 220, borderRadius: 8, objectFit: 'cover' }}
+                                    />
+                                  </a>
+                                  {normalizeUserFacingText(msg.text) ? (
+                                    <Typography.Text>{normalizeUserFacingText(msg.text)}</Typography.Text>
+                                  ) : null}
+                                </Space>
+                              ) : msg.type === 'FILE' && msg.fileUrl ? (
+                                <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                                  <a href={msg.fileUrl} target="_blank" rel="noreferrer">
+                                    {conversationMessageFileName(msg)}
+                                  </a>
+                                  {formatFileSize(msg.sizeBytes) ? (
+                                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                      {formatFileSize(msg.sizeBytes)}
+                                    </Typography.Text>
+                                  ) : null}
+                                </Space>
+                              ) : (
+                                <Typography.Text>{conversationMessageBody(msg)}</Typography.Text>
+                              )}
                             </Space>
                           </div>
                         </div>
@@ -1130,6 +1265,7 @@ export function PlatformConversationsPage() {
               </div>
 
               <div style={{ borderTop: '1px solid #f0f0f0', padding: 12 }}>
+                <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFileChange} />
                 <Input.TextArea
                   rows={3}
                   value={messageText}
@@ -1141,11 +1277,36 @@ export function PlatformConversationsPage() {
                     void sendMessage();
                   }}
                 />
-                <Space style={{ marginTop: 8 }}>
-                  <Button type="primary" loading={sending} onClick={() => void sendMessage()}>
+                <Space style={{ marginTop: 8, width: '100%', justifyContent: 'space-between' }} wrap>
+                  <Space wrap>
+                    <Button icon={<PaperClipOutlined />} loading={sending} onClick={openFilePicker}>
+                      上传文件
+                    </Button>
+                    <Popover
+                      trigger="click"
+                      open={emojiPickerOpen}
+                      onOpenChange={setEmojiPickerOpen}
+                      content={
+                        <Space size={[4, 8]} wrap style={{ maxWidth: 220 }}>
+                          {EMOJI_PRESETS.map((emoji) => (
+                            <Button key={emoji} size="small" onClick={() => void sendEmoji(emoji)}>
+                              {emoji}
+                            </Button>
+                          ))}
+                        </Space>
+                      }
+                    >
+                      <Button icon={<SmileOutlined />} disabled={sending}>
+                        表情
+                      </Button>
+                    </Popover>
+                  </Space>
+                  <Space wrap>
+                    <Button type="primary" loading={sending} onClick={() => void sendMessage()}>
                     发送
-                  </Button>
-                  <Button onClick={() => setMessageText('')}>清空</Button>
+                    </Button>
+                    <Button onClick={() => setMessageText('')}>清空</Button>
+                  </Space>
                 </Space>
               </div>
             </>
