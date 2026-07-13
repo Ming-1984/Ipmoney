@@ -300,6 +300,14 @@ function conversationMessageFileName(messageItem: ConversationMessage): string {
   }
 }
 
+function conversationImageCaption(messageItem: ConversationMessage): string {
+  const text = normalizeUserFacingText(messageItem.text);
+  if (!text) return '';
+  const fileName = conversationMessageFileName(messageItem);
+  if (text === fileName) return '';
+  return text;
+}
+
 function formatFileSize(sizeBytes?: number | null): string {
   if (typeof sizeBytes !== 'number' || !Number.isFinite(sizeBytes) || sizeBytes <= 0) return '';
   if (sizeBytes < 1024) return `${sizeBytes} B`;
@@ -1234,11 +1242,17 @@ export function PlatformConversationsPage() {
                                     <img
                                       src={msg.fileUrl}
                                       alt={conversationMessageFileName(msg)}
-                                      style={{ maxWidth: 260, maxHeight: 220, borderRadius: 8, objectFit: 'cover' }}
+                                      style={{
+                                        display: 'block',
+                                        maxWidth: 280,
+                                        maxHeight: 220,
+                                        borderRadius: 10,
+                                        objectFit: 'cover',
+                                      }}
                                     />
                                   </a>
-                                  {normalizeUserFacingText(msg.text) ? (
-                                    <Typography.Text>{normalizeUserFacingText(msg.text)}</Typography.Text>
+                                  {conversationImageCaption(msg) ? (
+                                    <Typography.Text>{conversationImageCaption(msg)}</Typography.Text>
                                   ) : null}
                                 </Space>
                               ) : msg.type === 'FILE' && msg.fileUrl ? (
