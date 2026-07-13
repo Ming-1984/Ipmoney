@@ -590,9 +590,8 @@ export class ConversationsService {
       }
     };
 
-    const tx = (this.prisma as any).$transaction;
-    if (typeof tx === 'function') {
-      await tx(async (client: any) => apply(client));
+    if (typeof (this.prisma as any).$transaction === 'function') {
+      await (this.prisma as any).$transaction(async (client: any) => apply(client));
       return;
     }
     await apply(this.prisma);

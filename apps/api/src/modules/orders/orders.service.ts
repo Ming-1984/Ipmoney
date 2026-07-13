@@ -604,9 +604,8 @@ export class OrdersService {
   }
 
   private async updateOrderAndMaybeOffShelf(orderId: string, data: any, listingId?: string | null, offShelf?: boolean) {
-    const tx = (this.prisma as any).$transaction;
-    if (typeof tx === 'function') {
-      return await tx(async (client: any) => {
+    if (typeof (this.prisma as any).$transaction === 'function') {
+      return await (this.prisma as any).$transaction(async (client: any) => {
         const updatedOrder = await client.order.update({ where: { id: orderId }, data });
         if (offShelf && listingId && typeof client.listing?.update === 'function') {
           await client.listing.update({ where: { id: listingId }, data: { status: 'OFF_SHELF' } });
