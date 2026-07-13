@@ -225,9 +225,12 @@ export class ConversationsService {
 
   private summarizeLastMessage(message: any): string | null {
     if (!message) return null;
+    const rawType = String(message.type || 'TEXT').trim().toUpperCase();
+    if (rawType === 'IMAGE') return '[图片]';
+    if (rawType === 'FILE') return '[文件]';
     const text = String(message.text || '').trim();
     if (text) return text;
-    return `[${String(message.type || 'TEXT')}]`;
+    return `[${rawType || 'TEXT'}]`;
   }
 
   private resolveDisputeTitle(order: any): string {

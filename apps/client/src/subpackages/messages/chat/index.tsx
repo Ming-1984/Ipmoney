@@ -766,7 +766,7 @@ export default function ChatPage() {
         const messageType = mimeType.startsWith('image/') ? 'IMAGE' : 'FILE';
         const created = await apiPost<ConversationMessage>(
           `/conversations/${targetConversationId}/messages`,
-          { type: messageType, fileId, text: fileName || uploaded?.fileName || '' },
+          { type: messageType, fileId, text: messageType === 'IMAGE' ? '' : fileName || uploaded?.fileName || '' },
           { idempotencyKey: `msg-file-${targetConversationId}-${Date.now()}` },
         );
         if (conversationIdRef.current !== targetConversationId) return;
