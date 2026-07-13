@@ -349,6 +349,21 @@ export function OrderDetailPage() {
 
           <Button
             type="primary"
+            disabled={!canConfirmContract}
+            onClick={() => {
+              contractForm.resetFields();
+              contractForm.setFieldsValue({
+                dealAmountYuan: data?.dealAmountFen != null ? data.dealAmountFen / 100 : undefined,
+                remark: TEXT.contractSignedDefault,
+              });
+              setContractModalOpen(true);
+            }}
+          >
+            {TEXT.contractConfirm}
+          </Button>
+
+          <Button
+            type="primary"
             disabled={!canConfirmFinal}
             onClick={async () => {
               if (!orderId) return;
@@ -384,21 +399,6 @@ export function OrderDetailPage() {
             }}
           >
             {TEXT.finalConfirm}
-          </Button>
-
-          <Button
-            type="primary"
-            disabled={!canConfirmContract}
-            onClick={() => {
-              contractForm.resetFields();
-              contractForm.setFieldsValue({
-                dealAmountYuan: data?.dealAmountFen != null ? data.dealAmountFen / 100 : undefined,
-                remark: TEXT.contractSignedDefault,
-              });
-              setContractModalOpen(true);
-            }}
-          >
-            {TEXT.contractConfirm}
           </Button>
 
           <Button
