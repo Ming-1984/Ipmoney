@@ -300,11 +300,22 @@ function conversationMessageFileName(messageItem: ConversationMessage): string {
   }
 }
 
+function normalizeAttachmentLabel(value: string): string {
+  return value.replace(/\\/g, '/').split('/').pop()?.trim().toLowerCase() || '';
+}
+
+function looksLikeImageFileName(value: string): boolean {
+  return /\.(png|jpe?g|gif|webp|bmp|svg|heic|heif|avif)$/i.test(value);
+}
+
 function conversationImageCaption(messageItem: ConversationMessage): string {
   const text = normalizeUserFacingText(messageItem.text);
   if (!text) return '';
   const fileName = conversationMessageFileName(messageItem);
-  if (text === fileName) return '';
+  const normalizedText = normalizeAttachmentLabel(text);
+  const normalizedFileName = normalizeAttachmentLabel(fileName);
+  if (normalizedText && normalizedText === normalizedFileName) return '';
+  if (looksLikeImageFileName(text)) return '';
   return text;
 }
 
@@ -719,7 +730,7 @@ export function PlatformConversationsPage() {
           {
             type: nextType,
             fileId: uploaded.id,
-            text: file.name || undefined,
+            text: nextType === 'IMAGE' ? undefined : file.name || undefined,
           },
           { idempotencyKey: `admin-conv-file-${activeConversationId}-${Date.now()}` },
         );
