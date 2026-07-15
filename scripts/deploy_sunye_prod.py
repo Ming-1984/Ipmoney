@@ -28,7 +28,9 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import os
+import posixpath
 import shlex
 import shutil
 import sys
@@ -234,6 +236,20 @@ def tar_dir(src: Path, prefix: str, repo_root: Path) -> Path:
     return tar_path
 
 
+def collect_api_workspace_packages(repo_root: Path) -> list[tuple[str, Path]]:
+    api_package_json = repo_root / "apps" / "api" / "package.json"
+    data = json.loads(api_package_json.read_text(encoding="utf-8"))
+    deps = data.get("dependencies") or {}
+    packages: list[tuple[str, Path]] = []
+    for name in sorted(deps.keys()):
+        if not isinstance(name, str) or not name.startswith("@ipmoney/"):
+            continue
+        local_dir = repo_root / "packages" / name.split("/", 1)[1]
+        if local_dir.exists():
+            packages.append((name, local_dir))
+    return packages
+
+
 def detect_remote_layout(ssh: paramiko.SSHClient) -> dict[str, str]:
     layout_cmd = r"""
 if pm2 describe ipmoney-api >/dev/null 2>&1; then pm2_name=ipmoney-api; else pm2_name=sunye-api; fi
@@ -308,12 +324,14 @@ def deploy_remote(
     api_prisma_tar: Path,
     admin_tar: Path | None,
     client_tar: Path | None,
+    workspace_package_tars: list[tuple[str, Path]],
     layout: dict[str, str],
 ) -> None:
     api_root = layout["API_ROOT"]
     admin_root = layout["ADMIN_ROOT"]
     h5_root = layout["H5_ROOT"]
     pm2_name = layout["PM2_NAME"]
+    workspace_root = posixpath.dirname(posixpath.dirname(api_root.rstrip("/")))
     remote_tmp = "/opt/ipmoney/deploy-tmp" if api_root.startswith("/opt/ipmoney/") else "/opt/sunye/deploy-tmp"
     run_remote(ssh, f"mkdir -p {shlex.quote(remote_tmp)}")
 
@@ -327,6 +345,11 @@ def deploy_remote(
         sftp_put(ssh, admin_tar, admin_tar_remote)
     if client_tar and client_tar_remote:
         sftp_put(ssh, client_tar, client_tar_remote)
+    workspace_package_remotes: list[tuple[str, str]] = []
+    for package_name, package_tar in workspace_package_tars:
+        package_tar_remote = f"{remote_tmp}/{package_tar.name}"
+        sftp_put(ssh, package_tar, package_tar_remote)
+        workspace_package_remotes.append((package_name, package_tar_remote))
 
     run_remote(ssh, f"mkdir -p {shlex.quote(api_root)}")
     if admin_tar:
@@ -341,6 +364,21 @@ def deploy_remote(
     run_remote(ssh, f"find {shlex.quote(api_root)}/prisma -mindepth 1 -maxdepth 1 -exec rm -rf {{}} +")
     run_remote(ssh, f"tar -xzf {shlex.quote(api_tar_remote)} -C {shlex.quote(api_root)}")
     run_remote(ssh, f"tar -xzf {shlex.quote(api_prisma_tar_remote)} -C {shlex.quote(api_root)}")
+    if workspace_package_remotes:
+        run_remote(ssh, f"mkdir -p {shlex.quote(workspace_root)}/packages")
+        run_remote(ssh, f"mkdir -p {shlex.quote(workspace_root)}/node_modules/@ipmoney")
+        for package_name, package_tar_remote in workspace_package_remotes:
+            package_dir_name = package_name.split('/', 1)[1]
+            run_remote(ssh, f"rm -rf {shlex.quote(workspace_root)}/packages/{shlex.quote(package_dir_name)}")
+            run_remote(ssh, f"rm -rf {shlex.quote(workspace_root)}/node_modules/@ipmoney/{shlex.quote(package_dir_name)}")
+            run_remote(
+                ssh,
+                f"tar -xzf {shlex.quote(package_tar_remote)} -C {shlex.quote(workspace_root)}/packages",
+            )
+            run_remote(
+                ssh,
+                f"tar -xzf {shlex.quote(package_tar_remote)} -C {shlex.quote(workspace_root)}/node_modules/@ipmoney",
+            )
     if admin_tar and admin_tar_remote:
         run_remote(ssh, f"tar -xzf {shlex.quote(admin_tar_remote)} -C {shlex.quote(admin_root)} --strip-components=1")
         run_remote(ssh, f"find {shlex.quote(admin_root)} -type d -exec chmod 755 {{}} +")
@@ -445,10 +483,15 @@ def main() -> int:
     api_prisma_tar: Path | None = None
     admin_tar: Path | None = None
     client_tar: Path | None = None
+    workspace_package_tars: list[tuple[str, Path]] = []
     if not args.deploy_cert_only:
         api_dist, api_prisma, admin_dist, client_dist = build_artifacts(repo_root, include_web=not args.deploy_api_only)
         api_tar = tar_dir(api_dist, "api-dist", repo_root)
         api_prisma_tar = tar_dir(api_prisma, "api-prisma", repo_root)
+        workspace_package_tars = [
+            (package_name, tar_dir(package_dir, f"{package_name.split('/', 1)[1]}-pkg", repo_root))
+            for package_name, package_dir in collect_api_workspace_packages(repo_root)
+        ]
         if admin_dist:
             admin_tar = tar_dir(admin_dist, "admin-dist", repo_root)
         if client_dist:
@@ -475,7 +518,7 @@ def main() -> int:
                     raise RuntimeError("build artifacts are missing")
             if args.deploy_api_only and (not api_tar or not api_prisma_tar):
                 raise RuntimeError("api build artifacts are missing")
-            deploy_remote(ssh, api_tar, api_prisma_tar, admin_tar, client_tar, layout)
+            deploy_remote(ssh, api_tar, api_prisma_tar, admin_tar, client_tar, workspace_package_tars, layout)
         verify_remote(ssh, include_web=not args.deploy_api_only)
         print("[done] deploy + cert + verify completed")
     finally:
