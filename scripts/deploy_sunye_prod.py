@@ -152,6 +152,11 @@ def run_remote_api_migrations(ssh: paramiko.SSHClient, api_root: str) -> None:
     run_remote(ssh, cmd)
 
 
+def run_remote_api_prisma_generate(ssh: paramiko.SSHClient, api_root: str) -> None:
+    cmd = f"cd {shlex.quote(api_root)} && pnpm prisma:generate"
+    run_remote(ssh, cmd)
+
+
 def sftp_put(ssh: paramiko.SSHClient, local_path: Path, remote_path: str) -> None:
     print(f"[upload] {local_path} -> {remote_path}")
     sftp = ssh.open_sftp()
@@ -398,6 +403,7 @@ def deploy_remote(
         run_remote(ssh, f"chown www:www {shlex.quote(h5_root)} || true")
         run_remote(ssh, f"find {shlex.quote(h5_root)} -mindepth 1 ! -name '.user.ini' -exec chown www:www {{}} +")
 
+    run_remote_api_prisma_generate(ssh, api_root)
     run_remote_api_migrations(ssh, api_root)
     run_remote(ssh, f"pm2 restart {shlex.quote(pm2_name)}")
     run_remote(ssh, "pm2 save || true")
