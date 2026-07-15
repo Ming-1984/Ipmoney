@@ -1,5 +1,11 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { FileOwnerScope, Prisma } from '@prisma/client';
+import {
+  TECH_MANAGER_BADGE_NAME_TO_CODE,
+  TECH_MANAGER_BADGE_SOURCE,
+  isTechManagerBadgeCode,
+  type TechManagerBadgeCode,
+} from '@ipmoney/shared';
 import ExcelJS = require('exceljs');
 import crypto from 'node:crypto';
 import path from 'node:path';
@@ -8,7 +14,7 @@ import { AuditLogService } from '../../common/audit-log.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { FilesService } from '../files/files.service';
 
-type RatingPolicy = 'KEEP_EXISTING' | 'FILL_MISSING' | 'FORCE_SET';
+type BadgeImportMode = 'KEEP_EXISTING' | 'APPEND' | 'REPLACE';
 type ImportHistoryAction = 'PREVIEW' | 'EXECUTE' | 'ALL';
 type WorkbookKind = 'PEOPLE' | 'ACHIEVEMENTS';
 
@@ -17,9 +23,7 @@ type ImportInput = {
   achievementsFileId: string;
   sourceBatch: string;
   defaultRegionCode: string;
-  ratingPolicy: RatingPolicy;
-  defaultRatingScore: number;
-  defaultRatingCount: number;
+  badgeImportMode: BadgeImportMode;
 };
 
 type PreviewRowError = {
@@ -59,6 +63,7 @@ const PEOPLE_HEADER_ALIASES = {
   organization: ['organization', 'company', 'institution', '任职单位', '所在机构', '机构', '单位', '公司'],
   serviceDirections: ['serviceDirections', 'directions', 'expertise', '服务方向', '擅长方向', '服务领域', '方向'],
   serviceTags: ['serviceTags', 'tags', '服务标签', '标签'],
+  badgeLabels: ['badgeLabels', 'badges', 'badgeCodes', '荣誉标签', '经理人标签', '标签荣誉'],
   intro: ['intro', 'profile', 'bio', '简介', '个人简介', '介绍'],
   workHighlights: ['workHighlights', 'highlights', 'experience', '工作亮点', '工作成果', '经历亮点', '亮点'],
   experienceLabel: ['experienceLabel', 'experienceSummary', 'careerSummary', '从业信息', '从业年限', '从业时间', '从业经验'],
@@ -122,30 +127,12 @@ export class BulkImportService {
     return raw;
   }
 
-  private parseRatingPolicy(value: unknown): RatingPolicy {
-    const normalized = String(value ?? 'FILL_MISSING').trim().toUpperCase();
-    if (normalized === 'KEEP_EXISTING' || normalized === 'FILL_MISSING' || normalized === 'FORCE_SET') {
-      return normalized as RatingPolicy;
+  private parseBadgeImportMode(value: unknown): BadgeImportMode {
+    const normalized = String(value ?? 'KEEP_EXISTING').trim().toUpperCase();
+    if (normalized === 'KEEP_EXISTING' || normalized === 'APPEND' || normalized === 'REPLACE') {
+      return normalized as BadgeImportMode;
     }
-    throw new BadRequestException({ code: 'BAD_REQUEST', message: 'ratingPolicy is invalid' });
-  }
-
-  private parseRatingScore(value: unknown): number {
-    if (value === null || value === undefined || String(value).trim() === '') return 4.8;
-    const score = Number(value);
-    if (!Number.isFinite(score) || score < 0 || score > 5) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'defaultRatingScore is invalid' });
-    }
-    return Number(score.toFixed(1));
-  }
-
-  private parseRatingCount(value: unknown): number {
-    if (value === null || value === undefined || String(value).trim() === '') return 16;
-    const count = Number(value);
-    if (!Number.isFinite(count) || !Number.isSafeInteger(count) || count < 0) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'defaultRatingCount is invalid' });
-    }
-    return count;
+    throw new BadRequestException({ code: 'BAD_REQUEST', message: 'badgeImportMode is invalid' });
   }
 
   private parseRequest(body: any): ImportInput {
@@ -164,21 +151,14 @@ export class BulkImportService {
     }
 
     const defaultRegionCode = this.parseOptionalRegionCode(body?.defaultRegionCode);
-    const ratingPolicy = this.parseRatingPolicy(body?.ratingPolicy);
-    const defaultRatingScore = this.parseRatingScore(body?.defaultRatingScore);
-    const defaultRatingCount = this.parseRatingCount(body?.defaultRatingCount);
-    if (defaultRatingCount === 0 && defaultRatingScore > 0) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'defaultRatingCount is invalid' });
-    }
+    const badgeImportMode = this.parseBadgeImportMode(body?.badgeImportMode);
 
     return {
       peopleFileId: parsedPeopleFileId,
       achievementsFileId: parsedAchievementsFileId,
       sourceBatch,
       defaultRegionCode,
-      ratingPolicy,
-      defaultRatingScore,
-      defaultRatingCount,
+      badgeImportMode,
     };
   }
 
@@ -188,9 +168,7 @@ export class BulkImportService {
       achievementsFileId: input.achievementsFileId || null,
       sourceBatch: input.sourceBatch,
       defaultRegionCode: input.defaultRegionCode,
-      ratingPolicy: input.ratingPolicy,
-      defaultRatingScore: input.defaultRatingScore,
-      defaultRatingCount: input.defaultRatingCount,
+      badgeImportMode: input.badgeImportMode,
     };
   }
 
@@ -226,6 +204,22 @@ export class BulkImportService {
       .split(/[、，,;；|/]+/)
       .map((item) => item.trim())
       .filter(Boolean);
+  }
+
+  private normalizeBadgeCodes(raw: unknown): TechManagerBadgeCode[] {
+    const values = this.splitTags(raw);
+    const resolved = values.map((item) => {
+      const direct = String(item || '').trim();
+      if (isTechManagerBadgeCode(direct)) return direct;
+      return TECH_MANAGER_BADGE_NAME_TO_CODE[direct] || '';
+    });
+    const unique = Array.from(new Set(resolved.filter(Boolean)));
+    for (const code of unique) {
+      if (!isTechManagerBadgeCode(code)) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: `badge label is invalid: ${code}` });
+      }
+    }
+    return unique as TechManagerBadgeCode[];
   }
 
   private normalizePersonName(raw: unknown): string {
@@ -570,11 +564,12 @@ export class BulkImportService {
         this.pickWorkbookValue(row, PEOPLE_HEADER_ALIASES.organization) ?? row.cols[2],
         200,
       );
-      const serviceDirections = this.splitTags(
-        this.pickWorkbookValue(row, PEOPLE_HEADER_ALIASES.serviceDirections) ?? row.cols[3],
-      );
-      const serviceTags = this.splitTags(this.pickWorkbookValue(row, PEOPLE_HEADER_ALIASES.serviceTags));
-      const workHighlights = this.normalizeText(
+        const serviceDirections = this.splitTags(
+          this.pickWorkbookValue(row, PEOPLE_HEADER_ALIASES.serviceDirections) ?? row.cols[3],
+        );
+        const serviceTags = this.splitTags(this.pickWorkbookValue(row, PEOPLE_HEADER_ALIASES.serviceTags));
+        const badgeCodes = this.normalizeBadgeCodes(this.pickWorkbookValue(row, PEOPLE_HEADER_ALIASES.badgeLabels));
+        const workHighlights = this.normalizeText(
         this.pickWorkbookValue(row, PEOPLE_HEADER_ALIASES.workHighlights) ?? row.cols[4],
         4000,
       );
@@ -652,19 +647,6 @@ export class BulkImportService {
           });
         }
 
-        const existingProfile = await this.prisma.techManagerProfile.findUnique({ where: { userId: user.id } });
-        const ratingData: { ratingScore?: number; ratingCount?: number } = {};
-        const existingRatingCount = Number(existingProfile?.ratingCount ?? 0);
-        if (input.ratingPolicy === 'FORCE_SET') {
-          ratingData.ratingScore = input.defaultRatingScore;
-          ratingData.ratingCount = input.defaultRatingCount;
-        } else if (input.ratingPolicy === 'FILL_MISSING') {
-          if (!Number.isFinite(existingRatingCount) || existingRatingCount <= 0) {
-            ratingData.ratingScore = input.defaultRatingScore;
-            ratingData.ratingCount = input.defaultRatingCount;
-          }
-        }
-
         await this.prisma.techManagerProfile.upsert({
           where: { userId: user.id },
           create: {
@@ -679,7 +661,6 @@ export class BulkImportService {
             levelLabel,
             contactName,
             contactPhone,
-            ...ratingData,
           },
           update: {
             intro,
@@ -692,9 +673,49 @@ export class BulkImportService {
             levelLabel,
             contactName,
             contactPhone,
-            ...ratingData,
           },
         });
+
+        const existingActive = await this.prisma.techManagerBadge.findMany({
+          where: { techManagerUserId: user.id, expiresAt: null },
+          select: { badgeCode: true },
+        });
+        const activeSet = new Set(existingActive.map((item) => String(item.badgeCode)));
+        const nextSet = new Set(badgeCodes);
+        const now = new Date();
+
+        if (input.badgeImportMode === 'REPLACE') {
+          const expireCodes = Array.from(activeSet).filter((code) => !nextSet.has(code as TechManagerBadgeCode));
+          if (expireCodes.length) {
+            await this.prisma.techManagerBadge.updateMany({
+              where: { techManagerUserId: user.id, badgeCode: { in: expireCodes }, expiresAt: null },
+              data: { expiresAt: now },
+            });
+          }
+          const createCodes = badgeCodes.filter((code) => !activeSet.has(code));
+          for (const badgeCode of createCodes) {
+            await this.prisma.techManagerBadge.create({
+              data: {
+                techManagerUserId: user.id,
+                badgeCode,
+                assignedByUserId: request.auth.userId,
+                source: TECH_MANAGER_BADGE_SOURCE.IMPORT,
+              },
+            });
+          }
+        } else if (input.badgeImportMode === 'APPEND' && badgeCodes.length) {
+          const createCodes = badgeCodes.filter((code) => !activeSet.has(code));
+          for (const badgeCode of createCodes) {
+            await this.prisma.techManagerBadge.create({
+              data: {
+                techManagerUserId: user.id,
+                badgeCode,
+                assignedByUserId: request.auth.userId,
+                source: TECH_MANAGER_BADGE_SOURCE.IMPORT,
+              },
+            });
+          }
+        }
 
         if (createdUser) result.created += 1;
         else result.updated += 1;
@@ -883,9 +904,7 @@ export class BulkImportService {
             achievementsFileId: input.achievementsFileId || null,
             sourceBatch: input.sourceBatch || null,
             defaultRegionCode: input.defaultRegionCode || null,
-            ratingPolicy: input.ratingPolicy || null,
-            defaultRatingScore: input.defaultRatingScore ?? null,
-            defaultRatingCount: input.defaultRatingCount ?? null,
+            badgeImportMode: input.badgeImportMode || null,
           },
           people: {
             totalRows: Number(people.totalRows || 0),

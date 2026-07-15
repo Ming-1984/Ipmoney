@@ -49,6 +49,7 @@ type AppMenuItem = {
   label: string;
   to: string;
   permission?: string;
+  group: 'workbench' | 'content' | 'commerce' | 'admin';
 };
 
 type AdminBadgesResponse = {
@@ -57,31 +58,38 @@ type AdminBadgesResponse = {
 };
 
 const menuConfig: AppMenuItem[] = [
-  { key: 'dashboard', icon: <AppstoreOutlined />, label: '仪表盘', to: '/' },
-  { key: 'verifications', icon: <FileDoneOutlined />, label: '认证审核', to: '/verifications', permission: 'verification.read' },
-  { key: 'listings', icon: <GiftOutlined />, label: '挂牌审核', to: '/listings', permission: 'listing.read' },
-  { key: 'tech-managers', icon: <TeamOutlined />, label: '技术经理人', to: '/tech-managers', permission: 'listing.read' },
-  { key: 'achievements', icon: <CameraOutlined />, label: '专利成果', to: '/achievements', permission: 'listing.read' },
-  { key: 'comments', icon: <MessageOutlined />, label: '留言管理', to: '/comments', permission: 'listing.read' },
-  { key: 'platform-conversations', icon: <MessageOutlined />, label: '平台咨询会话', to: '/conversations/platform', permission: 'conversation.platform.manage' },
-  { key: 'alerts', icon: <BellOutlined />, label: '告警中心', to: '/alerts', permission: 'alert.manage' },
-  { key: 'audit-logs', icon: <ProfileOutlined />, label: '审计日志', to: '/audit-logs', permission: 'auditLog.read' },
-  { key: 'orders', icon: <ShoppingCartOutlined />, label: '订单管理', to: '/orders', permission: 'order.read' },
-  { key: 'cases', icon: <SolutionOutlined />, label: '工单/争议', to: '/cases', permission: 'case.manage' },
-  { key: 'maintenance', icon: <ScheduleOutlined />, label: '年费托管', to: '/maintenance', permission: 'maintenance.manage' },
-  { key: 'refunds', icon: <RollbackOutlined />, label: '退款管理', to: '/refunds', permission: 'refund.read' },
-  { key: 'settlements', icon: <WalletOutlined />, label: '放款/结算', to: '/settlements', permission: 'settlement.read' },
-  { key: 'invoices', icon: <ReconciliationOutlined />, label: '发票管理', to: '/invoices', permission: 'invoice.manage' },
-  { key: 'reports', icon: <FileTextOutlined />, label: '报表导出', to: '/reports', permission: 'report.read' },
-  { key: 'config', icon: <SettingOutlined />, label: '交易/推荐配置', to: '/config', permission: 'config.manage' },
-  { key: 'home-landing-config', icon: <SettingOutlined />, label: '首页运营配置', to: '/config/home-landing', permission: 'config.manage' },
-  { key: 'home-announcements', icon: <BellOutlined />, label: '首页公告', to: '/home-announcements', permission: 'config.manage' },
-  { key: 'regions', icon: <EnvironmentOutlined />, label: '地区/行业标签', to: '/regions', permission: 'config.manage' },
-  { key: 'patents', icon: <BookOutlined />, label: '专利主数据', to: '/patents', permission: 'listing.read' },
-  { key: 'patent-ops', icon: <BookOutlined />, label: '专利批量运营', to: '/patents/operations', permission: 'patent.import' },
-  { key: 'bulk-import', icon: <BookOutlined />, label: '成果/经理人导入', to: '/imports/bulk', permission: 'patent.import' },
-  { key: 'patent-claims', icon: <BookOutlined />, label: '专利认领审核', to: '/patents/claims', permission: 'patent.claim.review' },
-  { key: 'rbac', icon: <LockOutlined />, label: '账号权限', to: '/rbac', permission: 'rbac.manage' },
+  { key: 'dashboard', icon: <AppstoreOutlined />, label: '仪表盘', to: '/', group: 'workbench' },
+  { key: 'alerts', icon: <BellOutlined />, label: '告警中心', to: '/alerts', permission: 'alert.manage', group: 'workbench' },
+  { key: 'comments', icon: <MessageOutlined />, label: '留言管理', to: '/comments', permission: 'listing.read', group: 'workbench' },
+  { key: 'platform-conversations', icon: <MessageOutlined />, label: '平台咨询会话', to: '/conversations/platform', permission: 'conversation.platform.manage', group: 'workbench' },
+  { key: 'verifications', icon: <FileDoneOutlined />, label: '认证审核', to: '/verifications', permission: 'verification.read', group: 'content' },
+  { key: 'listings', icon: <GiftOutlined />, label: '挂牌审核', to: '/listings', permission: 'listing.read', group: 'content' },
+  { key: 'tech-managers', icon: <TeamOutlined />, label: '技术经理人', to: '/tech-managers', permission: 'listing.read', group: 'content' },
+  { key: 'achievements', icon: <CameraOutlined />, label: '专利成果', to: '/achievements', permission: 'listing.read', group: 'content' },
+  { key: 'patents', icon: <BookOutlined />, label: '专利主数据', to: '/patents', permission: 'listing.read', group: 'content' },
+  { key: 'patent-claims', icon: <BookOutlined />, label: '专利认领审核', to: '/patents/claims', permission: 'patent.claim.review', group: 'content' },
+  { key: 'patent-ops', icon: <BookOutlined />, label: '专利批量处理', to: '/patents/operations', permission: 'patent.import', group: 'content' },
+  { key: 'bulk-import', icon: <BookOutlined />, label: '成果/经理人导入', to: '/imports/bulk', permission: 'patent.import', group: 'content' },
+  { key: 'orders', icon: <ShoppingCartOutlined />, label: '订单管理', to: '/orders', permission: 'order.read', group: 'commerce' },
+  { key: 'cases', icon: <SolutionOutlined />, label: '工单/争议', to: '/cases', permission: 'case.manage', group: 'commerce' },
+  { key: 'maintenance', icon: <ScheduleOutlined />, label: '年费托管', to: '/maintenance', permission: 'maintenance.manage', group: 'commerce' },
+  { key: 'refunds', icon: <RollbackOutlined />, label: '退款管理', to: '/refunds', permission: 'refund.read', group: 'commerce' },
+  { key: 'settlements', icon: <WalletOutlined />, label: '放款/结算', to: '/settlements', permission: 'settlement.read', group: 'commerce' },
+  { key: 'invoices', icon: <ReconciliationOutlined />, label: '发票管理', to: '/invoices', permission: 'invoice.manage', group: 'commerce' },
+  { key: 'reports', icon: <FileTextOutlined />, label: '报表导出', to: '/reports', permission: 'report.read', group: 'commerce' },
+  { key: 'config', icon: <SettingOutlined />, label: '交易/推荐配置', to: '/config', permission: 'config.manage', group: 'admin' },
+  { key: 'home-landing-config', icon: <SettingOutlined />, label: '首页运营配置', to: '/config/home-landing', permission: 'config.manage', group: 'admin' },
+  { key: 'home-announcements', icon: <BellOutlined />, label: '首页公告', to: '/home-announcements', permission: 'config.manage', group: 'admin' },
+  { key: 'regions', icon: <EnvironmentOutlined />, label: '地区/行业标签', to: '/regions', permission: 'config.manage', group: 'admin' },
+  { key: 'audit-logs', icon: <ProfileOutlined />, label: '审计日志', to: '/audit-logs', permission: 'auditLog.read', group: 'admin' },
+  { key: 'rbac', icon: <LockOutlined />, label: '账号权限', to: '/rbac', permission: 'rbac.manage', group: 'admin' },
+];
+
+const menuGroups: Array<{ key: AppMenuItem['group']; label: string }> = [
+  { key: 'workbench', label: '运营工作台' },
+  { key: 'content', label: '内容与审核' },
+  { key: 'commerce', label: '交易与履约' },
+  { key: 'admin', label: '管理员工具' },
 ];
 
 function hasPermission(perms: Set<string>, permission?: string): boolean {
@@ -189,28 +197,43 @@ export function AppLayout() {
   }, [session?.role, session?.roleNames]);
 
   const menuItems = useMemo<MenuProps['items']>(
-    () =>
-      menuConfig
-        .filter((item) => hasPermission(permissionSet, item.permission))
-        .map((item) => {
-          const badgeCount = Math.max(0, Number(badges[item.key] || 0));
+    () => {
+      const permittedItems = menuConfig.filter((item) => hasPermission(permissionSet, item.permission));
+      return menuGroups
+        .map((group) => {
+          const groupItems = permittedItems
+            .filter((item) => item.group === group.key)
+            .map((item) => {
+              const badgeCount = Math.max(0, Number(badges[item.key] || 0));
+              return {
+                key: item.key,
+                icon: item.icon,
+                label: (
+                  <Link to={item.to} className="ipm-menu-link-with-badge">
+                    <span className="ipm-menu-link-label">{item.label}</span>
+                    {badgeCount > 0 ? <Badge count={badgeCount > 99 ? '99+' : badgeCount} size="small" /> : null}
+                  </Link>
+                ),
+              };
+            });
+          if (groupItems.length === 0) return null;
           return {
-            key: item.key,
-            icon: item.icon,
-            label: (
-              <Link to={item.to} className="ipm-menu-link-with-badge">
-                <span className="ipm-menu-link-label">{item.label}</span>
-                {badgeCount > 0 ? <Badge count={badgeCount > 99 ? '99+' : badgeCount} size="small" /> : null}
-              </Link>
-            ),
+            type: 'group' as const,
+            key: `group-${group.key}`,
+            label: group.label,
+            children: groupItems,
           };
-        }),
+        })
+        .filter(Boolean);
+    },
     [badges, permissionSet],
   );
 
   useEffect(() => {
     if (loadingSession || !session) return;
-    const availableKeys = new Set((menuItems || []).map((item: any) => String(item?.key || '')));
+    const availableKeys = new Set(
+      menuConfig.filter((item) => hasPermission(permissionSet, item.permission)).map((item) => item.key),
+    );
     const currentKey = location.pathname.replace(/^\//, '') || 'dashboard';
     const normalizedCurrentKey =
       currentKey.startsWith('orders/')

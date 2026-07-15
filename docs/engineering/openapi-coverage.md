@@ -4,39 +4,38 @@
 
 ## Summary
 
-- OpenAPI operations: 258
-- Frontend-used operations (client): 95
-- Frontend-used operations (admin): 138
+- OpenAPI operations: 268
+- Frontend-used operations (client): 96
+- Frontend-used operations (admin): 147
 - Fixture scenarios: 7
 
 ## Key Gaps
 
 - Frontend-used but missing from OpenAPI: 0
-- OpenAPI-defined but unused by frontend: 34
+- OpenAPI-defined but unused by frontend: 33
   - GET /admin/achievements/:param/audit-logs
-  - GET /admin/achievements/:param/materials
   - GET /admin/ai/parse-results
   - GET /admin/ai/parse-results/:param
-  - GET /admin/listings/:param
   - GET /admin/listings/:param/audit-logs
   - GET /admin/listings/:param/materials
   - GET /admin/listings/jobs/batch/:param
   - GET /admin/listings/jobs/batch/:param/error-file
   - GET /admin/listings/jobs/import/:param
   - GET /admin/listings/jobs/import/:param/error-file
+  - GET /admin/orders/:param/invoice
+  - GET /admin/orders/:param/settlement
   - GET /admin/patent-maintenance/orders/:param
   - GET /admin/patent-maintenance/schedules/:param
   - GET /admin/patents/jobs/import/:param
   - GET /admin/patents/jobs/import/:param/error-file
+  - GET /me/patent-maintenance/summary
+  - GET /me/patent-maintenance/tasks
   - PATCH /admin/ai/parse-results/:param
-  - PATCH /admin/listings/:param
-  - POST /admin/achievements/:param/approve
-  - POST /admin/achievements/:param/reject
+  - PATCH /admin/tech-managers/batch/rating
+  - POST /admin/achievements/:param/publish
   - POST /admin/listings
-  - POST /admin/listings/:param/approve
   - POST /admin/listings/:param/off-shelf
   - POST /admin/listings/:param/publish
-  - POST /admin/listings/:param/reject
   - POST /admin/patent-maintenance/orders/:param/cancel
   - POST /admin/patent-maintenance/orders/:param/close
   - POST /admin/patent-maintenance/orders/:param/execution
@@ -47,7 +46,7 @@
   - POST /ai/agent/query
   - POST /ai/parse-results/:param/feedback
   - PUT /admin/listings/:param/featured
-- Frontend-used but missing in happy fixtures: 222
+- Frontend-used but missing in happy fixtures: 233
   - DELETE /achievements/:param/favorites
   - DELETE /admin/config/home-announcements/items/:param
   - DELETE /admin/config/home-announcements/templates/:param
@@ -61,6 +60,7 @@
   - GET /achievements/:param
   - GET /admin/achievements
   - GET /admin/achievements/:param
+  - GET /admin/achievements/:param/materials
   - GET /admin/alerts
   - GET /admin/audit-logs
   - GET /admin/cases
@@ -79,15 +79,16 @@
   - GET /admin/conversations/platform
   - GET /admin/imports/people-achievements/history
   - GET /admin/industry-tags
+  - GET /admin/invoices
   - GET /admin/listings
+  - GET /admin/listings/:param
   - GET /admin/listings/jobs/batch
   - GET /admin/listings/jobs/batch/:param/items
   - GET /admin/listings/jobs/import
   - GET /admin/listings/jobs/import/:param/rows
+  - GET /admin/notifications/badges
   - GET /admin/orders
   - GET /admin/orders/:param
-  - GET /admin/orders/:param/invoice
-  - GET /admin/orders/:param/settlement
   - GET /admin/patent-claims
   - GET /admin/patent-maintenance/orders
   - GET /admin/patent-maintenance/orders/:param/events
@@ -96,9 +97,7 @@
   - GET /admin/patents
   - GET /admin/patents/:param
   - GET /admin/patents/jobs/import
-  - GET /admin/patents/jobs/import/:param/rows
-  - GET /admin/rbac/permissions
-  - ... (172 more)
+  - ... (183 more)
 
 ## Coverage Details (by operation)
 
@@ -118,7 +117,7 @@
 | adminListAchievements | GET | /admin/achievements |  | Y |  |  |  |  |  |  |  |
 | adminGetAchievementById | GET | /admin/achievements/:param |  | Y |  |  |  |  |  |  |  |
 | adminGetAchievementAuditLogs | GET | /admin/achievements/:param/audit-logs |  |  |  |  |  |  |  |  |  |
-| adminGetAchievementMaterials | GET | /admin/achievements/:param/materials |  |  |  |  |  |  |  |  |  |
+| adminGetAchievementMaterials | GET | /admin/achievements/:param/materials |  | Y |  |  |  |  |  |  |  |
 | adminListAiParseResults | GET | /admin/ai/parse-results |  |  |  |  |  |  |  |  |  |
 | adminGetAiParseResult | GET | /admin/ai/parse-results/:param |  |  |  |  |  |  |  |  |  |
 | adminListAlertEvents | GET | /admin/alerts |  | Y |  |  |  |  |  |  |  |
@@ -139,8 +138,9 @@
 | adminListPlatformConversations | GET | /admin/conversations/platform |  | Y |  |  |  |  |  |  |  |
 | adminListPeopleAchievementsImportHistory | GET | /admin/imports/people-achievements/history |  | Y |  |  |  |  |  |  |  |
 | adminListIndustryTags | GET | /admin/industry-tags |  | Y |  |  |  |  |  |  |  |
+| adminListInvoices | GET | /admin/invoices |  | Y |  |  |  |  |  |  |  |
 | adminListListingsForAudit | GET | /admin/listings |  | Y |  |  |  |  |  |  |  |
-| adminGetListingById | GET | /admin/listings/:param |  |  |  |  |  |  |  |  |  |
+| adminGetListingById | GET | /admin/listings/:param |  | Y |  |  |  |  |  |  |  |
 | adminGetListingAuditLogs | GET | /admin/listings/:param/audit-logs |  |  |  |  |  |  |  |  |  |
 | adminGetListingMaterials | GET | /admin/listings/:param/materials |  |  |  |  |  |  |  |  |  |
 | adminListListingBatchJobs | GET | /admin/listings/jobs/batch |  | Y |  |  |  |  |  |  |  |
@@ -151,10 +151,11 @@
 | adminGetListingImportJob | GET | /admin/listings/jobs/import/:param |  |  |  |  |  |  |  |  |  |
 | adminGetListingImportJobErrorFile | GET | /admin/listings/jobs/import/:param/error-file |  |  |  |  |  |  |  |  |  |
 | adminListListingImportJobRows | GET | /admin/listings/jobs/import/:param/rows |  | Y |  |  |  |  |  |  |  |
+| adminGetNotificationBadges | GET | /admin/notifications/badges |  | Y |  |  |  |  |  |  |  |
 | adminListOrders | GET | /admin/orders |  | Y |  |  |  |  |  |  |  |
 | adminGetOrderById | GET | /admin/orders/:param |  | Y |  |  |  |  |  |  |  |
-| adminGetOrderInvoice | GET | /admin/orders/:param/invoice |  | Y |  |  |  |  |  |  |  |
-| adminGetOrderSettlement | GET | /admin/orders/:param/settlement |  | Y |  |  |  |  |  |  |  |
+| adminGetOrderInvoice | GET | /admin/orders/:param/invoice |  |  |  |  |  |  |  |  |  |
+| adminGetOrderSettlement | GET | /admin/orders/:param/settlement |  |  |  |  |  |  |  |  |  |
 | adminListPatentClaims | GET | /admin/patent-claims |  | Y |  |  |  |  |  |  |  |
 | adminListPatentMaintenanceOrders | GET | /admin/patent-maintenance/orders |  | Y |  |  |  |  |  |  |  |
 | adminGetPatentMaintenanceOrder | GET | /admin/patent-maintenance/orders/:param |  |  |  |  |  |  |  |  |  |
@@ -171,8 +172,10 @@
 | adminListRbacPermissions | GET | /admin/rbac/permissions |  | Y |  |  |  |  |  |  |  |
 | adminListRbacRoles | GET | /admin/rbac/roles |  | Y |  |  |  |  |  |  |  |
 | adminListRbacUsers | GET | /admin/rbac/users |  | Y |  |  |  |  |  |  |  |
+| adminListRefundRequests | GET | /admin/refund-requests |  | Y |  |  |  |  |  |  |  |
 | adminListRegions | GET | /admin/regions |  | Y |  |  |  |  |  |  |  |
 | adminGetFinanceReportSummary | GET | /admin/reports/finance/summary |  | Y |  |  |  |  |  |  |  |
+| adminListSettlements | GET | /admin/settlements |  | Y |  |  |  |  |  |  |  |
 | adminListTechManagers | GET | /admin/tech-managers |  | Y |  |  |  |  |  |  |  |
 | adminListUserVerifications | GET | /admin/user-verifications |  | Y |  |  |  |  |  |  |  |
 | adminGetVerificationAuditLogs | GET | /admin/user-verifications/:param/audit-logs |  | Y |  |  |  |  |  |  |  |
@@ -197,8 +200,8 @@
 | getMyPatentMaintenanceOrder | GET | /me/patent-maintenance/orders/:param | Y |  |  |  |  |  |  |  |  |
 | listMyPatentMaintenanceOrderEvents | GET | /me/patent-maintenance/orders/:param/events | Y |  |  |  |  |  |  |  |  |
 | listMyPatentMaintenanceSchedules | GET | /me/patent-maintenance/schedules | Y |  |  |  |  |  |  |  |  |
-| getMyMaintenanceSummary | GET | /me/patent-maintenance/summary | Y |  |  |  |  |  |  |  |  |
-| listMyPatentMaintenanceTasks | GET | /me/patent-maintenance/tasks | Y |  |  |  |  |  |  |  |  |
+| getMyMaintenanceSummary | GET | /me/patent-maintenance/summary |  |  |  |  |  |  |  |  |  |
+| listMyPatentMaintenanceTasks | GET | /me/patent-maintenance/tasks |  |  |  |  |  |  |  |  |  |
 | getMyRecommendedListings | GET | /me/recommendations/listings | Y |  |  |  |  |  |  |  |  |
 | getMyVerification | GET | /me/verification | Y |  |  |  |  |  |  |  |  |
 | listMyNotifications | GET | /notifications | Y |  |  |  |  |  |  |  |  |
@@ -207,7 +210,7 @@
 | getOrderById | GET | /orders/:param | Y |  |  |  |  |  |  |  |  |
 | getOrderCase | GET | /orders/:param/case | Y |  |  |  |  |  |  |  |  |
 | getOrderInvoice | GET | /orders/:param/invoice | Y |  |  |  |  |  |  |  |  |
-| listRefundRequestsByOrder | GET | /orders/:param/refund-requests | Y | Y |  |  |  |  |  |  |  |
+| listRefundRequestsByOrder | GET | /orders/:param/refund-requests | Y |  |  |  |  |  |  |  |  |
 | getPatentById | GET | /patents/:param | Y |  |  |  |  |  |  |  |  |
 | getPublicAchievementById | GET | /public/achievements/:param | Y |  |  |  |  |  |  |  |  |
 | listPublicAchievementComments | GET | /public/achievements/:param/comments | Y |  |  |  |  |  |  |  |  |
@@ -233,7 +236,7 @@
 | adminUpdateAchievement | PATCH | /admin/achievements/:param |  | Y |  |  |  |  |  |  |  |
 | adminUpdateAiParseResult | PATCH | /admin/ai/parse-results/:param |  |  |  |  |  |  |  |  |  |
 | adminUpdateComment | PATCH | /admin/comments/:param |  | Y |  |  |  |  |  |  |  |
-| adminUpdateListing | PATCH | /admin/listings/:param |  |  |  |  |  |  |  |  |  |
+| adminUpdateListing | PATCH | /admin/listings/:param |  | Y |  |  |  |  |  |  |  |
 | adminUpdatePatentMaintenanceSchedule | PATCH | /admin/patent-maintenance/schedules/:param |  | Y |  |  |  |  |  |  |  |
 | adminUpdatePatentMaintenanceTask | PATCH | /admin/patent-maintenance/tasks/:param |  | Y |  |  |  |  |  |  |  |
 | adminUpdatePatent | PATCH | /admin/patents/:param |  | Y |  |  |  |  |  |  |  |
@@ -241,8 +244,10 @@
 | adminUpdateRbacUserRoles | PATCH | /admin/rbac/users/:param |  | Y |  |  |  |  |  |  |  |
 | adminUpdateRegion | PATCH | /admin/regions/:param |  | Y |  |  |  |  |  |  |  |
 | adminUpdateTechManager | PATCH | /admin/tech-managers/:param |  | Y |  |  |  |  |  |  |  |
-| adminBatchUpdateTechManagerRating | PATCH | /admin/tech-managers/batch/rating |  | Y |  |  |  |  |  |  |  |
+| adminBatchUpdateTechManagerBadges | PATCH | /admin/tech-managers/batch/badges |  | Y |  |  |  |  |  |  |  |
+| adminBatchUpdateTechManagerRating | PATCH | /admin/tech-managers/batch/rating |  |  |  |  |  |  |  |  |  |
 | adminUpdateUserVerificationLogo | PATCH | /admin/user-verifications/:param/logo |  | Y |  |  |  |  |  |  |  |
+| adminUpdateUserVerificationProfile | PATCH | /admin/user-verifications/:param/profile |  | Y |  |  |  |  |  |  |  |
 | updateComment | PATCH | /comments/:param | Y |  |  |  |  |  |  |  |  |
 | updateListing | PATCH | /listings/:param | Y |  |  |  |  |  |  |  |  |
 | updateMe | PATCH | /me | Y |  |  |  |  |  |  |  |  |
@@ -255,10 +260,10 @@
 | offShelfAchievement | POST | /achievements/:param/off-shelf | Y |  |  |  |  |  |  |  |  |
 | submitAchievement | POST | /achievements/:param/submit | Y |  |  |  |  |  |  |  |  |
 | adminCreateAchievement | POST | /admin/achievements |  | Y |  |  |  |  |  |  |  |
-| adminApproveAchievement | POST | /admin/achievements/:param/approve |  |  |  |  |  |  |  |  |  |
+| adminApproveAchievement | POST | /admin/achievements/:param/approve |  | Y |  |  |  |  |  |  |  |
 | adminOffShelfAchievement | POST | /admin/achievements/:param/off-shelf |  | Y |  |  |  |  |  |  |  |
-| adminPublishAchievement | POST | /admin/achievements/:param/publish |  | Y |  |  |  |  |  |  |  |
-| adminRejectAchievement | POST | /admin/achievements/:param/reject |  |  |  |  |  |  |  |  |  |
+| adminPublishAchievement | POST | /admin/achievements/:param/publish |  |  |  |  |  |  |  |  |  |
+| adminRejectAchievement | POST | /admin/achievements/:param/reject |  | Y |  |  |  |  |  |  |  |
 | adminAcknowledgeAlertEvent | POST | /admin/alerts/:param/ack |  | Y |  |  |  |  |  |  |  |
 | adminCreateCase | POST | /admin/cases |  | Y |  |  |  |  |  |  |  |
 | adminAssignCase | POST | /admin/cases/:param/assign |  | Y |  |  |  |  |  |  |  |
@@ -271,14 +276,15 @@
 | adminPublishHomeAnnouncementItem | POST | /admin/config/home-announcements/items/:param/publish |  | Y |  |  |  |  |  |  |  |
 | adminCreateHomeAnnouncementTemplate | POST | /admin/config/home-announcements/templates |  | Y |  |  |  |  |  |  |  |
 | adminAssignPlatformConversationAgent | POST | /admin/conversations/:param/agents |  | Y |  |  |  |  |  |  |  |
+| adminUpdateFileModeration | POST | /admin/files/:param/moderation |  | Y |  |  |  |  |  |  |  |
 | adminExecutePeopleAchievementsImport | POST | /admin/imports/people-achievements/execute |  | Y |  |  |  |  |  |  |  |
 | adminPreviewPeopleAchievementsImport | POST | /admin/imports/people-achievements/preview |  | Y |  |  |  |  |  |  |  |
 | adminCreateIndustryTag | POST | /admin/industry-tags |  | Y |  |  |  |  |  |  |  |
 | adminCreateListing | POST | /admin/listings |  |  |  |  |  |  |  |  |  |
-| adminApproveListing | POST | /admin/listings/:param/approve |  |  |  |  |  |  |  |  |  |
+| adminApproveListing | POST | /admin/listings/:param/approve |  | Y |  |  |  |  |  |  |  |
 | adminOffShelfListing | POST | /admin/listings/:param/off-shelf |  |  |  |  |  |  |  |  |  |
 | adminPublishListing | POST | /admin/listings/:param/publish |  |  |  |  |  |  |  |  |  |
-| adminRejectListing | POST | /admin/listings/:param/reject |  |  |  |  |  |  |  |  |  |
+| adminRejectListing | POST | /admin/listings/:param/reject |  | Y |  |  |  |  |  |  |  |
 | adminCreateListingBatchJob | POST | /admin/listings/jobs/batch |  | Y |  |  |  |  |  |  |  |
 | adminCreateListingImportJob | POST | /admin/listings/jobs/import |  | Y |  |  |  |  |  |  |  |
 | adminExecuteListingImportJob | POST | /admin/listings/jobs/import/:param/execute |  | Y |  |  |  |  |  |  |  |
@@ -321,6 +327,7 @@
 | authSmsVerify | POST | /auth/sms/verify | Y | Y |  |  |  |  |  |  |  |
 | authWechatMpLogin | POST | /auth/wechat/mp-login | Y |  |  |  |  |  |  |  |  |
 | authWechatPhoneBind | POST | /auth/wechat/phone-bind | Y |  |  |  |  |  |  |  |  |
+| authWechatPhoneLogin | POST | /auth/wechat/phone-login | Y |  |  |  |  |  |  |  |  |
 | uploadContractPdf | POST | /contracts/:param/upload | Y |  |  |  |  |  |  |  |  |
 | sendConversationMessage | POST | /conversations/:param/messages | Y | Y |  |  |  |  |  |  |  |
 | markConversationRead | POST | /conversations/:param/read | Y | Y |  |  |  |  |  |  |  |
@@ -335,6 +342,8 @@
 | submitListing | POST | /listings/:param/submit | Y |  |  |  |  |  |  |  |  |
 | createMyAddress | POST | /me/addresses | Y |  |  |  |  |  |  |  |  |
 | createMyPatentClaim | POST | /me/patent-claims | Y |  |  |  |  |  |  |  |  |
+| createMyPatentMaintenanceDirectRequest | POST | /me/patent-maintenance/direct-requests | Y |  |  |  |  |  |  |  |  |
+| createMyPatentMaintenanceListingRequest | POST | /me/patent-maintenance/listing-requests | Y |  |  |  |  |  |  |  |  |
 | createMyPatentMaintenanceOrder | POST | /me/patent-maintenance/orders | Y |  |  |  |  |  |  |  |  |
 | submitMyVerification | POST | /me/verification | Y |  |  |  |  |  |  |  |  |
 | createOrder | POST | /orders | Y |  |  |  |  |  |  |  |  |

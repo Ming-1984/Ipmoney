@@ -671,12 +671,12 @@ export function HomeLandingConfigPage() {
     },
     {
       key: 'json',
-      label: '高级文本模式',
+      label: '管理员高级编辑',
       children: (
         <Card>
           <Space direction="vertical" size={12} style={{ width: '100%' }}>
             <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-              高级模式用于批量粘贴或细粒度调整。保存前会执行结构标准化与必要校验。
+              仅在需要批量粘贴或做精细调整时使用。普通运营优先使用上方可视化编辑，保存前系统会自动做结构校验。
             </Typography.Paragraph>
             <Input.TextArea
               rows={26}
@@ -692,7 +692,7 @@ export function HomeLandingConfigPage() {
                 应用到可视化
               </Button>
               <Button type="primary" loading={saving} onClick={() => void saveJson()}>
-                保存高级文本配置
+                保存高级编辑内容
               </Button>
             </Space>
           </Space>
@@ -708,7 +708,7 @@ export function HomeLandingConfigPage() {
           首页运营配置
         </Typography.Title>
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-          可视化编辑优先，高级文本模式作为兜底。保存后实时生效。
+          请优先使用可视化编辑。下方高级编辑仅作为管理员兜底入口，保存后实时生效。
         </Typography.Paragraph>
       </Card>
 

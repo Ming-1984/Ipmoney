@@ -44,6 +44,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/wechat/phone-login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mini Program phone login via wx.login + getPhoneNumber
+         * @description Exchange `wx.login` code and `getPhoneNumber` code with WeChat services,
+         *     match or create platform user by `openid` and normalized phone number,
+         *     and issue platform `accessToken`.
+         */
+        post: operations["authWechatPhoneLogin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/wechat/phone-bind": {
         parameters: {
             query?: never;
@@ -350,6 +372,23 @@ export interface paths {
         put?: never;
         /** 閻㈢喐鍨氭稉瀛樻鐠佸潡妫堕柧鐐复 */
         post: operations["createFileTemporaryAccess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/files/{fileId}/moderation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Update file moderation status manually */
+        post: operations["adminUpdateFileModeration"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2328,6 +2367,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/patent-maintenance/listing-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create my maintenance order from my listing */
+        post: operations["createMyPatentMaintenanceListingRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/patent-maintenance/direct-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create my direct patent maintenance request */
+        post: operations["createMyPatentMaintenanceDirectRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/patent-maintenance/summary": {
         parameters: {
             query?: never;
@@ -2791,6 +2864,23 @@ export interface paths {
         patch: operations["adminUpdateTechManager"];
         trace?: never;
     };
+    "/admin/tech-managers/batch/badges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 批量更新技术经理人荣誉标签 */
+        patch: operations["adminBatchUpdateTechManagerBadges"];
+        trace?: never;
+    };
     "/admin/tech-managers/batch/rating": {
         parameters: {
             query?: never;
@@ -2804,7 +2894,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** 批量更新技术经理评分 */
+        /** 批量更新技术经理人评分 */
         patch: operations["adminBatchUpdateTechManagerRating"];
         trace?: never;
     };
@@ -2908,6 +2998,91 @@ export interface paths {
         head?: never;
         /** 更新认证主体 Logo */
         patch: operations["adminUpdateUserVerificationLogo"];
+        trace?: never;
+    };
+    "/admin/user-verifications/{verificationId}/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update public verification profile fields */
+        patch: operations["adminUpdateUserVerificationProfile"];
+        trace?: never;
+    };
+    "/admin/notifications/badges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get admin sidebar badge counters */
+        get: operations["adminGetNotificationBadges"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/refund-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List admin refund requests */
+        get: operations["adminListRefundRequests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/settlements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List admin settlements */
+        get: operations["adminListSettlements"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List admin invoices */
+        get: operations["adminListInvoices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/admin/orders/{orderId}/payments/manual": {
@@ -3786,6 +3961,10 @@ export interface components {
             expiresInSeconds: number;
             user: components["schemas"]["UserProfile"];
         };
+        WechatPhoneLoginRequest: {
+            code: string;
+            phoneCode: string;
+        };
         AuthSession: {
             userId: components["schemas"]["Uuid"];
             isAdmin: boolean;
@@ -3825,6 +4004,12 @@ export interface components {
             /** Format: date-time */
             reviewedAt?: string;
             reviewComment?: string;
+        };
+        UserVerificationProfileUpdateRequest: {
+            displayName?: string | null;
+            contactName?: string | null;
+            regionCode?: string | null;
+            intro?: string | null;
         };
         UserVerificationSubmitRequest: components["schemas"]["UserVerificationSubmitPersonRequest"] | components["schemas"]["UserVerificationSubmitOrganizationRequest"] | components["schemas"]["UserVerificationSubmitTechManagerRequest"];
         UserVerificationSubmitPersonRequest: {
@@ -3895,6 +4080,11 @@ export interface components {
             /** Format: date-time */
             expiresAt: string;
             scope: components["schemas"]["FileTemporaryAccessScope"];
+        };
+        FileModerationUpdateRequest: {
+            /** @enum {string} */
+            status: "APPROVED" | "REJECTED";
+            reason?: string;
         };
         /** @enum {string} */
         Jurisdiction: "CN";
@@ -4546,7 +4736,7 @@ export interface components {
             url: string | null;
         };
         /** @enum {string} */
-        PeopleAchievementsImportRatingPolicy: "KEEP_EXISTING" | "FILL_MISSING" | "FORCE_SET";
+        PeopleAchievementsImportBadgeMode: "KEEP_EXISTING" | "APPEND" | "REPLACE";
         /** @description At least one of `peopleFileId` or `achievementsFileId` is required. */
         PeopleAchievementsImportRequest: {
             peopleFileId?: components["schemas"]["Uuid"];
@@ -4555,20 +4745,14 @@ export interface components {
             sourceBatch?: string;
             /** @description Fallback region code for imported records. */
             defaultRegionCode?: string;
-            ratingPolicy?: components["schemas"]["PeopleAchievementsImportRatingPolicy"];
-            /** Format: double */
-            defaultRatingScore?: number;
-            defaultRatingCount?: number;
+            badgeImportMode?: components["schemas"]["PeopleAchievementsImportBadgeMode"];
         };
         PeopleAchievementsImportInput: {
             peopleFileId?: components["schemas"]["Uuid"];
             achievementsFileId?: components["schemas"]["Uuid"];
             sourceBatch: string;
             defaultRegionCode: string;
-            ratingPolicy: components["schemas"]["PeopleAchievementsImportRatingPolicy"];
-            /** Format: double */
-            defaultRatingScore: number;
-            defaultRatingCount: number;
+            badgeImportMode: components["schemas"]["PeopleAchievementsImportBadgeMode"];
         };
         PeopleAchievementsImportRowError: {
             rowNo: number;
@@ -4921,6 +5105,14 @@ export interface components {
             ratingScore?: number;
             ratingCount?: number;
         };
+        TechManagerBadge: {
+            code: string;
+            name: string;
+            /** @enum {string} */
+            category: "HONOR" | "STATUS";
+            sortOrder: number;
+            styleToken?: string;
+        };
         TechManagerSummary: {
             userId: components["schemas"]["Uuid"];
             displayName: string;
@@ -4935,6 +5127,7 @@ export interface components {
             serviceDirections?: string[];
             workHighlights?: string;
             serviceTags?: string[];
+            badges?: components["schemas"]["TechManagerBadge"][];
             stats?: components["schemas"]["TechManagerStats"];
             /** Format: date-time */
             verifiedAt?: string;
@@ -4970,12 +5163,24 @@ export interface components {
             workHighlights?: string | null;
             contactName?: string | null;
             contactPhone?: string | null;
+            badgeCodes?: string[];
             featuredRank?: number;
             /** Format: date-time */
             featuredUntil?: string;
-            /** Format: double */
-            ratingScore?: number;
-            ratingCount?: number;
+        };
+        TechManagerBatchBadgeRequest: {
+            techManagerIds: components["schemas"]["Uuid"][];
+            badgeCodes: string[];
+            /** @enum {string} */
+            mode: "REPLACE" | "APPEND" | "REMOVE";
+        };
+        TechManagerBatchBadgeResponse: {
+            updatedCount: number;
+            badgeCodes: string[];
+            /** @enum {string} */
+            mode: "REPLACE" | "APPEND" | "REMOVE";
+            techManagerIds: components["schemas"]["Uuid"][];
+            items: components["schemas"]["AdminTechManagerSummary"][];
         };
         TechManagerBatchRatingRequest: {
             techManagerIds: components["schemas"]["Uuid"][];
@@ -4989,7 +5194,7 @@ export interface components {
             ratingScore: number;
             ratingCount: number;
             techManagerIds: components["schemas"]["Uuid"][];
-            items: components["schemas"]["TechManagerSummary"][];
+            items: components["schemas"]["AdminTechManagerSummary"][];
         };
         InventorRankingItem: {
             inventorName: string;
@@ -5102,6 +5307,29 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        AdminOrderContext: {
+            orderId: components["schemas"]["Uuid"];
+            orderStatus: components["schemas"]["OrderStatus"];
+            listingId?: components["schemas"]["Uuid"];
+            listingTitle?: string | null;
+            applicationNoDisplay?: string | null;
+            buyerUserId?: components["schemas"]["Uuid"];
+            buyerDisplayName?: string | null;
+            sellerUserId?: components["schemas"]["Uuid"];
+            sellerDisplayName?: string | null;
+            depositAmountFen: components["schemas"]["MoneyFen"];
+            dealAmountFen?: components["schemas"]["MoneyFen"];
+            finalAmountFen?: components["schemas"]["MoneyFen"];
+            /** Format: date-time */
+            createdAt?: string | null;
+        };
+        AdminSettlementItem: components["schemas"]["Settlement"] & {
+            order?: components["schemas"]["AdminOrderContext"];
+        };
+        PagedAdminSettlement: {
+            items: components["schemas"]["AdminSettlementItem"][];
+            page: components["schemas"]["PageMeta"];
+        };
         OrderInvoiceUpsertRequest: {
             invoiceFileId: components["schemas"]["Uuid"];
             invoiceNo?: string;
@@ -5122,6 +5350,13 @@ export interface components {
             attachedAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        AdminInvoiceItem: components["schemas"]["InvoiceItem"] & {
+            order?: components["schemas"]["AdminOrderContext"];
+        };
+        PagedAdminInvoice: {
+            items: components["schemas"]["AdminInvoiceItem"][];
+            page: components["schemas"]["PageMeta"];
         };
         ManualPayoutConfirmRequest: {
             payoutRef?: string;
@@ -5156,6 +5391,31 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        AdminRefundRequestItem: components["schemas"]["RefundRequest"] & {
+            order?: components["schemas"]["AdminOrderContext"];
+        };
+        PagedAdminRefundRequest: {
+            items: components["schemas"]["AdminRefundRequestItem"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        AdminBadgeCounts: {
+            orders?: number;
+            verifications?: number;
+            listings?: number;
+            achievements?: number;
+            "platform-conversations"?: number;
+            alerts?: number;
+            cases?: number;
+            refunds?: number;
+            settlements?: number;
+            invoices?: number;
+            "patent-claims"?: number;
+        };
+        AdminBadgesResponse: {
+            badges: components["schemas"]["AdminBadgeCounts"];
+            /** Format: date-time */
+            updatedAt: string;
         };
         /** @enum {string} */
         CaseType: "FOLLOWUP" | "REFUND" | "DISPUTE";
@@ -5828,6 +6088,17 @@ export interface components {
         };
         PatentMaintenanceOrderMyCreateRequest: {
             scheduleId: components["schemas"]["Uuid"];
+        };
+        PatentMaintenanceListingRequest: {
+            listingId: components["schemas"]["Uuid"];
+        };
+        PatentMaintenanceDirectRequest: {
+            applicationNo: string;
+            title: string;
+            patentType: components["schemas"]["PatentType"];
+            yearNo: number;
+            /** Format: date */
+            dueDate?: string;
         };
         PatentMaintenanceOrderQuoteRequest: {
             officialFeeFen: number;
@@ -6582,6 +6853,32 @@ export interface operations {
             400: components["responses"]["BadRequest"];
         };
     };
+    authWechatPhoneLogin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WechatPhoneLoginRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthTokenResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            409: components["responses"]["Conflict"];
+        };
+    };
     authWechatPhoneBind: {
         parameters: {
             query?: never;
@@ -7130,6 +7427,36 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FileTemporaryAccessResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminUpdateFileModeration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fileId: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FileModerationUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileObject"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -11119,6 +11446,64 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
+    createMyPatentMaintenanceListingRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentMaintenanceListingRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentMaintenanceOrder"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    createMyPatentMaintenanceDirectRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentMaintenanceDirectRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentMaintenanceOrder"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
     getMyMaintenanceSummary: {
         parameters: {
             query?: never;
@@ -12016,6 +12401,34 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
+    adminBatchUpdateTechManagerBadges: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TechManagerBatchBadgeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TechManagerBatchBadgeResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     adminBatchUpdateTechManagerRating: {
         parameters: {
             query?: never;
@@ -12231,6 +12644,142 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    adminUpdateUserVerificationProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                verificationId: components["parameters"]["VerificationId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserVerificationProfileUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserVerification"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminGetNotificationBadges: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminBadgesResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminListRefundRequests: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["RefundRequestStatus"] | "ALL";
+                orderId?: components["schemas"]["Uuid"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedAdminRefundRequest"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminListSettlements: {
+        parameters: {
+            query?: {
+                payoutStatus?: components["schemas"]["PayoutStatus"];
+                orderId?: components["schemas"]["Uuid"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedAdminSettlement"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminListInvoices: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["InvoiceStatus"] | "ALL";
+                orderId?: components["schemas"]["Uuid"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedAdminInvoice"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
         };
     };
     adminManualConfirmPayment: {

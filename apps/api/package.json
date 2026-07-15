@@ -18,6 +18,7 @@
     "test:e2e": "vitest run test/health.e2e-spec.ts"
   },
   "dependencies": {
+    "@ipmoney/shared": "workspace:^",
     "@aws-sdk/client-s3": "^3.1015.0",
     "@nestjs/common": "^11.1.11",
     "@nestjs/core": "^11.1.11",

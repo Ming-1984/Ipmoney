@@ -2,6 +2,7 @@ import { Button, Card, Descriptions, Drawer, Input, InputNumber, Select, Space, 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { components } from '@ipmoney/api-types';
+import { TECH_MANAGER_BADGE_DEFINITIONS, type TechManagerBadgeCode, type TechManagerBadgeMode } from '@ipmoney/shared';
 
 import { apiGet, apiPatch } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
@@ -10,20 +11,51 @@ import { verificationStatusLabel, verificationTypeLabel } from '../lib/labels';
 import { ImageUrlUploadField } from '../ui/ImageUrlUploadField';
 import { RequestErrorAlert } from '../ui/RequestState';
 
-type TechManagerSummary = components['schemas']['AdminTechManagerSummary'];
+type TechManagerBadge = {
+  code: TechManagerBadgeCode;
+  name: string;
+  category: string;
+  sortOrder: number;
+  styleToken?: string;
+};
+
+type TechManagerSummary = components['schemas']['AdminTechManagerSummary'] & {
+  badges?: TechManagerBadge[];
+};
 type PagedTechManagerSummary = components['schemas']['PagedAdminTechManagerSummary'];
 type VerificationStatus = components['schemas']['VerificationStatus'];
-type TechManagerUpdateRequest = components['schemas']['TechManagerUpdateRequest'];
+type TechManagerUpdateRequest = components['schemas']['TechManagerUpdateRequest'] & {
+  badgeCodes?: TechManagerBadgeCode[];
+};
+type TechManagerEditorUpdateRequest = Omit<TechManagerUpdateRequest, 'intro' | 'featuredUntil' | 'avatarUrl'> & {
+  intro?: string | null;
+  avatarUrl?: string | null;
+  position?: string | null;
+  organization?: string | null;
+  experienceLabel?: string | null;
+  levelLabel?: string | null;
+  workHighlights?: string | null;
+  contactName?: string | null;
+  contactPhone?: string | null;
+  featuredUntil?: string | null;
+  badgeCodes?: TechManagerBadgeCode[];
+};
 type TechManagerEditorSummary = TechManagerSummary & {
   featuredRank?: number | null;
   featuredUntil?: string | null;
 };
-type TechManagerEditorUpdateRequest = Omit<TechManagerUpdateRequest, 'intro' | 'featuredUntil'> & {
-  intro?: string | null;
-  featuredUntil?: string | null;
-};
-
 type MissingFilterValue = '' | 'true' | 'false';
+
+const BADGE_OPTIONS = TECH_MANAGER_BADGE_DEFINITIONS.map((item) => ({
+  value: item.code,
+  label: item.name,
+}));
+
+const BADGE_MODE_OPTIONS: Array<{ value: TechManagerBadgeMode; label: string }> = [
+  { value: 'REPLACE', label: '覆盖标签' },
+  { value: 'APPEND', label: '追加标签' },
+  { value: 'REMOVE', label: '移除标签' },
+];
 
 function splitCommaText(text: string): string[] {
   return text
@@ -44,13 +76,26 @@ function isSuspectExperienceLabel(value: unknown): boolean {
   const normalized = normalizeUserFacingText(value);
   if (!normalized) return false;
   return [
-    /^1\s*年$/u,
-    /^一\s*年$/u,
-    /^从业\s*1\s*年$/u,
-    /^从业\s*一\s*年$/u,
+    /^1\s*年?/u,
+    /^一\s*年?/u,
+    /^从业\s*1\s*年?/u,
+    /^从业\s*一\s*年?/u,
     /^1\s*年(?:经验|从业经验|服务经验)?$/u,
     /^一\s*年(?:经验|从业经验|服务经验)?$/u,
   ].some((pattern) => pattern.test(normalized));
+}
+
+function renderBadges(badges?: TechManagerBadge[]) {
+  if (!Array.isArray(badges) || !badges.length) return <Tag color="default">未设置标签</Tag>;
+  return (
+    <>
+      {badges.map((badge) => (
+        <Tag key={badge.code} color={badge.category === 'STATUS' ? 'blue' : 'gold'}>
+          {badge.name}
+        </Tag>
+      ))}
+    </>
+  );
 }
 
 export function TechManagersPage() {
@@ -63,7 +108,6 @@ export function TechManagersPage() {
   const [status, setStatus] = useState<VerificationStatus | ''>('');
   const [missingIntro, setMissingIntro] = useState<MissingFilterValue>('');
   const [missingContact, setMissingContact] = useState<MissingFilterValue>('');
-  const [missingRating, setMissingRating] = useState<MissingFilterValue>('');
   const [missingExperienceLabel, setMissingExperienceLabel] = useState<MissingFilterValue>('');
   const [missingLevelLabel, setMissingLevelLabel] = useState<MissingFilterValue>('');
   const [suspectExperienceLabel, setSuspectExperienceLabel] = useState<MissingFilterValue>('');
@@ -86,13 +130,12 @@ export function TechManagersPage() {
   const [contactPhone, setContactPhone] = useState('');
   const [featuredRank, setFeaturedRank] = useState<number | null>(null);
   const [featuredUntil, setFeaturedUntil] = useState('');
-  const [ratingScore, setRatingScore] = useState<number | null>(null);
-  const [ratingCount, setRatingCount] = useState<number | null>(null);
+  const [badgeCodes, setBadgeCodes] = useState<TechManagerBadgeCode[]>([]);
   const [saving, setSaving] = useState(false);
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
-  const [batchRatingScore, setBatchRatingScore] = useState<number | null>(null);
-  const [batchRatingCount, setBatchRatingCount] = useState<number | null>(null);
+  const [batchBadgeCodes, setBatchBadgeCodes] = useState<TechManagerBadgeCode[]>([]);
+  const [batchMode, setBatchMode] = useState<TechManagerBadgeMode>('REPLACE');
   const [batchSaving, setBatchSaving] = useState(false);
 
   const load = useCallback(
@@ -108,7 +151,6 @@ export function TechManagersPage() {
           verificationStatus: status || undefined,
           missingIntro: missingIntro || undefined,
           missingContact: missingContact || undefined,
-          missingRating: missingRating || undefined,
           missingExperienceLabel: missingExperienceLabel || undefined,
           missingLevelLabel: missingLevelLabel || undefined,
           suspectExperienceLabel: suspectExperienceLabel || undefined,
@@ -124,19 +166,7 @@ export function TechManagersPage() {
         setLoading(false);
       }
     },
-    [
-      missingContact,
-      missingExperienceLabel,
-      missingIntro,
-      missingLevelLabel,
-      missingRating,
-      suspectExperienceLabel,
-      page,
-      pageSize,
-      q,
-      regionCode,
-      status,
-    ],
+    [missingContact, missingExperienceLabel, missingIntro, missingLevelLabel, page, pageSize, q, regionCode, status, suspectExperienceLabel],
   );
 
   useEffect(() => {
@@ -160,8 +190,7 @@ export function TechManagersPage() {
     setContactPhone(normalizeUserFacingText(record.contactPhone));
     setFeaturedRank(typeof record.featuredRank === 'number' ? record.featuredRank : null);
     setFeaturedUntil(record.featuredUntil || '');
-    setRatingScore(typeof record.stats?.ratingScore === 'number' ? record.stats.ratingScore : null);
-    setRatingCount(typeof record.stats?.ratingCount === 'number' ? record.stats.ratingCount : null);
+    setBadgeCodes((record.badges || []).map((item) => item.code as TechManagerBadgeCode));
     setEditOpen(true);
   }, []);
 
@@ -179,10 +208,9 @@ export function TechManagersPage() {
       workHighlights: workHighlights.trim() || null,
       contactName: contactName.trim() || null,
       contactPhone: contactPhone.trim() || null,
+      badgeCodes,
       ...(featuredRank !== null ? { featuredRank } : {}),
       featuredUntil: featuredUntil.trim() || null,
-      ...(ratingScore !== null ? { ratingScore } : {}),
-      ...(ratingCount !== null ? { ratingCount } : {}),
     };
 
     setSaving(true);
@@ -200,6 +228,7 @@ export function TechManagersPage() {
     }
   }, [
     avatarUrl,
+    badgeCodes,
     contactName,
     contactPhone,
     editTarget,
@@ -211,44 +240,38 @@ export function TechManagersPage() {
     load,
     organization,
     position,
-    ratingCount,
-    ratingScore,
     saving,
     serviceDirectionsInput,
     serviceTagsInput,
     workHighlights,
   ]);
 
-  const applyBatchRating = useCallback(async () => {
+  const applyBatchBadges = useCallback(async () => {
     if (!selectedRowKeys.length) {
-      message.warning('请先选择要更新评分的技术经理人');
+      message.warning('请先选择要更新标签的技术经理人');
       return;
     }
-    if (batchRatingScore === null || batchRatingCount === null) {
-      message.warning('请先填写综合评分和评分人数');
-      return;
-    }
-    if (batchRatingCount === 0 && batchRatingScore > 0) {
-      message.warning('评分人数为 0 时，综合评分必须为 0');
+    if (!batchBadgeCodes.length) {
+      message.warning('请至少选择一个标签');
       return;
     }
 
     setBatchSaving(true);
     try {
-      const result = await apiPatch<{ updatedCount?: number }>('/admin/tech-managers/batch/rating', {
+      const result = await apiPatch<{ updatedCount?: number }>('/admin/tech-managers/batch/badges', {
         techManagerIds: selectedRowKeys,
-        ratingScore: batchRatingScore,
-        ratingCount: batchRatingCount,
+        badgeCodes: batchBadgeCodes,
+        mode: batchMode,
       });
-      message.success(`批量评分已更新：${Number(result?.updatedCount ?? selectedRowKeys.length)} 人`);
+      message.success(`批量标签已更新：${Number(result?.updatedCount ?? selectedRowKeys.length)} 人`);
       setSelectedRowKeys([]);
       await load();
     } catch (err: any) {
-      message.error(err?.message || '批量评分更新失败');
+      message.error(err?.message || '批量标签更新失败');
     } finally {
       setBatchSaving(false);
     }
-  }, [batchRatingCount, batchRatingScore, load, selectedRowKeys]);
+  }, [batchBadgeCodes, batchMode, load, selectedRowKeys]);
 
   const resetFilters = useCallback(() => {
     setQ('');
@@ -256,7 +279,6 @@ export function TechManagersPage() {
     setStatus('');
     setMissingIntro('');
     setMissingContact('');
-    setMissingRating('');
     setMissingExperienceLabel('');
     setMissingLevelLabel('');
     setSuspectExperienceLabel('');
@@ -279,7 +301,7 @@ export function TechManagersPage() {
             技术经理人管理
           </Typography.Title>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            统一维护技术经理人的公开展示信息、联系资料、从业信息、等级标签与评分数据。
+            统一维护技术经理人的公开展示信息、联系资料、从业信息、等级标签与荣誉标签。
           </Typography.Paragraph>
         </div>
 
@@ -336,13 +358,6 @@ export function TechManagersPage() {
             options={missingFilterOptions}
           />
           <Select
-            value={missingRating}
-            style={{ width: 160 }}
-            placeholder="评分完整度"
-            onChange={(value) => setMissingRating((value as MissingFilterValue) || '')}
-            options={missingFilterOptions}
-          />
-          <Select
             value={missingExperienceLabel}
             style={{ width: 160 }}
             placeholder="从业信息"
@@ -381,26 +396,22 @@ export function TechManagersPage() {
 
         <Space wrap size={12}>
           <Tag color={selectedRowKeys.length ? 'processing' : 'default'}>已选 {selectedRowKeys.length} 人</Tag>
-          <InputNumber
-            value={batchRatingScore ?? undefined}
-            onChange={(value) => setBatchRatingScore(typeof value === 'number' ? value : null)}
-            min={0}
-            max={5}
-            step={0.1}
-            precision={1}
-            placeholder="批量综合评分"
-            style={{ width: 160 }}
+          <Select<TechManagerBadgeCode[]>
+            mode="multiple"
+            value={batchBadgeCodes}
+            onChange={(value) => setBatchBadgeCodes(value as TechManagerBadgeCode[])}
+            options={BADGE_OPTIONS}
+            style={{ minWidth: 320 }}
+            placeholder="批量选择荣誉标签"
           />
-          <InputNumber
-            value={batchRatingCount ?? undefined}
-            onChange={(value) => setBatchRatingCount(typeof value === 'number' ? value : null)}
-            min={0}
-            precision={0}
-            placeholder="批量评分人数"
-            style={{ width: 160 }}
+          <Select<TechManagerBadgeMode>
+            value={batchMode}
+            onChange={(value) => setBatchMode(value)}
+            options={BADGE_MODE_OPTIONS}
+            style={{ width: 140 }}
           />
-          <Button type="primary" loading={batchSaving} onClick={() => void applyBatchRating()}>
-            批量更新评分
+          <Button type="primary" loading={batchSaving} onClick={() => void applyBatchBadges()}>
+            批量设置标签
           </Button>
         </Space>
 
@@ -450,13 +461,18 @@ export function TechManagersPage() {
             {
               title: '等级标签',
               dataIndex: 'levelLabel',
-              render: (value) => (normalizeUserFacingText(value) ? <Tag color="blue">{normalizeUserFacingText(value)}</Tag> : renderMissingTag()),
+              render: (value) =>
+                normalizeUserFacingText(value) ? <Tag color="blue">{normalizeUserFacingText(value)}</Tag> : renderMissingTag(),
+            },
+            {
+              title: '荣誉标签',
+              key: 'badges',
+              render: (_, record) => renderBadges(record.badges),
             },
             {
               title: '简介',
               dataIndex: 'intro',
-              render: (value) =>
-                normalizeUserFacingText(value) ? <span>{normalizeUserFacingText(value).slice(0, 26)}</span> : renderMissingTag(),
+              render: (value) => (normalizeUserFacingText(value) ? <span>{normalizeUserFacingText(value).slice(0, 26)}</span> : renderMissingTag()),
             },
             {
               title: '联系方式',
@@ -466,17 +482,6 @@ export function TechManagersPage() {
                 const phone = normalizeUserFacingText(record.contactPhone);
                 if (!name && !phone) return renderMissingTag();
                 return [name, phone].filter(Boolean).join(' / ');
-              },
-            },
-            {
-              title: '评分',
-              key: 'stats',
-              render: (_, record) => {
-                const count = record.stats?.ratingCount ?? 0;
-                if (count <= 0) return <Tag color="orange">暂无评分</Tag>;
-                const score =
-                  typeof record.stats?.ratingScore === 'number' ? record.stats.ratingScore.toFixed(1) : '待确认';
-                return `${score} (${count})`;
               },
             },
             { title: '认证时间', dataIndex: 'verifiedAt', render: (value) => (value ? formatTimeSmart(value) : '待确认') },
@@ -523,6 +528,20 @@ export function TechManagersPage() {
                   maxSizeMb={5}
                   placeholder="上传或填写头像 URL"
                   onChange={(next) => setAvatarUrl(next)}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Typography.Text strong>荣誉标签</Typography.Text>
+              <div style={{ marginTop: 8 }}>
+                <Select<TechManagerBadgeCode[]>
+                  mode="multiple"
+                  value={badgeCodes}
+                  onChange={(value) => setBadgeCodes(value as TechManagerBadgeCode[])}
+                  options={BADGE_OPTIONS}
+                  style={{ width: '100%' }}
+                  placeholder="请选择荣誉标签"
                 />
               </div>
             </div>
@@ -627,31 +646,6 @@ export function TechManagersPage() {
                   onChange={(e) => setFeaturedUntil(e.target.value)}
                   placeholder="例如 2026-12-31T00:00:00Z"
                   style={{ marginTop: 8 }}
-                />
-              </div>
-            </Space>
-
-            <Space style={{ width: '100%' }} size={16} align="start">
-              <div style={{ flex: 1 }}>
-                <Typography.Text strong>综合评分</Typography.Text>
-                <InputNumber
-                  value={ratingScore ?? undefined}
-                  onChange={(value) => setRatingScore(typeof value === 'number' ? value : null)}
-                  min={0}
-                  max={5}
-                  step={0.1}
-                  precision={1}
-                  style={{ width: '100%', marginTop: 8 }}
-                />
-              </div>
-              <div style={{ flex: 1 }}>
-                <Typography.Text strong>评分人数</Typography.Text>
-                <InputNumber
-                  value={ratingCount ?? undefined}
-                  onChange={(value) => setRatingCount(typeof value === 'number' ? value : null)}
-                  min={0}
-                  precision={0}
-                  style={{ width: '100%', marginTop: 8 }}
                 />
               </div>
             </Space>

@@ -995,10 +995,10 @@ export function PatentOperationsPage() {
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Card>
         <Typography.Title level={3} style={{ marginTop: 0 }}>
-          专利批量运营
+          专利批量处理
         </Typography.Title>
         <Typography.Paragraph type="secondary">
-          提供模板下载、导入指引、任务校验与执行、失败回溯，降低运营批量导入出错率。
+          按“下载模板并上传数据、设置本次处理方式、查看处理结果”的顺序完成专利批量处理。系统内部检查和执行会自动完成。
         </Typography.Paragraph>
         {error ? <RequestErrorAlert error={error} onRetry={loadJobs} /> : null}
 
@@ -1006,7 +1006,7 @@ export function PatentOperationsPage() {
           <Alert
             showIcon
             type="info"
-            message="导入前请先下载模板，保持表头不变"
+            message="1. 先下载模板并准备本次要处理的数据"
             description={
               <Space direction="vertical" size={2}>
                 <Typography.Text type="secondary">必填列：申请号、发明名称、专利类型。</Typography.Text>
@@ -1017,16 +1017,16 @@ export function PatentOperationsPage() {
           />
 
           <Space wrap>
-            <Button onClick={downloadTemplate}>下载导入模板（Excel兼容CSV）</Button>
+            <Button onClick={downloadTemplate}>下载专利导入模板（Excel兼容 CSV）</Button>
             <Upload
               accept=".xlsx,.xls,.csv"
               showUploadList={false}
               customRequest={uploadExcel}
               disabled={uploading || submitting}
             >
-              <Button loading={uploading}>上传导入文件</Button>
+              <Button loading={uploading}>上传处理文件</Button>
             </Upload>
-            <Typography.Text type="secondary">{file?.id ? '已选择导入文件' : '未上传文件'}</Typography.Text>
+            <Typography.Text type="secondary">{file?.id ? '已选择本次处理文件' : '还未上传处理文件'}</Typography.Text>
           </Space>
 
           <Table<ImportTemplateField>
@@ -1057,19 +1057,19 @@ export function PatentOperationsPage() {
 
           <Form form={form} layout="vertical">
             <Space wrap>
-              <Form.Item label="重复策略" name="duplicatePolicy" rules={[{ required: true }]}>
+              <Form.Item label="2. 重复数据怎么处理" name="duplicatePolicy" rules={[{ required: true }]}>
                 <Select style={{ width: 160 }} options={duplicatePolicyOptions} />
               </Form.Item>
-              <Form.Item label="咨询路由" name="consultationRouting" rules={[{ required: true }]}>
+              <Form.Item label="咨询分配方式" name="consultationRouting" rules={[{ required: true }]}>
                 <Select style={{ width: 160 }} options={consultationRoutingOptions} />
               </Form.Item>
-              <Form.Item label="交易模式" name="tradeMode" rules={[{ required: true }]}>
+              <Form.Item label="交易方式" name="tradeMode" rules={[{ required: true }]}>
                 <Select style={{ width: 160 }} options={tradeModeOptions} />
               </Form.Item>
-              <Form.Item label="许可模式" name="licenseMode">
+              <Form.Item label="许可方式" name="licenseMode">
                 <Select style={{ width: 160 }} allowClear options={licenseModeOptions} />
               </Form.Item>
-              <Form.Item label="价格模式" name="priceType" rules={[{ required: true }]}>
+              <Form.Item label="报价方式" name="priceType" rules={[{ required: true }]}>
                 <Select style={{ width: 140 }} options={priceTypeOptions} />
               </Form.Item>
               <Form.Item label="挂牌价格(元)" name="priceAmountYuan">
@@ -1082,7 +1082,7 @@ export function PatentOperationsPage() {
                 <Select style={{ width: 220 }} allowClear showSearch optionFilterProp="label" options={staffOptions} />
               </Form.Item>
             </Space>
-            <Form.Item label="特色标签" name="listingTopics">
+            <Form.Item label="展示标签" name="listingTopics">
               <Select mode="multiple" allowClear options={listingTopicOptions} />
             </Form.Item>
             <Form.Item label="行业标签（逗号/分号/换行分隔）" name="industryTagsText">
@@ -1092,17 +1092,17 @@ export function PatentOperationsPage() {
 
           <Space>
             <Button type="primary" loading={submitting} onClick={() => void createImportJob(false)}>
-              创建导入任务
+              提交本次导入
             </Button>
             <Button loading={submitting} onClick={() => void createImportJob(true)}>
-              创建并校验执行
+              提交并立即开始处理
             </Button>
-            <Button onClick={() => void loadJobs()}>刷新任务</Button>
+            <Button onClick={() => void loadJobs()}>刷新处理记录</Button>
           </Space>
         </Space>
       </Card>
 
-      <Card title="按专利记录编号批量上架">
+      <Card title="按专利编号批量发布">
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Input.TextArea
             rows={4}
@@ -1110,9 +1110,9 @@ export function PatentOperationsPage() {
             onChange={(e) => setPatentIdsText(e.target.value)}
             placeholder="每行一个专利记录编号，或逗号分隔"
           />
-          <Typography.Text type="secondary">已识别 {parsedPatentIdsCount} 个专利记录编号（自动去重）</Typography.Text>
+          <Typography.Text type="secondary">已识别 {parsedPatentIdsCount} 个专利编号（自动去重）</Typography.Text>
           <Button type="primary" loading={submitting} onClick={() => void runBatchGenerate()}>
-            执行批量上架
+            开始批量发布
           </Button>
           {generateResult ? (
             <Typography.Text type="secondary">
@@ -1122,7 +1122,7 @@ export function PatentOperationsPage() {
         </Space>
       </Card>
 
-      <Card title="导入任务列表">
+      <Card title="3. 最近处理记录">
         <Space wrap style={{ marginBottom: 12 }}>
           <Select
             value={draftJobStatusFilter}
@@ -1158,7 +1158,7 @@ export function PatentOperationsPage() {
           }}
           columns={[
             {
-              title: '任务摘要',
+              title: '处理摘要',
               key: 'summary',
               width: 360,
               render: (_, row) => (
@@ -1168,7 +1168,7 @@ export function PatentOperationsPage() {
                     策略：{duplicatePolicyLabel(row.duplicatePolicy)} · 状态：{statusTag(row.status)}
                   </Typography.Text>
                   <Typography.Text type="secondary" copyable={{ text: row.id }}>
-                    任务单号：{row.id}
+                    处理单号：{row.id}
                   </Typography.Text>
                 </Space>
               ),
@@ -1176,7 +1176,7 @@ export function PatentOperationsPage() {
             { title: '状态', dataIndex: 'status', width: 110, render: (v: JobStatus) => statusTag(v) },
             { title: '策略', dataIndex: 'duplicatePolicy', width: 90, render: (v: DuplicatePolicy) => duplicatePolicyLabel(v) },
             { title: '失败率', dataIndex: 'failRate', width: 100, render: (v: number) => `${Math.round((Number(v) || 0) * 100)}%` },
-            { title: '已校验', dataIndex: 'validatedAt', width: 160, render: (v: string | null | undefined) => (v ? formatTimeSmart(v) : '-') },
+            { title: '已检查', dataIndex: 'validatedAt', width: 160, render: (v: string | null | undefined) => (v ? formatTimeSmart(v) : '-') },
             { title: '创建时间', dataIndex: 'createdAt', width: 150, render: (v: string) => formatTimeSmart(v) },
             {
               title: '操作',
@@ -1184,10 +1184,10 @@ export function PatentOperationsPage() {
               render: (_, r) => (
                 <Space>
                   <Button size="small" onClick={() => openRows(r)}>
-                    查看明细
+                    查看详情
                   </Button>
                   <Button size="small" loading={submitting} disabled={r.status === 'RUNNING'} onClick={() => void validateJob(r.id)}>
-                    校验
+                    检查
                   </Button>
                   <Button
                     size="small"
@@ -1196,7 +1196,7 @@ export function PatentOperationsPage() {
                     disabled={r.status === 'RUNNING' || !r.validatedAt}
                     onClick={() => void executeJob(r)}
                   >
-                    {r.status === 'PAUSED' ? '继续执行' : '执行'}
+                    {r.status === 'PAUSED' ? '继续处理' : '开始处理'}
                   </Button>
                   <Button size="small" disabled={!r.errorFileId} onClick={() => void downloadErrorFile(r.errorFileId)}>
                     错误文件

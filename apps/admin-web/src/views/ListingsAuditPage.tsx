@@ -942,7 +942,7 @@ export function ListingsAuditPage() {
             挂牌审核与批量发布
           </Typography.Title>
           <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
-            统一进行挂牌筛选、批量操作、批量导入发布和任务追踪。批量上架仅会处理已审核通过的数据。
+            在这里集中处理挂牌审核、批量发布和导入结果查看。批量发布仅会处理已审核通过的数据。
           </Typography.Paragraph>
 
           {error ? <RequestErrorAlert error={error} onRetry={loadListings} /> : null}
@@ -1162,7 +1162,7 @@ export function ListingsAuditPage() {
         </Space>
       </Card>
 
-      <Card title="批量任务中心">
+      <Card title="批量处理记录">
         <Table<BatchJob>
           rowKey="id"
           loading={batchJobsLoading}
@@ -1185,7 +1185,7 @@ export function ListingsAuditPage() {
           }}
           columns={[
             {
-              title: '任务摘要',
+              title: '处理摘要',
               key: 'summary',
               width: 360,
               render: (_, row) => (
@@ -1195,7 +1195,7 @@ export function ListingsAuditPage() {
                     动作：{actionLabel(row.action)} · 状态：{statusTag(row.status)}
                   </Typography.Text>
                   <Typography.Text type="secondary" copyable={{ text: row.id }}>
-                    任务单号：{row.id}
+                    处理单号：{row.id}
                   </Typography.Text>
                 </Space>
               ),
@@ -1221,7 +1221,7 @@ export function ListingsAuditPage() {
               render: (_, row) => (
                 <Space>
                   <Button size="small" onClick={() => void openBatchJobItems(row)}>
-                    查看明细
+                    查看详情
                   </Button>
                   <Button size="small" onClick={() => void openFileById(row.errorFileId)}>
                     错误文件
@@ -1233,10 +1233,10 @@ export function ListingsAuditPage() {
         />
       </Card>
 
-      <Card title="批量导入发布">
+      <Card title="批量导入挂牌数据">
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
-            支持上传运营模板进行批量导入。流程为创建任务、校验任务、异步执行。执行结果可在任务中心查看并下载错误文件。
+            支持上传运营模板批量导入挂牌数据。系统会自动完成检查和处理，结果可在下方处理记录中查看，并下载错误文件。
           </Typography.Paragraph>
           <Form layout="vertical">
             <Row gutter={12}>
@@ -1342,14 +1342,14 @@ export function ListingsAuditPage() {
           </Form>
           <Space>
             <Button type="primary" loading={importing} onClick={() => void runImport()}>
-              提交导入任务
+              提交本次导入
             </Button>
-            <Button onClick={() => void loadImportJobs()}>刷新导入任务</Button>
+            <Button onClick={() => void loadImportJobs()}>刷新导入记录</Button>
           </Space>
         </Space>
       </Card>
 
-      <Card title="导入任务中心">
+      <Card title="导入处理记录">
         <Table<ImportJob>
           rowKey="id"
           loading={importJobsLoading}
@@ -1372,7 +1372,7 @@ export function ListingsAuditPage() {
           }}
           columns={[
             {
-              title: '任务摘要',
+              title: '处理摘要',
               key: 'summary',
               width: 360,
               render: (_, row) => (
@@ -1382,7 +1382,7 @@ export function ListingsAuditPage() {
                     重复策略：{duplicatePolicyLabel(row.duplicatePolicy)} · 状态：{statusTag(row.status)}
                   </Typography.Text>
                   <Typography.Text type="secondary" copyable={{ text: row.id }}>
-                    任务单号：{row.id}
+                    处理单号：{row.id}
                   </Typography.Text>
                 </Space>
               ),
@@ -1408,7 +1408,7 @@ export function ListingsAuditPage() {
               render: (_, row) => (
                 <Space>
                   <Button size="small" onClick={() => void openImportJobRows(row)}>
-                    查看明细
+                    查看详情
                   </Button>
                   <Button size="small" onClick={() => void openFileById(row.errorFileId)}>
                     错误文件
@@ -1587,7 +1587,7 @@ export function ListingsAuditPage() {
       <Drawer
         width={980}
         open={batchDrawerOpen}
-        title={activeBatchJob ? `批量任务明细 ${activeBatchJob.id}` : '批量任务明细'}
+        title={activeBatchJob ? `批量处理详情 ${activeBatchJob.id}` : '批量处理详情'}
         onClose={() => setBatchDrawerOpen(false)}
       >
         <Table<BatchJobItem>
@@ -1640,7 +1640,7 @@ export function ListingsAuditPage() {
       <Drawer
         width={1080}
         open={importDrawerOpen}
-        title={activeImportJob ? `导入任务明细 ${activeImportJob.id}` : '导入任务明细'}
+        title={activeImportJob ? `导入处理详情 ${activeImportJob.id}` : '导入处理详情'}
         onClose={() => setImportDrawerOpen(false)}
       >
         <Table<ImportRow>

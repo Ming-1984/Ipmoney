@@ -1,4 +1,4 @@
-import { Button, Card, Descriptions, Drawer, Form, Input, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, Collapse, Descriptions, Drawer, Form, Input, Select, Space, Table, Tag, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { apiGet, apiPatch, apiPost } from '../lib/api';
@@ -137,6 +137,7 @@ export function AchievementsPage() {
   const [sourceRawRegion, setSourceRawRegion] = useState('');
   const [sourceOrgName, setSourceOrgName] = useState('');
   const [externalId, setExternalId] = useState('');
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const loadSeqRef = useRef(0);
   const detailSeqRef = useRef(0);
   const detailIdRef = useRef<string | null>(null);
@@ -205,6 +206,7 @@ export function AchievementsPage() {
     setSourceRawRegion('');
     setSourceOrgName('');
     setExternalId('');
+    setAdvancedOpen(false);
   };
 
   const openCreate = () => {
@@ -239,6 +241,16 @@ export function AchievementsPage() {
       setSourceRawRegion(detail.sourceRawRegion || '');
       setSourceOrgName(detail.sourceOrgName || '');
       setExternalId(detail.externalId || '');
+      setAdvancedOpen(
+        Boolean(
+          detail.externalId ||
+            detail.sourceRawCategory ||
+            detail.sourceRawStatus ||
+            detail.sourceBatch ||
+            detail.sourceRawRegion ||
+            detail.sourceOrgName,
+        ),
+      );
       setDrawerOpen(true);
     } catch (e: any) {
       if (seq !== detailSeqRef.current || detailIdRef.current !== id) return;
@@ -442,10 +454,10 @@ export function AchievementsPage() {
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <div>
           <Typography.Title level={3} style={{ marginTop: 0 }}>
-            成果管理
+            成果内容管理
           </Typography.Title>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            管理平台成果展示内容，支持来源治理字段维护、发布下架和封面上传。
+            维护平台对外展示的成果内容，支持编辑基础信息、发布上下架和封面上传。高级来源信息已收起，按需展开即可。
           </Typography.Paragraph>
         </div>
 
@@ -522,8 +534,7 @@ export function AchievementsPage() {
               width: 120,
               render: (v: ContentSource | undefined) => displayAdminInfo(achievementSourceLabel(v)),
             },
-            { title: '外部来源编号', dataIndex: 'externalId', width: 120, render: (v) => displayAdminInfo(v) },
-            { title: '来源批次', dataIndex: 'sourceBatch', width: 120, render: (v) => displayAdminInfo(v) },
+            { title: '外部来源编号', dataIndex: 'externalId', width: 140, render: (v) => displayAdminInfo(v) },
             {
               title: '审核状态',
               dataIndex: 'auditStatus',
@@ -531,7 +542,7 @@ export function AchievementsPage() {
               render: (v: AuditStatus) => <Tag>{auditStatusLabel(v)}</Tag>,
             },
             {
-              title: '上架状态',
+              title: '展示状态',
               dataIndex: 'status',
               width: 120,
               render: (_, row) => <Tag>{achievementStatusText(row)}</Tag>,
@@ -573,7 +584,7 @@ export function AchievementsPage() {
           ]}
         />
 
-        <Button onClick={() => void load()}>刷新</Button>
+        <Button onClick={() => void load()}>刷新列表</Button>
       </Space>
 
       <Drawer
@@ -630,7 +641,7 @@ export function AchievementsPage() {
               uploadPurpose="ACHIEVEMENT_COVER"
               maxSizeMb={10}
               allowUrlInput={false}
-              placeholder="上传或填写封面图片地址"
+              placeholder="上传成果封面图"
               onChange={(next) => setCoverUrl(next)}
               onUploaded={async (uploaded) => {
                 setCoverFileId(uploaded.id);
@@ -649,37 +660,53 @@ export function AchievementsPage() {
             </Button>
           </div>
 
-          <Typography.Title level={5}>来源治理</Typography.Title>
-          <Space style={{ width: '100%' }} size={16} align="start">
-            <Form.Item label="来源类型" style={{ flex: 1 }}>
-              <Select value={editSource} onChange={(v) => setEditSource(v as ContentSource)} options={SOURCE_OPTIONS} />
-            </Form.Item>
-            <Form.Item label="外部来源编号" style={{ flex: 1 }}>
-              <Input value={externalId} onChange={(e) => setExternalId(e.target.value)} placeholder="如 外部成果编号" />
-            </Form.Item>
-          </Space>
+          <Collapse
+            activeKey={advancedOpen ? ['source'] : []}
+            onChange={(keys) => setAdvancedOpen(Array.isArray(keys) ? keys.includes('source') : keys === 'source')}
+            items={[
+              {
+                key: 'source',
+                label: '高级来源信息（非必填）',
+                children: (
+                  <Space direction="vertical" size={0} style={{ width: '100%' }}>
+                    <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
+                      这部分主要用于内部追踪导入来源、原始分类和历史对照。普通运营日常处理时通常不需要填写。
+                    </Typography.Paragraph>
+                    <Space style={{ width: '100%' }} size={16} align="start">
+                      <Form.Item label="来源类型" style={{ flex: 1 }}>
+                        <Select value={editSource} onChange={(v) => setEditSource(v as ContentSource)} options={SOURCE_OPTIONS} />
+                      </Form.Item>
+                      <Form.Item label="外部来源编号" style={{ flex: 1 }}>
+                        <Input value={externalId} onChange={(e) => setExternalId(e.target.value)} placeholder="如：外部成果编号" />
+                      </Form.Item>
+                    </Space>
 
-          <Space style={{ width: '100%' }} size={16} align="start">
-            <Form.Item label="原始分类" style={{ flex: 1 }}>
-              <Input value={sourceRawCategory} onChange={(e) => setSourceRawCategory(e.target.value)} />
-            </Form.Item>
-            <Form.Item label="原始状态" style={{ flex: 1 }}>
-              <Input value={sourceRawStatus} onChange={(e) => setSourceRawStatus(e.target.value)} />
-            </Form.Item>
-          </Space>
+                    <Space style={{ width: '100%' }} size={16} align="start">
+                      <Form.Item label="原始分类" style={{ flex: 1 }}>
+                        <Input value={sourceRawCategory} onChange={(e) => setSourceRawCategory(e.target.value)} />
+                      </Form.Item>
+                      <Form.Item label="原始状态" style={{ flex: 1 }}>
+                        <Input value={sourceRawStatus} onChange={(e) => setSourceRawStatus(e.target.value)} />
+                      </Form.Item>
+                    </Space>
 
-          <Space style={{ width: '100%' }} size={16} align="start">
-            <Form.Item label="导入批次" style={{ flex: 1 }}>
-              <Input value={sourceBatch} onChange={(e) => setSourceBatch(e.target.value)} />
-            </Form.Item>
-            <Form.Item label="原始地区" style={{ flex: 1 }}>
-              <Input value={sourceRawRegion} onChange={(e) => setSourceRawRegion(e.target.value)} />
-            </Form.Item>
-          </Space>
+                    <Space style={{ width: '100%' }} size={16} align="start">
+                      <Form.Item label="导入批次" style={{ flex: 1 }}>
+                        <Input value={sourceBatch} onChange={(e) => setSourceBatch(e.target.value)} />
+                      </Form.Item>
+                      <Form.Item label="原始地区" style={{ flex: 1 }}>
+                        <Input value={sourceRawRegion} onChange={(e) => setSourceRawRegion(e.target.value)} />
+                      </Form.Item>
+                    </Space>
 
-          <Form.Item label="原始机构名称">
-            <Input value={sourceOrgName} onChange={(e) => setSourceOrgName(e.target.value)} />
-          </Form.Item>
+                    <Form.Item label="原始机构名称">
+                      <Input value={sourceOrgName} onChange={(e) => setSourceOrgName(e.target.value)} />
+                    </Form.Item>
+                  </Space>
+                ),
+              },
+            ]}
+          />
 
           <Space>
             <Button onClick={() => setDrawerOpen(false)}>取消</Button>

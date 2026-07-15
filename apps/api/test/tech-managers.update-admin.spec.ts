@@ -352,6 +352,20 @@ describe('TechManagersService update/public detail suite', () => {
       featuredRank: 3,
       featuredUntil: null,
     });
+    prisma.techManagerProfile.findUnique.mockResolvedValueOnce({
+      userId: VALID_ID,
+      intro: 'New intro',
+      serviceTagsJson: ['Patent Drafting'],
+      experienceLabel: '10 years',
+      levelLabel: 'Senior',
+      consultCount: 0,
+      dealCount: 0,
+      ratingScore: 4.8,
+      ratingCount: 17,
+      featuredRank: 3,
+      featuredUntil: null,
+      badges: [],
+    });
 
     const result = await service.updateAdmin(ADMIN_REQ, VALID_ID, {
       intro: ' New intro ',
@@ -367,7 +381,6 @@ describe('TechManagersService update/public detail suite', () => {
     expect(prisma.userVerification.update).toHaveBeenCalledWith({
       where: { id: 'verification-1' },
       data: { intro: 'New intro' },
-      include: { user: true },
     });
     expect(prisma.techManagerProfile.upsert).toHaveBeenCalledWith({
       where: { userId: VALID_ID },
@@ -467,6 +480,12 @@ describe('TechManagersService update/public detail suite', () => {
     expect(prisma.techManagerProfile.upsert).not.toHaveBeenCalled();
     expect(prisma.techManagerProfile.findUnique).toHaveBeenCalledWith({
       where: { userId: VALID_ID },
+      include: {
+        badges: {
+          where: { expiresAt: null },
+          include: { badgeDefinition: true },
+        },
+      },
     });
 
     prisma.user.update.mockResolvedValueOnce({});

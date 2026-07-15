@@ -3,6 +3,11 @@
   "compilerOptions": {
     "module": "CommonJS",
     "moduleResolution": "Node",
+    "baseUrl": "../../",
+    "paths": {
+      "@ipmoney/shared": ["packages/shared/index.d.ts"],
+      "@ipmoney/shared/*": ["packages/shared/*"]
+    },
     "outDir": "./dist",
     "rootDir": "./src",
     "emitDecoratorMetadata": true,
@@ -12,4 +17,3 @@
   },
   "include": ["src"]
 }
-

@@ -86,19 +86,6 @@ function formatCount(value?: number | null, unit?: string): string {
   return unit ? `${value} ${unit}` : String(value);
 }
 
-function remainingYears(filingDate?: string | null, patentType?: Patent['patentType']): string {
-  if (!filingDate || !patentType) return '待确认';
-  const start = new Date(filingDate);
-  if (Number.isNaN(start.getTime())) return '待确认';
-  const termYears = patentType === 'INVENTION' ? 20 : patentType === 'UTILITY_MODEL' ? 10 : patentType === 'DESIGN' ? 15 : 20;
-  const expiry = new Date(start);
-  expiry.setFullYear(start.getFullYear() + termYears);
-  const diffMs = expiry.getTime() - Date.now();
-  if (diffMs <= 0) return '0 年';
-  const years = Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 365.25));
-  return `${years} 年`;
-}
-
 function patentTermLabel(patentType?: Patent['patentType']): string {
   if (!patentType) return '待确认';
   if (patentType === 'INVENTION') return '20 年';

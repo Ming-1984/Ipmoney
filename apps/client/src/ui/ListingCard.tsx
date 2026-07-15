@@ -3,7 +3,7 @@ import React from 'react';
 
 import type { components } from '@ipmoney/api-types';
 
-import { displayTitleWithSecondary, displayUserName, normalizeDisplayText } from '../lib/displayText';
+import { displayTitleWithSecondary, displayUserName } from '../lib/displayText';
 import { sanitizeIndustryTagNames } from '../lib/industryTags';
 import { patentTypeLabel, tradeModeLabel } from '../lib/labels';
 import { sanitizeListingTopics } from '../lib/listingTopics';

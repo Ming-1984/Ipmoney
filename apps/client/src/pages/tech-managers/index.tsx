@@ -10,9 +10,9 @@ import { apiGet } from '../../lib/api';
 import { displayInitial, displayTitleOrFallback, normalizeDisplayText } from '../../lib/displayText';
 import { regionDisplayName } from '../../lib/regions';
 import {
+  resolveTechManagerBadges,
   resolveTechManagerDisplayName,
   resolveTechManagerExperienceLabel,
-  resolveTechManagerRatingDisplay,
 } from '../../lib/techManagerDisplay';
 import { usePagedList } from '../../lib/usePagedList';
 import { ListFooter } from '../../ui/ListFooter';
@@ -193,8 +193,8 @@ export default function TechManagersPage() {
                 {techItems.map((it: TechManagerSummary) => {
                   const avatar = it.avatarUrl && !it.avatarUrl.includes('example.com') ? it.avatarUrl : '';
                   const displayName = resolveTechManagerDisplayName(it);
-                  const ratingDisplay = resolveTechManagerRatingDisplay(it);
                   const experienceLabel = resolveTechManagerExperienceLabel(it);
+                  const badges = resolveTechManagerBadges(it, { limit: 2 });
                   const introText = normalizeDisplayText(it.intro);
                   return (
                     <View
@@ -218,18 +218,24 @@ export default function TechManagersPage() {
                           </View>
                           <View className="consult-meta-row">
                             {experienceLabel ? <Text className="consult-meta">{experienceLabel}</Text> : null}
-                            <Text
-                              className={[
-                                'consult-meta',
-                                'consult-rating',
-                                ratingDisplay.isEmpty ? 'is-empty' : '',
-                              ]
-                                .filter(Boolean)
-                                .join(' ')}
-                            >
-                              {ratingDisplay.text}
-                            </Text>
                           </View>
+                          {badges.length ? (
+                            <View className="consult-badge-row">
+                              {badges.map((badge) => (
+                                <Text
+                                  key={badge.code}
+                                  className={[
+                                    'consult-badge',
+                                    badge.category === 'STATUS' ? 'is-status' : 'is-honor',
+                                  ]
+                                    .filter(Boolean)
+                                    .join(' ')}
+                                >
+                                  {badge.name}
+                                </Text>
+                              ))}
+                            </View>
+                          ) : null}
                           {introText ? <Text className="consult-intro clamp-1">{introText}</Text> : null}
                         </View>
                       </View>

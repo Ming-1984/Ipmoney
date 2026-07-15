@@ -3,6 +3,13 @@ import type { components } from '@ipmoney/api-types';
 import { normalizeDisplayText } from './displayText';
 
 type TechManagerSummary = components['schemas']['TechManagerSummary'];
+type TechManagerBadge = {
+  code: string;
+  name: string;
+  category: string;
+  sortOrder: number;
+  styleToken?: string;
+};
 
 export function resolveTechManagerDisplayName(
   manager?: Pick<TechManagerSummary, 'displayName' | 'organization'> | null,
@@ -19,13 +26,17 @@ export function resolveTechManagerLevelLabel(manager?: Pick<TechManagerSummary, 
   return normalizeDisplayText(manager?.levelLabel);
 }
 
-export function resolveTechManagerRatingDisplay(
-  manager?: Pick<TechManagerSummary, 'stats'> | null,
-): { text: string; isEmpty: boolean } {
-  const ratingScore = manager?.stats?.ratingScore;
-  const ratingCount = manager?.stats?.ratingCount ?? 0;
-  if (ratingCount > 0 && typeof ratingScore === 'number' && !Number.isNaN(ratingScore)) {
-    return { text: `${ratingScore.toFixed(1)} 分`, isEmpty: false };
-  }
-  return { text: '暂无评分', isEmpty: true };
+export function resolveTechManagerBadges(
+  manager?: Pick<TechManagerSummary, 'badges'> | null,
+  opts?: { limit?: number },
+): TechManagerBadge[] {
+  const items = Array.isArray(manager?.badges) ? (manager.badges as TechManagerBadge[]) : [];
+  const normalized = items
+    .map((item) => ({
+      ...item,
+      name: normalizeDisplayText(item?.name),
+    }))
+    .filter((item) => item.name);
+  const limit = Math.max(0, opts?.limit ?? normalized.length);
+  return normalized.slice(0, limit);
 }

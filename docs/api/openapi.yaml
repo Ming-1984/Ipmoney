@@ -133,6 +133,35 @@ paths:
                 $ref: '#/components/schemas/AuthTokenResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
+  /auth/wechat/phone-login:
+    post:
+      tags:
+        - Auth
+      summary: Mini Program phone login via wx.login + getPhoneNumber
+      description: |
+        Exchange `wx.login` code and `getPhoneNumber` code with WeChat services,
+        match or create platform user by `openid` and normalized phone number,
+        and issue platform `accessToken`.
+      operationId: authWechatPhoneLogin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WechatPhoneLoginRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /auth/wechat/phone-bind:
     post:
       tags:
@@ -715,6 +744,43 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FileTemporaryAccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/files/{fileId}/moderation:
+    post:
+      tags:
+        - Admin
+        - Files
+      summary: Update file moderation status manually
+      operationId: adminUpdateFileModeration
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FileModerationUpdateRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileObject'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -4772,6 +4838,70 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '409':
           $ref: '#/components/responses/Conflict'
+  /me/patent-maintenance/listing-requests:
+    post:
+      tags:
+        - Maintenance
+      summary: Create my maintenance order from my listing
+      operationId: createMyPatentMaintenanceListingRequest
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatentMaintenanceListingRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentMaintenanceOrder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /me/patent-maintenance/direct-requests:
+    post:
+      tags:
+        - Maintenance
+      summary: Create my direct patent maintenance request
+      operationId: createMyPatentMaintenanceDirectRequest
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatentMaintenanceDirectRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentMaintenanceOrder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /me/patent-maintenance/summary:
     get:
       tags:
@@ -5698,12 +5828,43 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+  /admin/tech-managers/batch/badges:
+    patch:
+      tags:
+        - Admin
+        - TechManagers
+      summary: 批量更新技术经理人荣誉标签
+      operationId: adminBatchUpdateTechManagerBadges
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TechManagerBatchBadgeRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TechManagerBatchBadgeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /admin/tech-managers/batch/rating:
     patch:
       tags:
         - Admin
         - TechManagers
-      summary: 批量更新技术经理评分
+      summary: 批量更新技术经理人评分
       operationId: adminBatchUpdateTechManagerRating
       security:
         - BearerAuth: []
@@ -5716,6 +5877,7 @@ paths:
       responses:
         '200':
           description: OK
+
           content:
             application/json:
               schema:
@@ -5942,6 +6104,175 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /admin/user-verifications/{verificationId}/profile:
+    patch:
+      tags:
+        - Admin
+      summary: Update public verification profile fields
+      operationId: adminUpdateUserVerificationProfile
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/VerificationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserVerificationProfileUpdateRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserVerification'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/notifications/badges:
+    get:
+      tags:
+        - Admin
+        - Notifications
+      summary: Get admin sidebar badge counters
+      operationId: adminGetNotificationBadges
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBadgesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admin/refund-requests:
+    get:
+      tags:
+        - Admin
+        - Orders
+      summary: List admin refund requests
+      operationId: adminListRefundRequests
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/RefundRequestStatus'
+              - type: string
+                enum:
+                  - ALL
+        - name: orderId
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedAdminRefundRequest'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admin/settlements:
+    get:
+      tags:
+        - Admin
+        - Orders
+      summary: List admin settlements
+      operationId: adminListSettlements
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: payoutStatus
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/PayoutStatus'
+        - name: orderId
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedAdminSettlement'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admin/invoices:
+    get:
+      tags:
+        - Admin
+        - Invoices
+      summary: List admin invoices
+      operationId: adminListInvoices
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/InvoiceStatus'
+              - type: string
+                enum:
+                  - ALL
+        - name: orderId
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedAdminInvoice'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /admin/orders/{orderId}/payments/manual:
     post:
       tags:
@@ -8748,6 +9079,16 @@ components:
           minimum: 1
         user:
           $ref: '#/components/schemas/UserProfile'
+    WechatPhoneLoginRequest:
+      type: object
+      required:
+        - code
+        - phoneCode
+      properties:
+        code:
+          type: string
+        phoneCode:
+          type: string
     AuthSession:
       type: object
       required:
@@ -8846,6 +9187,24 @@ components:
           format: date-time
         reviewComment:
           type: string
+    UserVerificationProfileUpdateRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+          maxLength: 100
+          nullable: true
+        contactName:
+          type: string
+          maxLength: 100
+          nullable: true
+        regionCode:
+          type: string
+          nullable: true
+        intro:
+          type: string
+          maxLength: 2000
+          nullable: true
     UserVerificationSubmitRequest:
       oneOf:
         - $ref: '#/components/schemas/UserVerificationSubmitPersonRequest'
@@ -9012,6 +9371,19 @@ components:
           format: date-time
         scope:
           $ref: '#/components/schemas/FileTemporaryAccessScope'
+    FileModerationUpdateRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - APPROVED
+            - REJECTED
+        reason:
+          type: string
+          maxLength: 500
     Jurisdiction:
       type: string
       enum:
@@ -10614,12 +10986,12 @@ components:
           type: string
           format: uri
           nullable: true
-    PeopleAchievementsImportRatingPolicy:
+    PeopleAchievementsImportBadgeMode:
       type: string
       enum:
         - KEEP_EXISTING
-        - FILL_MISSING
-        - FORCE_SET
+        - APPEND
+        - REPLACE
     PeopleAchievementsImportRequest:
       type: object
       properties:
@@ -10635,25 +11007,15 @@ components:
           type: string
           pattern: ^[0-9]{6}$
           description: Fallback region code for imported records.
-        ratingPolicy:
-          $ref: '#/components/schemas/PeopleAchievementsImportRatingPolicy'
-        defaultRatingScore:
-          type: number
-          format: double
-          minimum: 0
-          maximum: 5
-        defaultRatingCount:
-          type: integer
-          minimum: 0
+        badgeImportMode:
+          $ref: '#/components/schemas/PeopleAchievementsImportBadgeMode'
       description: At least one of `peopleFileId` or `achievementsFileId` is required.
     PeopleAchievementsImportInput:
       type: object
       required:
         - sourceBatch
         - defaultRegionCode
-        - ratingPolicy
-        - defaultRatingScore
-        - defaultRatingCount
+        - badgeImportMode
       properties:
         peopleFileId:
           $ref: '#/components/schemas/Uuid'
@@ -10665,14 +11027,8 @@ components:
           type: string
         defaultRegionCode:
           type: string
-        ratingPolicy:
-          $ref: '#/components/schemas/PeopleAchievementsImportRatingPolicy'
-        defaultRatingScore:
-          type: number
-          format: double
-        defaultRatingCount:
-          type: integer
-          minimum: 0
+        badgeImportMode:
+          $ref: '#/components/schemas/PeopleAchievementsImportBadgeMode'
     PeopleAchievementsImportRowError:
       type: object
       required:
@@ -11648,6 +12004,28 @@ components:
         ratingCount:
           type: integer
           minimum: 0
+    TechManagerBadge:
+      type: object
+      required:
+        - code
+        - name
+        - category
+        - sortOrder
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+          enum:
+            - HONOR
+            - STATUS
+        sortOrder:
+          type: integer
+          minimum: 0
+        styleToken:
+          type: string
     TechManagerSummary:
       type: object
       required:
@@ -11683,6 +12061,10 @@ components:
           type: array
           items:
             type: string
+        badges:
+          type: array
+          items:
+            $ref: '#/components/schemas/TechManagerBadge'
         stats:
           $ref: '#/components/schemas/TechManagerStats'
         verifiedAt:
@@ -11783,20 +12165,70 @@ components:
           type: string
           maxLength: 30
           nullable: true
+        badgeCodes:
+          type: array
+          items:
+            type: string
         featuredRank:
           type: integer
           minimum: 0
         featuredUntil:
           type: string
           format: date-time
-        ratingScore:
-          type: number
-          format: double
-          minimum: 0
-          maximum: 5
-        ratingCount:
+    TechManagerBatchBadgeRequest:
+      type: object
+      required:
+        - techManagerIds
+        - badgeCodes
+        - mode
+      properties:
+        techManagerIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/Uuid'
+          minItems: 1
+          maxItems: 500
+        badgeCodes:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        mode:
+          type: string
+          enum:
+            - REPLACE
+            - APPEND
+            - REMOVE
+    TechManagerBatchBadgeResponse:
+      type: object
+      required:
+        - updatedCount
+        - badgeCodes
+        - mode
+        - techManagerIds
+        - items
+      properties:
+        updatedCount:
           type: integer
           minimum: 0
+        badgeCodes:
+          type: array
+          items:
+            type: string
+        mode:
+          type: string
+          enum:
+            - REPLACE
+            - APPEND
+            - REMOVE
+        techManagerIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/Uuid'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminTechManagerSummary'
     TechManagerBatchRatingRequest:
       type: object
       required:
@@ -11845,7 +12277,7 @@ components:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/TechManagerSummary'
+            $ref: '#/components/schemas/AdminTechManagerSummary'
     InventorRankingItem:
       type: object
       required:
@@ -12114,6 +12546,70 @@ components:
         updatedAt:
           type: string
           format: date-time
+    AdminOrderContext:
+      type: object
+      required:
+        - orderId
+        - orderStatus
+        - depositAmountFen
+      properties:
+        orderId:
+          $ref: '#/components/schemas/Uuid'
+        orderStatus:
+          $ref: '#/components/schemas/OrderStatus'
+        listingId:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+        listingTitle:
+          type: string
+          nullable: true
+        applicationNoDisplay:
+          type: string
+          nullable: true
+        buyerUserId:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+        buyerDisplayName:
+          type: string
+          nullable: true
+        sellerUserId:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+        sellerDisplayName:
+          type: string
+          nullable: true
+        depositAmountFen:
+          $ref: '#/components/schemas/MoneyFen'
+        dealAmountFen:
+          $ref: '#/components/schemas/MoneyFen'
+          nullable: true
+        finalAmountFen:
+          $ref: '#/components/schemas/MoneyFen'
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+    AdminSettlementItem:
+      allOf:
+        - $ref: '#/components/schemas/Settlement'
+        - type: object
+          properties:
+            order:
+              $ref: '#/components/schemas/AdminOrderContext'
+              nullable: true
+    PagedAdminSettlement:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminSettlementItem'
+        page:
+          $ref: '#/components/schemas/PageMeta'
     OrderInvoiceUpsertRequest:
       type: object
       required:
@@ -12154,6 +12650,26 @@ components:
         updatedAt:
           type: string
           format: date-time
+    AdminInvoiceItem:
+      allOf:
+        - $ref: '#/components/schemas/InvoiceItem'
+        - type: object
+          properties:
+            order:
+              $ref: '#/components/schemas/AdminOrderContext'
+              nullable: true
+    PagedAdminInvoice:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminInvoiceItem'
+        page:
+          $ref: '#/components/schemas/PageMeta'
     ManualPayoutConfirmRequest:
       type: object
       required:
@@ -12239,6 +12755,73 @@ components:
         createdAt:
           type: string
           format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AdminRefundRequestItem:
+      allOf:
+        - $ref: '#/components/schemas/RefundRequest'
+        - type: object
+          properties:
+            order:
+              $ref: '#/components/schemas/AdminOrderContext'
+              nullable: true
+    PagedAdminRefundRequest:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminRefundRequestItem'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    AdminBadgeCounts:
+      type: object
+      properties:
+        orders:
+          type: integer
+          minimum: 0
+        verifications:
+          type: integer
+          minimum: 0
+        listings:
+          type: integer
+          minimum: 0
+        achievements:
+          type: integer
+          minimum: 0
+        platform-conversations:
+          type: integer
+          minimum: 0
+        alerts:
+          type: integer
+          minimum: 0
+        cases:
+          type: integer
+          minimum: 0
+        refunds:
+          type: integer
+          minimum: 0
+        settlements:
+          type: integer
+          minimum: 0
+        invoices:
+          type: integer
+          minimum: 0
+        patent-claims:
+          type: integer
+          minimum: 0
+    AdminBadgesResponse:
+      type: object
+      required:
+        - badges
+        - updatedAt
+      properties:
+        badges:
+          $ref: '#/components/schemas/AdminBadgeCounts'
         updatedAt:
           type: string
           format: date-time
@@ -13812,6 +14395,33 @@ components:
       properties:
         scheduleId:
           $ref: '#/components/schemas/Uuid'
+    PatentMaintenanceListingRequest:
+      type: object
+      required:
+        - listingId
+      properties:
+        listingId:
+          $ref: '#/components/schemas/Uuid'
+    PatentMaintenanceDirectRequest:
+      type: object
+      required:
+        - applicationNo
+        - title
+        - patentType
+        - yearNo
+      properties:
+        applicationNo:
+          type: string
+        title:
+          type: string
+        patentType:
+          $ref: '#/components/schemas/PatentType'
+        yearNo:
+          type: integer
+          minimum: 1
+        dueDate:
+          type: string
+          format: date
     PatentMaintenanceOrderQuoteRequest:
       type: object
       required:

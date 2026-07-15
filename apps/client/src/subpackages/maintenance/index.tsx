@@ -268,11 +268,6 @@ function orderStatusLabel(status?: PatentMaintenanceOrderStatus): string {
   return option?.label || '状态待确认';
 }
 
-function orderStatusText(status?: string): string {
-  if (!status) return '待确认';
-  return orderStatusLabel(status as PatentMaintenanceOrderStatus);
-}
-
 function orderEventTypeLabel(value?: string): string {
   const type = String(value || '').trim().toUpperCase();
   if (!type) return '状态更新';
@@ -432,7 +427,7 @@ function resolveMaintenanceTitle(title: unknown, applicationNoDisplay?: string |
   return normalizeDisplayText(title) || normalizeDisplayText(applicationNoDisplay) || '专利信息待确认';
 }
 
-function timelineActorText(actorDisplayName?: string | null, actorNickname?: string, actorUserId?: string): string {
+function timelineActorText(actorDisplayName?: string | null, actorNickname?: string): string {
   return normalizeDisplayText(actorDisplayName) || normalizeDisplayText(actorNickname) || '平台服务';
 }
 
@@ -846,7 +841,7 @@ export default function MaintenancePage() {
                       {event ? (
                         <Text className="maintenance-timeline-meta">
                           {orderEventTypeLabel(event.eventType)} ·{' '}
-                          {timelineActorText(event.actorDisplayName, event.actorNickname, event.actorUserId)} ·{' '}
+                          {timelineActorText(event.actorDisplayName, event.actorNickname)} ·{' '}
                           {formatTimeSmart(event.createdAt)}
                         </Text>
                       ) : null}

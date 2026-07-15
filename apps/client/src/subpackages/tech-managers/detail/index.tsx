@@ -13,10 +13,10 @@ import { safeNavigateBack } from '../../../lib/navigation';
 import { useRouteUuidParam } from '../../../lib/routeParams';
 import { sanitizeServiceTagNames } from '../../../lib/serviceTags';
 import {
+  resolveTechManagerBadges,
   resolveTechManagerDisplayName,
   resolveTechManagerExperienceLabel,
   resolveTechManagerLevelLabel,
-  resolveTechManagerRatingDisplay,
 } from '../../../lib/techManagerDisplay';
 import { toast } from '../../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
@@ -26,12 +26,12 @@ type Conversation = { id: string };
 
 type DetailMeta = {
   displayName: string;
-  ratingText: string;
   levelLabel?: string;
   experienceLabel: string;
   organizationText: string;
   expertiseText: string;
   introText: string;
+  badges: Array<{ code: string; name: string; category: string }>;
 };
 
 function resolveAvatarFallbackText(value: unknown, fallback: string): string {
@@ -130,7 +130,6 @@ export default function TechManagerDetailPage() {
 
   const meta: DetailMeta = useMemo(() => {
     const displayName = resolveTechManagerDisplayName(data);
-    const ratingDisplay = resolveTechManagerRatingDisplay(data);
     const levelLabel = resolveTechManagerLevelLabel(data);
     const organizationText = normalizeDisplayText(data?.organization);
     const visibleServiceDirections = Array.isArray(data?.serviceDirections)
@@ -139,15 +138,20 @@ export default function TechManagerDetailPage() {
     const expertiseText = visibleServiceDirections.join('、');
     const experienceLabel = resolveTechManagerExperienceLabel(data);
     const introText = normalizeDisplayText(data?.intro);
+    const badges = resolveTechManagerBadges(data).map((item) => ({
+      code: item.code,
+      name: item.name,
+      category: item.category,
+    }));
 
     return {
       displayName,
-      ratingText: ratingDisplay.text,
       levelLabel: levelLabel || undefined,
       experienceLabel,
       organizationText,
       expertiseText,
       introText,
+      badges,
     };
   }, [data]);
 
@@ -193,15 +197,34 @@ export default function TechManagerDetailPage() {
                   <Text className="consult-detail-stat-num">{meta.experienceLabel}</Text>
                   <Text className="consult-detail-stat-label">从业信息</Text>
                 </View>
-                <View className="consult-detail-stat-divider" />
               </>
             ) : null}
-            <View className="consult-detail-stat">
-              <Text className="consult-detail-stat-num is-accent">
-                {meta.ratingText}
-              </Text>
-              <Text className="consult-detail-stat-label">综合评分</Text>
+          </View>
+
+          <View className="consult-detail-section">
+            <View className="consult-detail-section-head">
+              <View className="consult-detail-section-bar" />
+              <Text className="consult-detail-section-title">荣誉标签</Text>
             </View>
+            {meta.badges.length ? (
+              <View className="consult-detail-honors">
+                {meta.badges.map((badge) => (
+                  <Text
+                    key={badge.code}
+                    className={[
+                      'consult-detail-honor',
+                      badge.category === 'STATUS' ? 'is-status' : 'is-honor',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                  >
+                    {badge.name}
+                  </Text>
+                ))}
+              </View>
+            ) : (
+              <Text className="consult-detail-section-text">暂无标签</Text>
+            )}
           </View>
 
           <View className="consult-detail-section">

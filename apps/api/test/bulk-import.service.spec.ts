@@ -13,9 +13,10 @@ describe('BulkImportService request validation', () => {
   beforeEach(() => {
     prisma = {
       region: { findMany: vi.fn().mockResolvedValue([]) },
-      userVerification: { findFirst: vi.fn() },
+      userVerification: { findFirst: vi.fn(), update: vi.fn(), create: vi.fn() },
       user: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
       techManagerProfile: { findUnique: vi.fn(), upsert: vi.fn() },
+      techManagerBadge: { findMany: vi.fn(), updateMany: vi.fn(), create: vi.fn() },
       achievement: { findUnique: vi.fn(), update: vi.fn(), create: vi.fn() },
       file: { findFirst: vi.fn(), create: vi.fn() },
       idempotencyKey: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
@@ -46,26 +47,7 @@ describe('BulkImportService request validation', () => {
     await expect(
       service.previewPeopleAchievements(req, {
         peopleFileId: '11111111-1111-1111-1111-111111111111',
-        ratingPolicy: 'INVALID',
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-    await expect(
-      service.previewPeopleAchievements(req, {
-        peopleFileId: '11111111-1111-1111-1111-111111111111',
-        defaultRatingScore: 6,
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-    await expect(
-      service.previewPeopleAchievements(req, {
-        peopleFileId: '11111111-1111-1111-1111-111111111111',
-        defaultRatingCount: -1,
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-    await expect(
-      service.previewPeopleAchievements(req, {
-        peopleFileId: '11111111-1111-1111-1111-111111111111',
-        defaultRatingScore: 4.8,
-        defaultRatingCount: 0,
+        badgeImportMode: 'INVALID',
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
@@ -160,14 +142,13 @@ describe('BulkImportService request validation', () => {
     prisma.user.update.mockResolvedValueOnce(undefined);
     prisma.techManagerProfile.findUnique.mockResolvedValueOnce(null);
     prisma.techManagerProfile.upsert.mockResolvedValueOnce({ userId: 'user-tech-1' });
+    prisma.techManagerBadge.findMany.mockResolvedValueOnce([]);
 
     const result = await service.executePeopleAchievements(req, {
       peopleFileId: '11111111-1111-1111-1111-111111111111',
       sourceBatch: 'people-batch',
       defaultRegionCode: '440000',
-      ratingPolicy: 'KEEP_EXISTING',
-      defaultRatingScore: 4.8,
-      defaultRatingCount: 16,
+      badgeImportMode: 'KEEP_EXISTING',
     });
 
     expect(prisma.techManagerProfile.upsert).toHaveBeenCalledWith(
@@ -240,14 +221,13 @@ describe('BulkImportService request validation', () => {
     prisma.user.update.mockResolvedValueOnce(undefined);
     prisma.techManagerProfile.findUnique.mockResolvedValueOnce(null);
     prisma.techManagerProfile.upsert.mockResolvedValueOnce({ userId: 'user-tech-2' });
+    prisma.techManagerBadge.findMany.mockResolvedValueOnce([]);
 
     const result = await service.executePeopleAchievements(req, {
       peopleFileId: '11111111-1111-1111-1111-111111111111',
       sourceBatch: 'people-batch-2',
       defaultRegionCode: '440000',
-      ratingPolicy: 'KEEP_EXISTING',
-      defaultRatingScore: 4.8,
-      defaultRatingCount: 16,
+      badgeImportMode: 'KEEP_EXISTING',
     });
 
     expect(prisma.userVerification.create).toHaveBeenCalledWith(
@@ -319,5 +299,68 @@ describe('BulkImportService request validation', () => {
     expect(result.people.invalidRows).toBe(1);
     expect(result.people.sampleErrors[0]?.reason).toBe('缺少正式简介字段');
   });
-});
 
+  it('replaces existing tech manager badges with workbook badges when badgeImportMode is REPLACE, including clearing omitted badges', async () => {
+    const req: any = { auth: { isAdmin: true, userId: '11111111-1111-1111-1111-111111111111' } };
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('People');
+    sheet.addRow([
+      '姓名',
+      '职位',
+      '任职单位',
+      '简介',
+      '荣誉标签',
+      '服务方向',
+    ]);
+    sheet.addRow([
+      '赵六',
+      '技术经理人',
+      '示例机构D',
+      '正式简介D',
+      '',
+      '成果转化',
+    ]);
+    const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
+
+    files.getFileById.mockResolvedValueOnce({ id: '11111111-1111-1111-1111-111111111111', fileName: 'people.xlsx' });
+    files.getFileBuffer.mockResolvedValueOnce(buffer);
+    prisma.region.findMany.mockResolvedValueOnce([]);
+    prisma.userVerification.findFirst
+      .mockResolvedValueOnce({
+        id: 'verification-3',
+        user: { id: 'user-tech-3', nickname: '赵六' },
+      })
+      .mockResolvedValueOnce({
+        id: 'verification-3',
+      });
+    prisma.userVerification.update.mockResolvedValueOnce({ id: 'verification-3' });
+    prisma.user.update.mockResolvedValueOnce(undefined);
+    prisma.techManagerProfile.upsert.mockResolvedValueOnce({ userId: 'user-tech-3' });
+    prisma.techManagerBadge.findMany.mockResolvedValueOnce([
+      { badgeCode: 'GOLD_MANAGER' },
+      { badgeCode: 'SIGNED_MANAGER' },
+    ]);
+    prisma.techManagerBadge.updateMany.mockResolvedValueOnce({ count: 2 });
+
+    const result = await service.executePeopleAchievements(req, {
+      peopleFileId: '11111111-1111-1111-1111-111111111111',
+      sourceBatch: 'people-batch-3',
+      defaultRegionCode: '440000',
+      badgeImportMode: 'REPLACE',
+    });
+
+    expect(prisma.techManagerBadge.updateMany).toHaveBeenCalledWith({
+      where: {
+        techManagerUserId: 'user-tech-3',
+        badgeCode: { in: ['GOLD_MANAGER', 'SIGNED_MANAGER'] },
+        expiresAt: null,
+      },
+      data: {
+        expiresAt: expect.any(Date),
+      },
+    });
+    expect(prisma.techManagerBadge.create).not.toHaveBeenCalled();
+    expect(result.people.updated).toBe(1);
+    expect(result.people.failed).toBe(0);
+  });
+});

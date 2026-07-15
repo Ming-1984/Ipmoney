@@ -1,5 +1,14 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import {
+  TECH_MANAGER_BADGE_MODE,
+  TECH_MANAGER_BADGE_SOURCE,
+  getTechManagerBadgeDefinition,
+  isTechManagerBadgeCode,
+  type TechManagerBadgeCode,
+  type TechManagerBadgeMode,
+  type TechManagerBadgeSource,
+} from '@ipmoney/shared';
 
 import { AuditLogService } from '../../common/audit-log.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -11,6 +20,13 @@ const VERIFICATION_STATUS = {
 
 const VERIFICATION_STATUSES = ['PENDING', 'APPROVED', 'REJECTED'] as const;
 type VerificationStatus = (typeof VERIFICATION_STATUSES)[number];
+type TechManagerBadgeItem = {
+  code: TechManagerBadgeCode;
+  name: string;
+  category: string;
+  sortOrder: number;
+  styleToken?: string;
+};
 
 const VERIFICATION_TYPE = {
   TECH_MANAGER: 'TECH_MANAGER',
@@ -173,6 +189,48 @@ export class TechManagersService {
     return sanitizeServiceTagNames(normalized);
   }
 
+  private buildTechManagerUserInclude(): any {
+    return {
+      techManagerProfile: {
+        include: {
+          badges: {
+            where: { expiresAt: null },
+            include: { badgeDefinition: true },
+          },
+        },
+      },
+    };
+  }
+
+  private buildTechManagerProfileInclude(): any {
+    return {
+      badges: {
+        where: { expiresAt: null },
+        include: { badgeDefinition: true },
+      },
+    };
+  }
+
+  private resolveActiveBadges(profile?: any): TechManagerBadgeItem[] {
+    const rawItems = Array.isArray(profile?.badges) ? profile.badges : [];
+    const deduped = new Map<string, TechManagerBadgeItem>();
+    for (const rawItem of rawItems) {
+      const fallback = getTechManagerBadgeDefinition(rawItem?.badgeCode);
+      const definition = rawItem?.badgeDefinition || fallback;
+      if (!definition?.code || !isTechManagerBadgeCode(definition.code)) continue;
+      const item: TechManagerBadgeItem = {
+        code: definition.code,
+        name: String(definition.name || fallback?.name || '').trim(),
+        category: String(definition.category || fallback?.category || '').trim(),
+        sortOrder: Number(definition.sortOrder ?? fallback?.sortOrder ?? 0),
+        styleToken: String(definition.styleToken || fallback?.styleToken || '').trim() || undefined,
+      };
+      if (!item.name) continue;
+      deduped.set(item.code, item);
+    }
+    return Array.from(deduped.values()).sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+  }
+
   private hasOwn(body: unknown, key: string): boolean {
     return body !== null && body !== undefined && Object.prototype.hasOwnProperty.call(body, key);
   }
@@ -253,6 +311,36 @@ export class TechManagersService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return ratingCountValue;
+  }
+
+  private parseBadgeCodesStrict(value: unknown, fieldName: string, opts?: { max?: number }): TechManagerBadgeCode[] {
+    if (!Array.isArray(value)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    const max = Math.max(1, opts?.max ?? 20);
+    if (value.length > max) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    const normalized = value.map((item) => String(item ?? '').trim()).filter(Boolean);
+    const unique = Array.from(new Set(normalized));
+    for (const item of unique) {
+      if (!isTechManagerBadgeCode(item)) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+      }
+    }
+    return unique as TechManagerBadgeCode[];
+  }
+
+  private parseBadgeModeStrict(value: unknown, fieldName: string): TechManagerBadgeMode {
+    const normalized = String(value || TECH_MANAGER_BADGE_MODE.REPLACE).trim().toUpperCase();
+    if (
+      normalized === TECH_MANAGER_BADGE_MODE.REPLACE ||
+      normalized === TECH_MANAGER_BADGE_MODE.APPEND ||
+      normalized === TECH_MANAGER_BADGE_MODE.REMOVE
+    ) {
+      return normalized as TechManagerBadgeMode;
+    }
+    throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
   }
 
   private parseBooleanStrict(value: unknown, fieldName: string): boolean {
@@ -381,6 +469,81 @@ export class TechManagersService {
     return SUSPECT_EXPERIENCE_LABEL_PATTERNS.some((pattern) => pattern.test(normalized));
   }
 
+  private async ensureTechManagerProfile(userId: string) {
+    return await this.prisma.techManagerProfile.upsert({
+      where: { userId },
+      create: { userId },
+      update: {},
+      include: this.buildTechManagerProfileInclude(),
+    });
+  }
+
+  private async applyBadgeModeToTechManager(
+    userId: string,
+    badgeCodes: TechManagerBadgeCode[],
+    mode: TechManagerBadgeMode,
+    actorUserId: string,
+    source: TechManagerBadgeSource,
+  ) {
+    await this.ensureTechManagerProfile(userId);
+    const activeBadges = await this.prisma.techManagerBadge.findMany({
+      where: { techManagerUserId: userId, expiresAt: null },
+      select: { id: true, badgeCode: true },
+    });
+    const activeCodeSet = new Set(activeBadges.map((item) => String(item.badgeCode)));
+    const targetCodeSet = new Set(badgeCodes);
+    const now = new Date();
+
+    if (mode === TECH_MANAGER_BADGE_MODE.REPLACE) {
+      const expireCodes = activeBadges
+        .map((item) => String(item.badgeCode))
+        .filter((code) => !targetCodeSet.has(code as TechManagerBadgeCode));
+      if (expireCodes.length) {
+        await this.prisma.techManagerBadge.updateMany({
+          where: { techManagerUserId: userId, badgeCode: { in: expireCodes }, expiresAt: null },
+          data: { expiresAt: now },
+        });
+      }
+      const createCodes = badgeCodes.filter((code) => !activeCodeSet.has(code));
+      for (const badgeCode of createCodes) {
+        await this.prisma.techManagerBadge.create({
+          data: {
+            techManagerUserId: userId,
+            badgeCode,
+            assignedByUserId: actorUserId,
+            source,
+          },
+        });
+      }
+      return;
+    }
+
+    if (mode === TECH_MANAGER_BADGE_MODE.APPEND) {
+      const createCodes = badgeCodes.filter((code) => !activeCodeSet.has(code));
+      for (const badgeCode of createCodes) {
+        await this.prisma.techManagerBadge.create({
+          data: {
+            techManagerUserId: userId,
+            badgeCode,
+            assignedByUserId: actorUserId,
+            source,
+          },
+        });
+      }
+      return;
+    }
+
+    const expireCodes = activeBadges
+      .map((item) => String(item.badgeCode))
+      .filter((code) => targetCodeSet.has(code as TechManagerBadgeCode));
+    if (expireCodes.length) {
+      await this.prisma.techManagerBadge.updateMany({
+        where: { techManagerUserId: userId, badgeCode: { in: expireCodes }, expiresAt: null },
+        data: { expiresAt: now },
+      });
+    }
+  }
+
   private toPublicSummary(
     verificationRecord: any,
     profile?: any,
@@ -413,6 +576,7 @@ export class TechManagersService {
       ratingCount > 0 && Number.isFinite(ratingScoreRaw)
         ? Math.max(0, Math.min(5, Number(ratingScoreRaw.toFixed(1))))
         : 0;
+    const badges = this.resolveActiveBadges(profile);
     return {
       userId: verificationRecord.userId,
       displayName: verificationRecord.displayName,
@@ -426,6 +590,7 @@ export class TechManagersService {
       serviceDirections: serviceDirections.length ? serviceDirections : undefined,
       workHighlights: this.normalizeOptionalString(profile?.workHighlights),
       serviceTags: serviceTags.length ? serviceTags : undefined,
+      badges: badges.length ? badges : undefined,
       stats: {
         consultCount: profile?.consultCount ?? 0,
         dealCount: profile?.dealCount ?? 0,
@@ -480,6 +645,9 @@ export class TechManagersService {
     pushCandidate(summary?.contactPhone);
     for (const item of this.normalizeStringArray(summary?.serviceDirections)) pushCandidate(item);
     for (const item of this.normalizeStringArray(summary?.serviceTags)) pushCandidate(item);
+    for (const badge of Array.isArray(summary?.badges) ? summary.badges : []) {
+      pushCandidate(badge?.name);
+    }
 
     return candidates.some((candidate) => candidate.includes(normalizedKeyword));
   }
@@ -498,6 +666,9 @@ export class TechManagersService {
     const workHighlights = this.normalizeOptionalString(summary?.workHighlights)?.toLowerCase() ?? '';
     const serviceDirections = this.normalizeStringArray(summary?.serviceDirections).map((item) => item.toLowerCase());
     const serviceTags = this.normalizeStringArray(summary?.serviceTags).map((item) => item.toLowerCase());
+    const badgeNames = (Array.isArray(summary?.badges) ? summary.badges : [])
+      .map((item: { name?: string }) => String(item?.name || '').trim().toLowerCase())
+      .filter(Boolean);
 
     let score = 0;
     if (displayName === normalizedKeyword) score += 1000;
@@ -512,6 +683,7 @@ export class TechManagersService {
     if (position.includes(normalizedKeyword)) score += 100;
     if (serviceDirections.some((item) => item.includes(normalizedKeyword))) score += 80;
     if (serviceTags.some((item) => item.includes(normalizedKeyword))) score += 60;
+    if (badgeNames.some((item: string) => item.includes(normalizedKeyword))) score += 70;
     if (intro.includes(normalizedKeyword)) score += 30;
     if (workHighlights.includes(normalizedKeyword)) score += 20;
 
@@ -625,7 +797,7 @@ export class TechManagersService {
     if (searchText) {
       const rows = await this.prisma.userVerification.findMany({
         where,
-        include: { user: { include: { techManagerProfile: true } } },
+        include: { user: { include: this.buildTechManagerUserInclude() } },
         orderBy,
       });
       const summaries = rows.map((verificationRecord: any) =>
@@ -650,7 +822,7 @@ export class TechManagersService {
     const [items, total] = await Promise.all([
       this.prisma.userVerification.findMany({
         where,
-        include: { user: { include: { techManagerProfile: true } } },
+        include: { user: { include: this.buildTechManagerUserInclude() } },
         orderBy,
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -677,7 +849,7 @@ export class TechManagersService {
         verificationType: VERIFICATION_TYPE.TECH_MANAGER,
         verificationStatus: VERIFICATION_STATUS.APPROVED,
       },
-      include: { user: { include: { techManagerProfile: true } } },
+      include: { user: { include: this.buildTechManagerUserInclude() } },
     });
     if (!verification) throw new NotFoundException({ code: 'NOT_FOUND', message: 'tech manager not found' });
 
@@ -708,7 +880,7 @@ export class TechManagersService {
     if (searchText || suspectExperienceLabel !== null) {
       const rows = await this.prisma.userVerification.findMany({
         where,
-        include: { user: { include: { techManagerProfile: true } } },
+        include: { user: { include: this.buildTechManagerUserInclude() } },
         orderBy: { submittedAt: 'desc' },
       });
       const summaries = rows.map((verificationRecord: any) =>
@@ -737,7 +909,7 @@ export class TechManagersService {
     const [items, total] = await Promise.all([
       this.prisma.userVerification.findMany({
         where,
-        include: { user: { include: { techManagerProfile: true } } },
+        include: { user: { include: this.buildTechManagerUserInclude() } },
         orderBy: { submittedAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -758,12 +930,13 @@ export class TechManagersService {
     const normalizedTechManagerId = this.parseUuidStrict(techManagerId, 'techManagerId');
     const verification = await this.prisma.userVerification.findFirst({
       where: { userId: normalizedTechManagerId, verificationType: VERIFICATION_TYPE.TECH_MANAGER },
-      include: { user: true },
+      include: { user: { include: this.buildTechManagerUserInclude() } },
     });
     if (!verification) throw new NotFoundException({ code: 'NOT_FOUND', message: 'tech manager not found' });
 
     const profileUpdates: any = {};
     const auditAfter: any = {};
+    const beforeBadges = this.resolveActiveBadges(verification.user?.techManagerProfile);
     const hasIntro = this.hasOwn(body, 'intro');
     const hasServiceTags = this.hasOwn(body, 'serviceTags');
     const hasFeaturedRank = this.hasOwn(body, 'featuredRank');
@@ -779,7 +952,14 @@ export class TechManagersService {
     const hasContactPhone = this.hasOwn(body, 'contactPhone');
     const hasRatingScore = this.hasOwn(body, 'ratingScore');
     const hasRatingCount = this.hasOwn(body, 'ratingCount');
+    const hasBadgeCodes = this.hasOwn(body, 'badgeCodes');
     let avatarUrlUpdate: string | null | undefined = undefined;
+    let badgeCodes: TechManagerBadgeCode[] = [];
+
+    if (hasBadgeCodes) {
+      badgeCodes = this.parseBadgeCodesStrict(body?.badgeCodes, 'badgeCodes');
+      auditAfter.badgeCodes = badgeCodes;
+    }
 
     if (hasIntro) {
       const introValue = body?.intro === null ? null : String(body?.intro ?? '').trim();
@@ -964,12 +1144,10 @@ export class TechManagersService {
       auditAfter.avatarUrl = avatarUrlUpdate;
     }
 
-    let updatedVerification = verification;
     if (hasIntro) {
-      updatedVerification = await this.prisma.userVerification.update({
+      await this.prisma.userVerification.update({
         where: { id: verification.id },
         data: { intro: profileUpdates.intro },
-        include: { user: true },
       });
     }
 
@@ -978,35 +1156,106 @@ export class TechManagersService {
         where: { id: normalizedTechManagerId },
         data: { avatarUrl: avatarUrlUpdate },
       });
-      updatedVerification = {
-        ...updatedVerification,
-        user: {
-          ...(updatedVerification?.user || {}),
-          avatarUrl: avatarUrlUpdate,
-        },
-      } as any;
     }
 
     const hasProfileUpdates = Object.keys(profileUpdates).length > 0;
-    const profile = hasProfileUpdates
-      ? await this.prisma.techManagerProfile.upsert({
-          where: { userId: normalizedTechManagerId },
-          create: { userId: normalizedTechManagerId, ...profileUpdates },
-          update: profileUpdates,
-        })
-      : await this.prisma.techManagerProfile.findUnique({
-          where: { userId: normalizedTechManagerId },
-        });
+    if (hasProfileUpdates || hasBadgeCodes)
+      await this.prisma.techManagerProfile.upsert({
+        where: { userId: normalizedTechManagerId },
+        create: { userId: normalizedTechManagerId, ...profileUpdates },
+        update: profileUpdates,
+      });
+
+    if (hasBadgeCodes) {
+      await this.applyBadgeModeToTechManager(
+        normalizedTechManagerId,
+        badgeCodes,
+        TECH_MANAGER_BADGE_MODE.REPLACE,
+        request.auth.userId,
+        TECH_MANAGER_BADGE_SOURCE.ADMIN_MANUAL,
+      );
+    }
+
+    const latestProfile = await this.prisma.techManagerProfile.findUnique({
+      where: { userId: normalizedTechManagerId },
+      include: this.buildTechManagerProfileInclude(),
+    });
+    const latestVerification = {
+      ...verification,
+      ...(hasIntro ? { intro: profileUpdates.intro } : {}),
+      user: {
+        ...(verification.user || {}),
+        ...(hasAvatarUrl ? { avatarUrl: avatarUrlUpdate } : {}),
+        techManagerProfile: latestProfile,
+      },
+    } as any;
 
     await this.audit.log({
       actorUserId: request.auth.userId,
       action: 'TECH_MANAGER_UPDATE',
       targetType: 'TECH_MANAGER',
       targetId: verification.id,
+      beforeJson: hasBadgeCodes ? { badgeCodes: beforeBadges.map((item) => item.code) } : undefined,
       afterJson: auditAfter,
     });
 
-    return this.toAdminSummary(updatedVerification, profile, { includeTestArtifacts: true });
+    return this.toAdminSummary(latestVerification, latestProfile, { includeTestArtifacts: true });
+  }
+
+  async batchUpdateBadges(request: any, body: any) {
+    this.ensureAdmin(request);
+    const techManagerIds = this.parseUuidArrayStrict(body?.techManagerIds, 'techManagerIds', { max: 500 });
+    const badgeCodes = this.parseBadgeCodesStrict(body?.badgeCodes, 'badgeCodes', { max: 20 });
+    const mode = this.parseBadgeModeStrict(body?.mode, 'mode');
+
+    const verifications = await this.prisma.userVerification.findMany({
+      where: {
+        userId: { in: techManagerIds },
+        verificationType: VERIFICATION_TYPE.TECH_MANAGER,
+      },
+      include: { user: { include: this.buildTechManagerUserInclude() } },
+    });
+    const verificationMap = new Map(verifications.map((item: any) => [String(item.userId), item]));
+    const missingIds = techManagerIds.filter((id) => !verificationMap.has(id));
+    if (missingIds.length) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: `tech manager not found: ${missingIds[0]}` });
+    }
+
+    const updatedItems: any[] = [];
+    for (const userId of techManagerIds) {
+      const verification = verificationMap.get(userId);
+      if (!verification) continue;
+      const beforeBadges = this.resolveActiveBadges(verification.user?.techManagerProfile).map((item) => item.code);
+      await this.applyBadgeModeToTechManager(
+        userId,
+        badgeCodes,
+        mode,
+        request.auth.userId,
+        TECH_MANAGER_BADGE_SOURCE.ADMIN_BATCH,
+      );
+      const refreshedVerification = await this.prisma.userVerification.findFirst({
+        where: { userId, verificationType: VERIFICATION_TYPE.TECH_MANAGER },
+        include: { user: { include: this.buildTechManagerUserInclude() } },
+      });
+      const refreshedProfile = refreshedVerification?.user?.techManagerProfile;
+      await this.audit.log({
+        actorUserId: request.auth.userId,
+        action: 'TECH_MANAGER_BATCH_BADGE_UPDATE',
+        targetType: 'TECH_MANAGER',
+        targetId: verification.id,
+        beforeJson: { badgeCodes: beforeBadges },
+        afterJson: { badgeCodes, mode },
+      });
+      updatedItems.push(this.toAdminSummary(refreshedVerification, refreshedProfile, { includeTestArtifacts: true }));
+    }
+
+    return {
+      updatedCount: updatedItems.length,
+      mode,
+      badgeCodes,
+      techManagerIds,
+      items: updatedItems,
+    };
   }
 
   async batchUpdateRating(request: any, body: any) {
@@ -1057,7 +1306,19 @@ export class TechManagersService {
           : undefined,
         afterJson: { ratingScore, ratingCount, mode: 'batch' },
       });
-      updatedItems.push(this.toAdminSummary(verification, updatedProfile, { includeTestArtifacts: true }));
+      updatedItems.push(
+        this.toAdminSummary(
+          {
+            ...verification,
+            user: {
+              ...(verification.user || {}),
+              techManagerProfile: updatedProfile,
+            },
+          },
+          updatedProfile,
+          { includeTestArtifacts: true },
+        ),
+      );
     }
 
     return {

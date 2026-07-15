@@ -8,7 +8,7 @@ import type { components } from '@ipmoney/api-types';
 import { Heart, HeartFill } from '../../../ui/icons';
 
 import { apiGet, apiPost } from '../../../lib/api';
-import { displayInfoOrPlaceholder, displayTitleOrFallback, displayUserName, normalizeDisplayText } from '../../../lib/displayText';
+import { displayInfoOrPlaceholder, displayTitleOrFallback, displayUserName } from '../../../lib/displayText';
 import { favoriteAchievement, isAchievementFavorited, syncAchievementFavorites, unfavoriteAchievement } from '../../../lib/favorites';
 import { ensureApproved } from '../../../lib/guard';
 import { formatTimeSmart } from '../../../lib/format';

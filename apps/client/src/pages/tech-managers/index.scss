@@ -169,14 +169,30 @@
   color: #6b7280;
 }
 
-.consult-rating {
-  color: var(--c-primary);
-  font-weight: 600;
+.consult-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
 }
 
-.consult-rating.is-empty {
-  color: #9ca3af;
-  font-weight: 500;
+.consult-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.consult-badge.is-honor {
+  color: #8a4b00;
+  background: linear-gradient(135deg, #fff1bf, #ffd88a);
+}
+
+.consult-badge.is-status {
+  color: #0f3d91;
+  background: linear-gradient(135deg, #dcecff, #bed8ff);
 }
 
 .consult-intro {

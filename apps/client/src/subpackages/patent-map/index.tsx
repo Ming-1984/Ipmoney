@@ -11,7 +11,6 @@ import { EmptyCard, ErrorCard, LoadingCard } from '../../ui/StateCards';
 import { toast } from '../../ui/nutui';
 import patentMapMarkerIcon from '../../assets/icons/app/patent-map.png';
 
-type PatentMapRegionLevel = components['schemas']['PatentMapRegionLevel'];
 type PatentMapDataScope = components['schemas']['PatentMapDataScope'];
 type PatentMapRegionItem = components['schemas']['PatentMapRegionItem'];
 type PatentMapOverviewResponse = components['schemas']['PatentMapOverviewResponse'];

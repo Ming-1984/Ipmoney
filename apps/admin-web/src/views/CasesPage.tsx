@@ -310,7 +310,7 @@ export function CasesPage() {
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <div>
           <Typography.Title level={3} style={{ marginTop: 0 }}>
-            客服工单/争议处理
+            客服工单与争议处理
           </Typography.Title>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
             用于订单跟单、退款争议与交易争议的闭环管理。
@@ -415,7 +415,7 @@ export function CasesPage() {
               ),
             },
             {
-              title: 'SLA',
+              title: '处理时限',
               dataIndex: 'slaStatus',
               render: (_, r) =>
                 r.dueAt ? (
@@ -511,7 +511,7 @@ export function CasesPage() {
                 placeholder="可选"
               />
             </Form.Item>
-            <Form.Item label="SLA 截止时间" name="dueAt">
+            <Form.Item label="最晚处理时间" name="dueAt">
               <Input placeholder="例如 2026-02-20 或 2026-02-20T00:00:00Z" />
             </Form.Item>
             <Form.Item label="描述" name="description">
@@ -568,10 +568,10 @@ export function CasesPage() {
               </Descriptions.Item>
               <Descriptions.Item label="优先级">{priorityLabel(detail.priority)}</Descriptions.Item>
               <Descriptions.Item label="创建时间">{formatTimeSmart(detail.createdAt)}</Descriptions.Item>
-              <Descriptions.Item label="SLA 截止">
+              <Descriptions.Item label="最晚处理时间">
                 {detail.dueAt ? formatTimeSmart(detail.dueAt) : '待确认'}
               </Descriptions.Item>
-              <Descriptions.Item label="SLA 状态">
+              <Descriptions.Item label="时限状态">
                 {detail.slaStatus ? (
                   <Tag color={detail.slaStatus === 'OVERDUE' ? 'red' : 'green'}>
                     {detail.slaStatus === 'OVERDUE' ? '已逾期' : '正常'}
@@ -675,7 +675,7 @@ export function CasesPage() {
             <Divider />
 
             <div>
-              <Typography.Text strong>SLA 截止时间</Typography.Text>
+              <Typography.Text strong>最晚处理时间</Typography.Text>
               <Space style={{ marginTop: 8 }}>
                 <Input
                   value={slaDueAt}
@@ -688,8 +688,8 @@ export function CasesPage() {
                     const targetCaseId = detail.id;
                     const session = detailSessionRef.current;
                     const { ok, reason } = await confirmActionWithReason({
-                      title: '确认更新 SLA？',
-                      content: '更新后将影响逾期判断与提醒策略。',
+                      title: '确认调整处理时限？',
+                      content: '更新后将影响超时判断与提醒策略。',
                       okText: '确认更新',
                       reasonLabel: '备注（建议填写）',
                     });
@@ -721,7 +721,7 @@ export function CasesPage() {
                     }
                   }}
                 >
-                  更新 SLA
+                  调整处理时限
                 </Button>
               </Space>
             </div>
