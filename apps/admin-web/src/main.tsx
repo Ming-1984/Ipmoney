@@ -46,7 +46,7 @@ const theme: ThemeConfig = {
     },
     Button: {
       borderRadius: 999,
-      primaryShadow: '0 12px 28px rgba(255, 122, 0, 0.18)',
+      primaryShadow: '0 6px 16px rgba(255, 122, 0, 0.14)',
     },
     Table: {
       rowHoverBg: 'rgba(255, 122, 0, 0.08)',
