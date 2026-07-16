@@ -1,12 +1,9 @@
-﻿import { Button, Card, Form, Input, InputNumber, Select, Space, Switch, Typography, Upload, message } from 'antd';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Button, Card, Form, Input, InputNumber, Select, Space, Switch, Typography, message } from 'antd';
+import React, { useCallback, useEffect, useState } from 'react';
 
-import { apiGet, apiPut, apiUploadFile, type FileObject } from '../lib/api';
+import { apiGet, apiPut } from '../lib/api';
 import { fenToYuanNumber, yuanToFen } from '../lib/format';
-import { displayAdminInfo } from '../lib/userFacingText';
 import { confirmActionWithReason } from '../ui/confirm';
-import { ImageUrlUploadField } from '../ui/ImageUrlUploadField';
 
 type TradeRulesConfig = {
   version: number;
@@ -40,31 +37,6 @@ type RecommendationConfig = {
   };
   featuredBoost: { province: number; city: number };
   updatedAt?: string;
-};
-
-type BannerMediaType = 'IMAGE' | 'VIDEO';
-
-type BannerVideoMeta = {
-  durationMs?: number;
-  loop?: boolean;
-  muted?: boolean;
-  autoplay?: boolean;
-  objectFit?: 'contain' | 'cover' | 'fill';
-};
-
-type BannerConfig = {
-  items: {
-    id: string;
-    title: string;
-    imageUrl: string;
-    linkUrl?: string;
-    enabled: boolean;
-    order: number;
-    mediaType?: BannerMediaType;
-    videoUrl?: string;
-    posterUrl?: string;
-    videoMeta?: BannerVideoMeta;
-  }[];
 };
 
 type CustomerServiceConfig = {
@@ -102,8 +74,6 @@ type AlertConfig = {
   rules: AlertRule[];
 };
 
-type HomeLandingConfig = Record<string, unknown>;
-
 function toList(value: string) {
   return value
     .split(/[,，\n]/)
@@ -112,13 +82,9 @@ function toList(value: string) {
 }
 
 export function ConfigPage() {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [tradeForm] = Form.useForm();
   const [recForm] = Form.useForm();
-  const [bannerJson, setBannerJson] = useState('');
-  const [bannerVideoFile, setBannerVideoFile] = useState<FileObject | null>(null);
-  const [bannerPosterFile, setBannerPosterFile] = useState<FileObject | null>(null);
   const [csPhone, setCsPhone] = useState('');
   const [csDefaultReply, setCsDefaultReply] = useState('');
   const [csAssignStrategy, setCsAssignStrategy] = useState<CustomerServiceConfig['assignStrategy']>('AUTO');
@@ -128,7 +94,6 @@ export function ConfigPage() {
   const [sensitiveWords, setSensitiveWords] = useState('');
   const [hotSearchKeywords, setHotSearchKeywords] = useState('');
   const [alertJson, setAlertJson] = useState('');
-  const [, setHomeLandingJson] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -146,17 +111,14 @@ export function ConfigPage() {
       const rec = await apiGet<RecommendationConfig>('/admin/config/recommendation');
       recForm.setFieldsValue(rec);
 
-      const [banner, cs, taxonomy, sensitive, hotSearch, alert, homeLanding] = await Promise.all([
-        apiGet<BannerConfig>('/admin/config/banner'),
+      const [cs, taxonomy, sensitive, hotSearch, alert] = await Promise.all([
         apiGet<CustomerServiceConfig>('/admin/config/customer-service'),
         apiGet<TaxonomyConfig>('/admin/config/taxonomy'),
         apiGet<SensitiveWordsConfig>('/admin/config/sensitive-words'),
         apiGet<HotSearchConfig>('/admin/config/hot-search'),
         apiGet<AlertConfig>('/admin/config/alerts'),
-        apiGet<HomeLandingConfig>('/admin/config/home-landing'),
       ]);
 
-      setBannerJson(JSON.stringify(banner, null, 2));
       setCsPhone(cs.phone || '');
       setCsDefaultReply(cs.defaultReply || '');
       setCsAssignStrategy(cs.assignStrategy || 'AUTO');
@@ -166,7 +128,6 @@ export function ConfigPage() {
       setSensitiveWords((sensitive.words || []).join('，'));
       setHotSearchKeywords((hotSearch.keywords || []).join('，'));
       setAlertJson(JSON.stringify(alert, null, 2));
-      setHomeLandingJson(JSON.stringify(homeLanding, null, 2));
     } catch (e: any) {
       message.error(e?.message || '加载失败');
     } finally {
@@ -178,124 +139,17 @@ export function ConfigPage() {
     void load();
   }, [load]);
 
-
-  const parseBannerJson = useCallback(() => {
-    try {
-      return JSON.parse(bannerJson) as BannerConfig;
-    } catch (e: any) {
-      message.error(e?.message || '保存失败，请检查配置文本格式');
-      return null;
-    }
-  }, [bannerJson]);
-
-  const normalizeBannerConfig = useCallback((input: BannerConfig | null) => {
-    const base: BannerConfig = input && typeof input === 'object' ? input : { items: [] };
-    const items = Array.isArray(base.items) ? [...base.items] : [];
-    if (!items.length) {
-      items.push({
-        id: `banner-${Date.now()}`,
-        title: '\u9996\u9875\u89c6\u9891',
-        imageUrl: '',
-        linkUrl: '',
-        enabled: true,
-        order: 1,
-        mediaType: 'VIDEO',
-      });
-    }
-    const first = { ...items[0] };
-    items[0] = first;
-    return { ...base, items };
-  }, []);
-
-  const updateBannerJson = useCallback(
-    (updater: (config: BannerConfig) => BannerConfig) => {
-      const parsed = parseBannerJson();
-      if (!parsed) return;
-      const normalized = normalizeBannerConfig(parsed);
-      const next = updater(normalized);
-      setBannerJson(JSON.stringify(next, null, 2));
-    },
-    [normalizeBannerConfig, parseBannerJson],
-  );
-
-  const applyBannerUpload = useCallback(
-    (kind: 'video' | 'poster', url: string) => {
-      updateBannerJson((config) => {
-        const items = [...config.items];
-        const current = { ...items[0] };
-        current.mediaType = 'VIDEO';
-        current.enabled = current.enabled !== false;
-        current.order = Number.isFinite(current.order) ? current.order : 1;
-        if (kind === 'video') {
-          current.videoUrl = url;
-        } else {
-          current.posterUrl = url;
-          current.imageUrl = url;
-        }
-        items[0] = current;
-        return { ...config, items };
-      });
-    },
-    [updateBannerJson],
-  );
-
-  const validateFileSize = useCallback((file: File, maxMb: number) => {
-    const sizeMb = file.size / 1024 / 1024;
-    if (sizeMb > maxMb) {
-      message.error(`\u6587\u4ef6\u8fc7\u5927\uff0c\u9700\u5c0f\u4e8e ${maxMb}MB`);
-      return false;
-    }
-    return true;
-  }, []);
-
-  const bannerConfigDraft = useMemo(() => {
-    try {
-      return JSON.parse(bannerJson) as BannerConfig;
-    } catch {
-      return null;
-    }
-  }, [bannerJson]);
-
-  const bannerItemsView = useMemo(() => {
-    const normalized = normalizeBannerConfig(bannerConfigDraft);
-    return [...normalized.items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  }, [bannerConfigDraft, normalizeBannerConfig]);
-
-  const updateBannerItem = useCallback(
-    (id: string, patch: Partial<BannerConfig['items'][number]>) => {
-      updateBannerJson((config) => {
-        const items = [...config.items];
-        const idx = items.findIndex((item) => item.id === id);
-        if (idx < 0) return config;
-        items[idx] = { ...items[idx], ...patch };
-        return { ...config, items };
-      });
-    },
-    [updateBannerJson],
-  );
-
-  const moveBannerItem = useCallback(
-    (id: string, direction: 'up' | 'down') => {
-      updateBannerJson((config) => {
-        const items = [...config.items];
-        const idx = items.findIndex((item) => item.id === id);
-        if (idx < 0) return config;
-        const target = direction === 'up' ? idx - 1 : idx + 1;
-        if (target < 0 || target >= items.length) return config;
-        const next = [...items];
-        const currentOrder = Number.isFinite(next[idx].order) ? next[idx].order : idx + 1;
-        const targetOrder = Number.isFinite(next[target].order) ? next[target].order : target + 1;
-        [next[idx], next[target]] = [next[target], next[idx]];
-        next[idx].order = targetOrder;
-        next[target].order = currentOrder;
-        return { ...config, items: next };
-      });
-    },
-    [updateBannerJson],
-  );
-
   return (
     <Space className="admin-config-page" direction="vertical" size={16} style={{ width: '100%' }}>
+      <Card loading={loading}>
+        <Typography.Title level={3} style={{ marginTop: 0 }}>
+          高级系统配置
+        </Typography.Title>
+        <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+          这里用于维护交易规则、推荐权重、客服、词库和告警等系统级参数。首页展示内容、首页轮播、首页公告已拆分到独立运营页面，普通运营日常无需进入本页。
+        </Typography.Paragraph>
+      </Card>
+
       <Card loading={loading}>
         <Typography.Title level={3} style={{ marginTop: 0 }}>
           交易规则配置
@@ -381,13 +235,14 @@ export function ConfigPage() {
               const v = tradeForm.getFieldsValue(true);
               const { ok } = await confirmActionWithReason({
                 title: '确认保存交易规则？',
-                content: '该操作会影响订金/佣金/退款窗口等关键参数；建议填写变更原因并留痕。',
+                content: '该操作会影响订金、佣金、退款窗口等关键参数；建议填写变更原因并留痕。',
                 okText: '保存',
                 reasonLabel: '变更原因（必填）',
                 reasonPlaceholder: '例：按合同口径调整订金比例；运营阶段策略变更；法务要求等。',
                 reasonRequired: true,
               });
               if (!ok) return;
+
               const payload = {
                 depositRate: v.depositRate,
                 depositMinFen: yuanToFen(v.depositMinYuan),
@@ -400,10 +255,11 @@ export function ConfigPage() {
                 commissionRate: v.commissionRate,
                 commissionMinFen: yuanToFen(v.commissionMinYuan),
                 commissionMaxFen: yuanToFen(v.commissionMaxYuan),
-                payoutCondition: 'TRANSFER_COMPLETED_CONFIRMED',
-                payoutMethodDefault: 'MANUAL',
+                payoutCondition: 'TRANSFER_COMPLETED_CONFIRMED' as const,
+                payoutMethodDefault: 'MANUAL' as const,
                 autoPayoutOnTimeout: Boolean(v.autoPayoutOnTimeout),
               };
+
               try {
                 await apiPut<TradeRulesConfig>('/admin/config/trade-rules', payload);
                 message.success('已保存');
@@ -417,179 +273,6 @@ export function ConfigPage() {
           </Button>
         </Form>
       </Card>
-
-      <Card loading={loading}>
-        <Typography.Title level={3} style={{ marginTop: 0 }}>
-          {'首页轮播配置'}
-        </Typography.Title>
-        <Typography.Paragraph type="secondary">
-          {'维护首页轮播图。支持直接上传视频与封面；如需批量调整，可编辑下方结构化配置文本。'}
-        </Typography.Paragraph>
-        <Space direction="vertical" size={12} style={{ width: '100%' }}>
-          <Space wrap size={12}>
-            <Upload
-              maxCount={1}
-              showUploadList={false}
-              accept="video/*"
-              beforeUpload={(file) => (validateFileSize(file as File, 30) ? true : Upload.LIST_IGNORE)}
-              customRequest={async (options: any) => {
-                try {
-                  const uploaded = await apiUploadFile(options.file as File, 'BANNER_VIDEO');
-                  setBannerVideoFile(uploaded);
-                  applyBannerUpload('video', uploaded.url);
-                  message.success('\u89c6\u9891\u5df2\u4e0a\u4f20并写入首页轮播配置');
-                  options.onSuccess?.(uploaded);
-                } catch (e: any) {
-                  options.onError?.(e);
-                  message.error(e?.message || '\u89c6\u9891\u4e0a\u4f20\u5931\u8d25');
-                }
-              }}
-            >
-              <Button>{'\u4e0a\u4f20\u89c6\u9891'}</Button>
-            </Upload>
-            <Upload
-              maxCount={1}
-              showUploadList={false}
-              accept="image/*"
-              beforeUpload={(file) => (validateFileSize(file as File, 10) ? true : Upload.LIST_IGNORE)}
-              customRequest={async (options: any) => {
-                try {
-                  const uploaded = await apiUploadFile(options.file as File, 'BANNER_POSTER');
-                  setBannerPosterFile(uploaded);
-                  applyBannerUpload('poster', uploaded.url);
-                  message.success('\u5c01\u9762\u5df2\u4e0a\u4f20并写入首页轮播配置');
-                  options.onSuccess?.(uploaded);
-                } catch (e: any) {
-                  options.onError?.(e);
-                  message.error(e?.message || '\u5c01\u9762\u4e0a\u4f20\u5931\u8d25');
-                }
-              }}
-            >
-              <Button>{'\u4e0a\u4f20\u5c01\u9762'}</Button>
-            </Upload>
-          </Space>
-          <Typography.Text type="secondary">
-            {'上传后会同步写入下方配置文本；如需替换为公网地址，可在配置文本里调整视频地址和封面地址。'}
-          </Typography.Text>
-          {bannerVideoFile ? (
-            <Typography.Text type="secondary">{`\u89c6\u9891\u6587\u4ef6\uff1a${bannerVideoFile.url}`}</Typography.Text>
-          ) : null}
-          {bannerPosterFile ? (
-            <Typography.Text type="secondary">{`\u5c01\u9762\u6587\u4ef6\uff1a${bannerPosterFile.url}`}</Typography.Text>
-          ) : null}
-        </Space>
-
-        {bannerConfigDraft ? (
-          <Space direction="vertical" size={12} style={{ width: '100%' }}>
-            {bannerItemsView.map((item, idx) => (
-              <Card key={item.id} size="small">
-                <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                  <Space wrap size={12} align="center">
-                    <Input
-                      value={item.title}
-                      onChange={(e) => updateBannerItem(item.id, { title: e.target.value })}
-                      placeholder={`\u6807\u9898`} 
-                      style={{ width: 220 }}
-                    />
-                    <Switch
-                      checked={item.enabled !== false}
-                      onChange={(checked) => updateBannerItem(item.id, { enabled: checked })}
-                      checkedChildren={`\u4e0a\u67b6`} 
-                      unCheckedChildren={`\u4e0b\u67b6`} 
-                    />
-                    <InputNumber
-                      min={0}
-                      value={item.order}
-                      onChange={(val) => updateBannerItem(item.id, { order: typeof val === 'number' ? val : 0 })}
-                    />
-                    <Button disabled={idx === 0} onClick={() => moveBannerItem(item.id, 'up')}>
-                      {'\u4e0a\u79fb'}
-                    </Button>
-                    <Button
-                      disabled={idx === bannerItemsView.length - 1}
-                      onClick={() => moveBannerItem(item.id, 'down')}
-                    >
-                      {'\u4e0b\u79fb'}
-                    </Button>
-                  </Space>
-                  <Typography.Text type="secondary">
-                    {`\u89c6\u9891\u94fe\u63a5\uff1a${displayAdminInfo(item.videoUrl)}`}
-                  </Typography.Text>
-                  <Space direction="vertical" size={6} style={{ width: '100%' }}>
-                    <Typography.Text type="secondary">
-                      {'封面（可上传或粘贴 URL）'}
-                    </Typography.Text>
-                    <ImageUrlUploadField
-                      value={item.posterUrl || item.imageUrl || ''}
-                      uploadPurpose="BANNER_POSTER"
-                      maxSizeMb={10}
-                      onChange={(next) => {
-                        updateBannerItem(item.id, { posterUrl: next, imageUrl: next });
-                      }}
-                    />
-                  </Space>
-                </Space>
-              </Card>
-            ))}
-          </Space>
-        ) : (
-          <Typography.Text type="danger">
-            {'当前轮播配置文本无法解析，请先修正格式。'}
-          </Typography.Text>
-        )}
-        <Input.TextArea
-          value={bannerJson}
-          onChange={(e) => setBannerJson(e.target.value)}
-          rows={8}
-        />
-        <Space style={{ marginTop: 12 }}>
-          <Button
-            type="primary"
-            onClick={async () => {
-              const { ok } = await confirmActionWithReason({
-                title: '\u786e\u8ba4保存首页轮播配置？',
-                content: '\u4fdd\u5b58\u540e将影响首页轮播图展示。',
-                okText: '\u4fdd\u5b58',
-                reasonLabel: '\u53d8\u66f4\u539f\u56e0\uff08\u5efa\u8bae\u586b\u5199\uff09',
-              });
-              if (!ok) return;
-              try {
-                const payload = JSON.parse(bannerJson) as BannerConfig;
-                await apiPut<BannerConfig>('/admin/config/banner', payload);
-                message.success('\u4fdd\u5b58');
-                void load();
-              } catch (e: any) {
-                message.error(e?.message || '\u4fdd\u5b58\u5931\u8d25，请检查配置文本格式');
-              }
-            }}
-          >
-            {'保存首页轮播配置'}
-          </Button>
-        </Space>
-      </Card>
-
-      <Card loading={loading}>
-        <Typography.Title level={3} style={{ marginTop: 0 }}>
-          首页运营配置
-        </Typography.Title>
-        <Typography.Paragraph type="secondary">
-          已升级为可视化编辑（上传图片、内置图选择、卡片排序、标签联动）。建议在专用页面维护，避免直接修改结构化配置文本。
-        </Typography.Paragraph>
-        <Space style={{ marginTop: 8 }}>
-          <Button type="primary" onClick={() => navigate('/config/home-landing')}>
-            打开可视化运营配置页
-          </Button>
-          <Button onClick={() => setHomeLandingJson('')} disabled>
-            文本直改已下线
-          </Button>
-        </Space>
-      </Card>
-
-
-      
-
-
-      
 
       <Card loading={loading}>
         <Typography.Title level={3} style={{ marginTop: 0 }}>
@@ -781,11 +464,7 @@ export function ConfigPage() {
         <Typography.Paragraph type="secondary">
           建议使用结构化配置文本编辑，保存前请确保格式正确；变更需留痕。
         </Typography.Paragraph>
-        <Input.TextArea
-          value={alertJson}
-          onChange={(e) => setAlertJson(e.target.value)}
-          rows={8}
-        />
+        <Input.TextArea value={alertJson} onChange={(e) => setAlertJson(e.target.value)} rows={8} />
         <Space style={{ marginTop: 12 }}>
           <Button
             type="primary"
@@ -818,17 +497,12 @@ export function ConfigPage() {
           推荐配置（猜你喜欢）
         </Typography.Title>
         <Typography.Paragraph type="secondary">
-          权重可按运营策略/数据效果调整。
+          权重可按运营策略和数据效果调整。
         </Typography.Paragraph>
 
         <Form form={recForm} layout="vertical">
           <Space wrap size={16}>
-            <Form.Item
-              label="启用推荐"
-              name="enabled"
-              valuePropName="checked"
-              style={{ width: 220 }}
-            >
+            <Form.Item label="启用推荐" name="enabled" valuePropName="checked" style={{ width: 220 }}>
               <Switch />
             </Form.Item>
             <Form.Item
@@ -868,7 +542,7 @@ export function ConfigPage() {
               const v = recForm.getFieldsValue(true);
               const { ok } = await confirmActionWithReason({
                 title: '确认保存推荐配置？',
-                content: '该操作会影响首页/搜索的推荐排序；建议填写变更原因并留痕。',
+                content: '该操作会影响首页和搜索的推荐排序；建议填写变更原因并留痕。',
                 okText: '保存',
                 reasonLabel: '变更原因（必填）',
                 reasonPlaceholder: '例：提高地域权重；降低时间衰减；活动期调权等。',

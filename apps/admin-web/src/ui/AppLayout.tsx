@@ -27,21 +27,13 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import logoPng from '../assets/brand/logo.png';
 import { ADMIN_BADGES_REFRESH_EVENT, apiGet } from '../lib/api';
+import { isSuperAdminSession, type AdminSessionInfo } from '../lib/adminSession';
 import { clearAdminToken, hasAdminToken } from '../lib/auth';
 import { displayUserName, normalizeUserFacingText } from '../lib/userFacingText';
 
 const { Header, Sider, Content } = Layout;
 
-type SessionInfo = {
-  userId: string;
-  isAdmin: boolean;
-  role?: string;
-  roleNames?: string[];
-  roleIds?: string[];
-  permissions?: string[];
-  nickname?: string;
-  displayName?: string;
-};
+type SessionInfo = AdminSessionInfo;
 
 type AppMenuItem = {
   key: string;
@@ -77,9 +69,10 @@ const menuConfig: AppMenuItem[] = [
   { key: 'settlements', icon: <WalletOutlined />, label: '放款/结算', to: '/settlements', permission: 'settlement.read', group: 'commerce' },
   { key: 'invoices', icon: <ReconciliationOutlined />, label: '发票管理', to: '/invoices', permission: 'invoice.manage', group: 'commerce' },
   { key: 'reports', icon: <FileTextOutlined />, label: '报表导出', to: '/reports', permission: 'report.read', group: 'commerce' },
-  { key: 'config', icon: <SettingOutlined />, label: '交易/推荐配置', to: '/config', permission: 'config.manage', group: 'admin' },
-  { key: 'home-landing-config', icon: <SettingOutlined />, label: '首页运营配置', to: '/config/home-landing', permission: 'config.manage', group: 'admin' },
-  { key: 'home-announcements', icon: <BellOutlined />, label: '首页公告', to: '/home-announcements', permission: 'config.manage', group: 'admin' },
+  { key: 'home-landing-config', icon: <SettingOutlined />, label: '首页展示内容', to: '/config/home-landing', permission: 'config.manage', group: 'workbench' },
+  { key: 'home-banners', icon: <CameraOutlined />, label: '首页轮播', to: '/home-banners', permission: 'config.manage', group: 'workbench' },
+  { key: 'home-announcements', icon: <BellOutlined />, label: '首页公告', to: '/home-announcements', permission: 'config.manage', group: 'workbench' },
+  { key: 'config', icon: <SettingOutlined />, label: '高级系统配置', to: '/config', permission: 'config.manage', group: 'admin' },
   { key: 'regions', icon: <EnvironmentOutlined />, label: '地区/行业标签', to: '/regions', permission: 'config.manage', group: 'admin' },
   { key: 'audit-logs', icon: <ProfileOutlined />, label: '审计日志', to: '/audit-logs', permission: 'auditLog.read', group: 'admin' },
   { key: 'rbac', icon: <LockOutlined />, label: '账号权限', to: '/rbac', permission: 'rbac.manage', group: 'admin' },
@@ -96,14 +89,6 @@ function hasPermission(perms: Set<string>, permission?: string): boolean {
   if (!permission) return true;
   if (perms.has('*')) return true;
   return perms.has(permission);
-}
-
-function isSuperAdminSession(session?: SessionInfo | null): boolean {
-  if (!session) return false;
-  if ((session.permissions || []).includes('*')) return true;
-  if (String(session.role || '').toLowerCase() === 'admin') return true;
-  if ((session.roleNames || []).some((item) => String(item || '').toLowerCase() === 'admin')) return true;
-  return (session.roleIds || []).some((item) => String(item || '') === 'role-admin');
 }
 
 export function AppLayout() {
@@ -239,7 +224,9 @@ export function AppLayout() {
       currentKey.startsWith('orders/')
         ? 'orders'
         : currentKey.startsWith('config/home-landing')
-          ? 'home-landing-config'
+        ? 'home-landing-config'
+        : currentKey.startsWith('home-banners')
+          ? 'home-banners'
           : currentKey.startsWith('patents/operations')
             ? 'patent-ops'
             : currentKey.startsWith('imports/bulk')
@@ -264,6 +251,7 @@ export function AppLayout() {
     if (!path) return ['dashboard'];
     if (path.startsWith('orders/')) return ['orders'];
     if (path.startsWith('config/home-landing')) return ['home-landing-config'];
+    if (path.startsWith('home-banners')) return ['home-banners'];
     if (path.startsWith('patents/operations')) return ['patent-ops'];
     if (path.startsWith('imports/bulk')) return ['bulk-import'];
     if (path.startsWith('patents/claims')) return ['patent-claims'];

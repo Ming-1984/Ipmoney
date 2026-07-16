@@ -135,8 +135,9 @@ export class BearerAuthGuard implements CanActivate {
       orderBy: { submittedAt: 'desc' },
     });
 
-    // Treat admin identity as system backoffice roles or wildcard permission only.
-    const isAdmin = roleNames.length > 0 || permissions.has('*');
+    // Treat any assigned RBAC backoffice role as an admin-console identity, even when
+    // the role is a custom UUID-backed role rather than one of the built-in system roles.
+    const isAdmin = roleIds.length > 0 || roleNames.length > 0 || permissions.has('*');
 
     req.auth = {
       token,

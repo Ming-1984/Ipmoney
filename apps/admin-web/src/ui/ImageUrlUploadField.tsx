@@ -21,6 +21,8 @@ type ImageUrlUploadFieldProps = {
   uploadButtonText?: string;
   allowUrlInput?: boolean;
   previewObjectFit?: 'cover' | 'contain' | 'fill';
+  builtinDisplayText?: string | null;
+  previewUrl?: string;
 };
 
 function isHttpUrl(value: string) {
@@ -32,7 +34,7 @@ export function ImageUrlUploadField(props: ImageUrlUploadFieldProps) {
     value,
     onChange,
     onUploaded,
-    placeholder = '请输入图片 URL',
+    placeholder = '请输入图片地址',
     uploadPurpose = 'ADMIN_IMAGE',
     maxSizeMb = 10,
     accept = 'image/*',
@@ -41,12 +43,15 @@ export function ImageUrlUploadField(props: ImageUrlUploadFieldProps) {
     uploadButtonText = '上传图片',
     allowUrlInput = true,
     previewObjectFit = 'cover',
+    builtinDisplayText,
+    previewUrl,
   } = props;
   const [uploading, setUploading] = useState(false);
   const [lastUploaded, setLastUploaded] = useState<FileObject | null>(null);
 
   const current = String(value || '').trim();
   const isBuiltin = current.startsWith('builtin://');
+  const resolvedPreviewUrl = String(previewUrl || '').trim();
 
   const builtinValue = useMemo(() => {
     if (!isBuiltin) return undefined;
@@ -59,7 +64,7 @@ export function ImageUrlUploadField(props: ImageUrlUploadFieldProps) {
     (file: File) => {
       const sizeMb = file.size / 1024 / 1024;
       if (sizeMb > maxSizeMb) {
-        message.error(`文件过大，需小于 ${maxSizeMb}MB`);
+        message.error(`图片过大，请控制在 ${maxSizeMb}MB 以内`);
         return false;
       }
       return true;
@@ -90,7 +95,7 @@ export function ImageUrlUploadField(props: ImageUrlUploadFieldProps) {
               await onUploaded?.(uploaded);
               setLastUploaded(uploaded);
               onChange?.(uploaded.url);
-              message.success('图片已上传并自动填充');
+              message.success('图片已上传，并自动填入当前卡片');
               options?.onSuccess?.(uploaded);
             } catch (e: any) {
               message.error(e?.message || '图片上传失败');
@@ -110,7 +115,7 @@ export function ImageUrlUploadField(props: ImageUrlUploadFieldProps) {
             allowClear
             disabled={disabled}
             style={{ width: 220 }}
-            placeholder="选择内置图"
+            placeholder="选择系统默认图"
             value={builtinValue}
             options={builtinOptions}
             onChange={(next) => onChange?.(String(next || ''))}
@@ -127,8 +132,19 @@ export function ImageUrlUploadField(props: ImageUrlUploadFieldProps) {
         />
       ) : null}
 
-      {isBuiltin ? (
-        <Typography.Text type="secondary">{`当前内置图：${current}`}</Typography.Text>
+      {resolvedPreviewUrl ? (
+        <img
+          src={resolvedPreviewUrl}
+          alt=""
+          style={{
+            width: 220,
+            height: 124,
+            objectFit: previewObjectFit,
+            borderRadius: 8,
+            border: '1px solid #f0f0f0',
+            background: '#fafafa',
+          }}
+        />
       ) : isHttpUrl(current) ? (
         <img
           src={current}
@@ -142,6 +158,8 @@ export function ImageUrlUploadField(props: ImageUrlUploadFieldProps) {
             background: '#fafafa',
           }}
         />
+      ) : isBuiltin && builtinDisplayText !== null ? (
+        <Typography.Text type="secondary">{builtinDisplayText || `当前使用系统默认图：${current}`}</Typography.Text>
       ) : null}
 
       {lastUploaded ? <Typography.Text type="secondary">{`最近上传：${lastUploaded.url}`}</Typography.Text> : null}

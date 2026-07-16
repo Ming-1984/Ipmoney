@@ -57,6 +57,28 @@ const BADGE_MODE_OPTIONS: Array<{ value: TechManagerBadgeMode; label: string }> 
   { value: 'REMOVE', label: '移除标签' },
 ];
 
+const filterFieldStyle: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 6,
+};
+
+type FilterFieldProps = {
+  label: string;
+  children: React.ReactNode;
+};
+
+function FilterField({ label, children }: FilterFieldProps) {
+  return (
+    <div style={filterFieldStyle}>
+      <Typography.Text type="secondary" style={{ fontSize: 12, lineHeight: '20px' }}>
+        {label}
+      </Typography.Text>
+      {children}
+    </div>
+  );
+}
+
 function splitCommaText(text: string): string[] {
   return text
     .split(/[,\uff0c]/)
@@ -307,92 +329,110 @@ export function TechManagersPage() {
 
         {error ? <RequestErrorAlert error={error} onRetry={load} /> : null}
 
-        <Space wrap size={12}>
-          <Input
-            value={q}
-            style={{ width: 240 }}
-            placeholder="搜索姓名、机构、方向或标签"
-            allowClear
-            onChange={(e) => setQ(e.target.value)}
-            onPressEnter={() => {
-              setPage(1);
-              void load({ page: 1 });
-            }}
-          />
-          <Input
-            value={regionCode}
-            style={{ width: 160 }}
-            placeholder="地区名称或代码"
-            allowClear
-            inputMode="numeric"
-            onChange={(e) => setRegionCode(e.target.value)}
-            onPressEnter={() => {
-              setPage(1);
-              void load({ page: 1 });
-            }}
-          />
-          <Select
-            value={status}
-            style={{ width: 150 }}
-            placeholder="认证状态"
-            onChange={(value) => setStatus((value as VerificationStatus) || '')}
-            options={[
-              { value: '', label: '全部状态' },
-              { value: 'PENDING', label: '待审核' },
-              { value: 'APPROVED', label: '已通过' },
-              { value: 'REJECTED', label: '已驳回' },
-            ]}
-          />
-          <Select
-            value={missingIntro}
-            style={{ width: 160 }}
-            placeholder="简介完整度"
-            onChange={(value) => setMissingIntro((value as MissingFilterValue) || '')}
-            options={missingFilterOptions}
-          />
-          <Select
-            value={missingContact}
-            style={{ width: 160 }}
-            placeholder="联系完整度"
-            onChange={(value) => setMissingContact((value as MissingFilterValue) || '')}
-            options={missingFilterOptions}
-          />
-          <Select
-            value={missingExperienceLabel}
-            style={{ width: 160 }}
-            placeholder="从业信息"
-            onChange={(value) => setMissingExperienceLabel((value as MissingFilterValue) || '')}
-            options={missingFilterOptions}
-          />
-          <Select
-            value={missingLevelLabel}
-            style={{ width: 160 }}
-            placeholder="等级标签"
-            onChange={(value) => setMissingLevelLabel((value as MissingFilterValue) || '')}
-            options={missingFilterOptions}
-          />
-          <Select
-            value={suspectExperienceLabel}
-            style={{ width: 180 }}
-            placeholder="异常从业信息"
-            onChange={(value) => setSuspectExperienceLabel((value as MissingFilterValue) || '')}
-            options={[
-              { value: '', label: '全部' },
-              { value: 'true', label: '仅异常值' },
-              { value: 'false', label: '排除异常值' },
-            ]}
-          />
-          <Button
-            type="primary"
-            onClick={() => {
-              setPage(1);
-              void load({ page: 1 });
-            }}
-          >
-            查询
-          </Button>
-          <Button onClick={resetFilters}>重置</Button>
-        </Space>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end' }}>
+          <FilterField label="关键词">
+            <Input
+              value={q}
+              style={{ width: 240 }}
+              placeholder="搜索姓名、机构、方向或标签"
+              allowClear
+              onChange={(e) => setQ(e.target.value)}
+              onPressEnter={() => {
+                setPage(1);
+                void load({ page: 1 });
+              }}
+            />
+          </FilterField>
+          <FilterField label="地区">
+            <Input
+              value={regionCode}
+              style={{ width: 160 }}
+              placeholder="地区名称或代码"
+              allowClear
+              inputMode="numeric"
+              onChange={(e) => setRegionCode(e.target.value)}
+              onPressEnter={() => {
+                setPage(1);
+                void load({ page: 1 });
+              }}
+            />
+          </FilterField>
+          <FilterField label="认证状态">
+            <Select
+              value={status}
+              style={{ width: 150 }}
+              placeholder="认证状态"
+              onChange={(value) => setStatus((value as VerificationStatus) || '')}
+              options={[
+                { value: '', label: '全部状态' },
+                { value: 'PENDING', label: '待审核' },
+                { value: 'APPROVED', label: '已通过' },
+                { value: 'REJECTED', label: '已驳回' },
+              ]}
+            />
+          </FilterField>
+          <FilterField label="简介">
+            <Select
+              value={missingIntro}
+              style={{ width: 160 }}
+              placeholder="简介完整度"
+              onChange={(value) => setMissingIntro((value as MissingFilterValue) || '')}
+              options={missingFilterOptions}
+            />
+          </FilterField>
+          <FilterField label="联系方式">
+            <Select
+              value={missingContact}
+              style={{ width: 160 }}
+              placeholder="联系完整度"
+              onChange={(value) => setMissingContact((value as MissingFilterValue) || '')}
+              options={missingFilterOptions}
+            />
+          </FilterField>
+          <FilterField label="从业信息">
+            <Select
+              value={missingExperienceLabel}
+              style={{ width: 160 }}
+              placeholder="从业信息"
+              onChange={(value) => setMissingExperienceLabel((value as MissingFilterValue) || '')}
+              options={missingFilterOptions}
+            />
+          </FilterField>
+          <FilterField label="等级标签">
+            <Select
+              value={missingLevelLabel}
+              style={{ width: 160 }}
+              placeholder="等级标签"
+              onChange={(value) => setMissingLevelLabel((value as MissingFilterValue) || '')}
+              options={missingFilterOptions}
+            />
+          </FilterField>
+          <FilterField label="从业信息异常">
+            <Select
+              value={suspectExperienceLabel}
+              style={{ width: 180 }}
+              placeholder="异常从业信息"
+              onChange={(value) => setSuspectExperienceLabel((value as MissingFilterValue) || '')}
+              options={[
+                { value: '', label: '全部' },
+                { value: 'true', label: '仅异常值' },
+                { value: 'false', label: '排除异常值' },
+              ]}
+            />
+          </FilterField>
+          <Space size={12}>
+            <Button
+              type="primary"
+              onClick={() => {
+                setPage(1);
+                void load({ page: 1 });
+              }}
+            >
+              查询
+            </Button>
+            <Button onClick={resetFilters}>重置</Button>
+          </Space>
+        </div>
 
         <Space wrap size={12}>
           <Tag color={selectedRowKeys.length ? 'processing' : 'default'}>已选 {selectedRowKeys.length} 人</Tag>

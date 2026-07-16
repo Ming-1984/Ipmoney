@@ -197,6 +197,31 @@ describe('BearerAuthGuard strictness suite', () => {
     expect(req.auth.isAdmin).toBe(true);
   });
 
+  it('treats custom non-system staff role as admin when role assignment exists', async () => {
+    process.env.DEMO_AUTH_ALLOW_UUID_TOKENS = 'true';
+    const userId = '55555555-5555-4555-8555-555555555555';
+    prisma.user.findUnique.mockResolvedValueOnce({
+      id: userId,
+      role: 'buyer',
+      nickname: 'Finance User',
+    });
+    prisma.rbacUserRole.findMany.mockResolvedValueOnce([{ roleId: '8e8f4a3e-24a9-4e96-8fb1-9f6c6d8d0f11' }]);
+    prisma.rbacRole.findMany.mockResolvedValueOnce([
+      {
+        id: '8e8f4a3e-24a9-4e96-8fb1-9f6c6d8d0f11',
+        permissionIds: ['order.read', 'invoice.manage'],
+      },
+    ]);
+    const req: Req = { headers: { authorization: `Bearer ${userId}` } };
+
+    await expect(guard.canActivate(makeContext(req))).resolves.toBe(true);
+
+    expect(req.auth.roleNames).toEqual([]);
+    expect(req.auth.roleIds).toEqual(['8e8f4a3e-24a9-4e96-8fb1-9f6c6d8d0f11']);
+    expect(req.auth.permissions.has('invoice.manage')).toBe(true);
+    expect(req.auth.isAdmin).toBe(true);
+  });
+
   it('rejects uuid token when user does not exist', async () => {
     process.env.DEMO_AUTH_ALLOW_UUID_TOKENS = 'true';
     const userId = '33333333-3333-4333-8333-333333333333';

@@ -179,16 +179,17 @@ export function HomeAnnouncementsPage() {
             首页公告管理
           </Typography.Title>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            支持模板复用、草稿编辑、发布和下线。首页仅展示“已发布”且处于生效时间内的公告。
+            这里管理首页公告。你可以先做常用模板，再创建公告草稿，确认无误后发布到首页。
           </Typography.Paragraph>
-          <Space>
-            <Button onClick={() => void load()} loading={loading}>刷新配置</Button>
-            <Typography.Text type="secondary">配置版本：{config?.schemaVersion ?? '-'}</Typography.Text>
-          </Space>
+          <Button onClick={() => void load()} loading={loading}>刷新页面数据</Button>
         </Space>
       </Card>
 
-      <Card loading={loading} title="公告模板">
+      <Card
+        loading={loading}
+        title="常用公告模板"
+        extra={<Typography.Text type="secondary">适合复用固定格式的公告内容</Typography.Text>}
+      >
         <Form
           form={templateForm}
           layout="vertical"
@@ -228,16 +229,16 @@ export function HomeAnnouncementsPage() {
         >
           <Space wrap size={16} align="start">
             <Form.Item label="模板名称" name="name" rules={[{ required: true, message: '请输入模板名称' }]} style={{ width: 240 }}>
-              <Input maxLength={80} />
+              <Input maxLength={80} placeholder="例如：活动通知模板" />
             </Form.Item>
             <Form.Item label="标题" name="title" rules={[{ required: true, message: '请输入标题' }]} style={{ width: 320 }}>
-              <Input maxLength={120} />
+              <Input maxLength={120} placeholder="例如：暑期专利活动上线通知" />
             </Form.Item>
-            <Form.Item label="标签" name="tag" style={{ width: 180 }}>
-              <Input maxLength={32} placeholder="可选" />
+            <Form.Item label="公告角标" name="tag" style={{ width: 180 }}>
+              <Input maxLength={32} placeholder="可选，例如：活动" />
             </Form.Item>
             <Form.Item
-              label="跳转链接"
+              label="点击后打开的小程序页面"
               name="linkUrl"
               style={{ width: 320 }}
               rules={[
@@ -256,7 +257,7 @@ export function HomeAnnouncementsPage() {
               <Switch />
             </Form.Item>
           </Space>
-          <Form.Item label="模板内容" name="content" rules={[{ required: true, message: '请输入模板内容' }]}>
+          <Form.Item label="模板正文" name="content" rules={[{ required: true, message: '请输入模板内容' }]}>
             <Input.TextArea rows={4} maxLength={2000} showCount />
           </Form.Item>
           <Space>
@@ -361,7 +362,11 @@ export function HomeAnnouncementsPage() {
         />
       </Card>
 
-      <Card loading={loading} title="首页公告">
+      <Card
+        loading={loading}
+        title="首页公告内容"
+        extra={<Typography.Text type="secondary">只有发布后的公告才会真正出现在首页</Typography.Text>}
+      >
         <Form
           form={itemForm}
           layout="vertical"
@@ -423,17 +428,17 @@ export function HomeAnnouncementsPage() {
           }}
         >
           <Space wrap size={16} align="start">
-            <Form.Item label="模板" name="templateId" style={{ width: 220 }}>
-              <Select allowClear options={templateOptions} placeholder="可选" />
+            <Form.Item label="套用模板" name="templateId" style={{ width: 220 }}>
+              <Select allowClear options={templateOptions} placeholder="可选，不选也可以手动填写" />
             </Form.Item>
             <Form.Item label="标题" name="title" rules={[{ required: true, message: '请输入公告标题' }]} style={{ width: 320 }}>
-              <Input maxLength={120} />
+              <Input maxLength={120} placeholder="请输入首页公告标题" />
             </Form.Item>
-            <Form.Item label="标签" name="tag" style={{ width: 180 }}>
-              <Input maxLength={32} placeholder="可选" />
+            <Form.Item label="公告角标" name="tag" style={{ width: 180 }}>
+              <Input maxLength={32} placeholder="可选，例如：重要" />
             </Form.Item>
             <Form.Item
-              label="跳转链接"
+              label="点击后打开的小程序页面"
               name="linkUrl"
               style={{ width: 320 }}
               rules={[
@@ -451,13 +456,13 @@ export function HomeAnnouncementsPage() {
             <Form.Item label="置顶" name="pinned" valuePropName="checked" style={{ width: 100 }}>
               <Switch />
             </Form.Item>
-            <Form.Item label="排序(小优先)" name="order" style={{ width: 140 }}>
+            <Form.Item label="展示顺序（越小越靠前）" name="order" style={{ width: 180 }}>
               <InputNumber min={0} max={100000} style={{ width: '100%' }} />
             </Form.Item>
           </Space>
           <Space wrap size={16} align="start">
             <Form.Item
-              label="生效开始时间"
+              label="开始展示时间"
               name="startAt"
               style={{ width: 280 }}
               rules={[
@@ -470,10 +475,10 @@ export function HomeAnnouncementsPage() {
                 },
               ]}
             >
-              <Input placeholder="例如 2026-03-24T00:00:00Z" />
+              <Input placeholder="例如 2026-07-16T00:00:00Z" />
             </Form.Item>
             <Form.Item
-              label="生效结束时间"
+              label="停止展示时间"
               name="endAt"
               style={{ width: 280 }}
               dependencies={['startAt']}
@@ -492,10 +497,10 @@ export function HomeAnnouncementsPage() {
                 },
               ]}
             >
-              <Input placeholder="例如 2026-03-31T23:59:59Z" />
+              <Input placeholder="例如 2026-07-31T23:59:59Z" />
             </Form.Item>
           </Space>
-          <Form.Item label="公告内容" name="content" rules={[{ required: true, message: '请输入公告内容' }]}>
+          <Form.Item label="公告正文" name="content" rules={[{ required: true, message: '请输入公告内容' }]}>
             <Input.TextArea rows={4} maxLength={2000} showCount />
           </Form.Item>
           <Space>

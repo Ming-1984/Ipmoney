@@ -83,6 +83,10 @@ const HomeLandingConfigPage = lazy(async () => {
   const mod = await import('./views/HomeLandingConfigPage');
   return { default: mod.HomeLandingConfigPage };
 });
+const HomeBannersPage = lazy(async () => {
+  const mod = await import('./views/HomeBannersPage');
+  return { default: mod.HomeBannersPage };
+});
 const HomeAnnouncementsPage = lazy(async () => {
   const mod = await import('./views/HomeAnnouncementsPage');
   return { default: mod.HomeAnnouncementsPage };
@@ -149,6 +153,7 @@ export const router = createBrowserRouter([
       { path: 'rbac', element: <RbacPage /> },
       { path: 'config', element: <ConfigPage /> },
       { path: 'config/home-landing', element: <HomeLandingConfigPage /> },
+      { path: 'home-banners', element: <HomeBannersPage /> },
       { path: 'home-announcements', element: <HomeAnnouncementsPage /> },
       { path: 'maintenance', element: <MaintenancePage /> },
       { path: 'regions', element: <RegionsPage /> },
