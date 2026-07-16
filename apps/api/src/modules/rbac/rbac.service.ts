@@ -45,7 +45,7 @@ const PERMISSIONS: Permission[] = [
   { id: 'listing.import', name: '挂牌导入', description: '执行挂牌导入任务' },
   { id: 'patent.import', name: '专利导入', description: '执行专利导入与挂牌生成任务' },
   { id: 'patent.claim.review', name: '专利认领审核', description: '审核并处理专利权属认领' },
-  { id: 'conversation.platform.manage', name: '平台会话管理', description: '管理平台会话与客服分配' },
+  { id: 'conversation.platform.manage', name: '平台会话调度', description: '查看平台会话池并分配客服' },
   { id: 'order.read', name: '订单查看', description: '查看订单详情' },
   { id: 'case.manage', name: '工单管理', description: '创建、分派和跟踪工单' },
   { id: 'maintenance.manage', name: '年费托管管理', description: '管理专利年费托管排期与任务' },
@@ -368,7 +368,7 @@ export class RbacService {
     const normalizedRoleId = this.parseRoleIdParam(roleId);
 
     if (SYSTEM_ROLE_ID_SET.has(normalizedRoleId)) {
-      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'System role cannot be deleted' });
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: '系统角色不可删除，请改为编辑权限或名称' });
     }
 
     const existing = await this.prisma.rbacRole.findUnique({ where: { id: normalizedRoleId } });

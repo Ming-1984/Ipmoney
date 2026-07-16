@@ -33,6 +33,11 @@ type PagedUsers = { items: UserRole[] };
 type UserScope = 'STAFF' | 'ALL';
 
 const PHONE_RE = /^[0-9]{6,20}$/;
+const SYSTEM_ROLE_IDS = new Set(['role-admin', 'role-operator', 'role-cs', 'role-finance']);
+
+function isSystemRole(roleId: string) {
+  return SYSTEM_ROLE_IDS.has(String(roleId || '').trim());
+}
 
 export function RbacPage() {
   const [loading, setLoading] = useState(false);
@@ -232,7 +237,16 @@ export function RbacPage() {
             },
           }}
           columns={[
-            { title: '角色名称', dataIndex: 'name' },
+            {
+              title: '角色名称',
+              dataIndex: 'name',
+              render: (_: string, role) => (
+                <Space size={8} wrap>
+                  <span>{role.name}</span>
+                  {isSystemRole(role.id) ? <Tag color="blue">系统角色</Tag> : null}
+                </Space>
+              ),
+            },
             { title: '说明', dataIndex: 'description', render: (v) => displayAdminInfo(v) },
             {
               title: '权限范围',
@@ -269,7 +283,10 @@ export function RbacPage() {
                     编辑
                   </Button>
                   <Button
+                    disabled={isSystemRole(r.id)}
+                    title={isSystemRole(r.id) ? '系统角色不可删除' : undefined}
                     onClick={async () => {
+                      if (isSystemRole(r.id)) return;
                       const { ok } = await confirmActionWithReason({
                         title: '确认删除角色？',
                         content: '删除角色将影响已分配用户。',
