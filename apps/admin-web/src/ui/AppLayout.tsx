@@ -70,7 +70,6 @@ const menuConfig: AppMenuItem[] = [
   { key: 'invoices', icon: <ReconciliationOutlined />, label: '发票管理', to: '/invoices', permission: 'invoice.manage', group: 'commerce' },
   { key: 'reports', icon: <FileTextOutlined />, label: '报表导出', to: '/reports', permission: 'report.read', group: 'commerce' },
   { key: 'home-landing-config', icon: <SettingOutlined />, label: '首页展示内容', to: '/config/home-landing', permission: 'config.manage', group: 'workbench' },
-  { key: 'home-banners', icon: <CameraOutlined />, label: '首页轮播', to: '/home-banners', permission: 'config.manage', group: 'workbench' },
   { key: 'home-announcements', icon: <BellOutlined />, label: '首页公告', to: '/home-announcements', permission: 'config.manage', group: 'workbench' },
   { key: 'config', icon: <SettingOutlined />, label: '高级系统配置', to: '/config', permission: 'config.manage', group: 'admin' },
   { key: 'regions', icon: <EnvironmentOutlined />, label: '地区/行业标签', to: '/regions', permission: 'config.manage', group: 'admin' },
@@ -226,7 +225,7 @@ export function AppLayout() {
         : currentKey.startsWith('config/home-landing')
         ? 'home-landing-config'
         : currentKey.startsWith('home-banners')
-          ? 'home-banners'
+          ? 'home-landing-config'
           : currentKey.startsWith('patents/operations')
             ? 'patent-ops'
             : currentKey.startsWith('imports/bulk')
@@ -251,7 +250,7 @@ export function AppLayout() {
     if (!path) return ['dashboard'];
     if (path.startsWith('orders/')) return ['orders'];
     if (path.startsWith('config/home-landing')) return ['home-landing-config'];
-    if (path.startsWith('home-banners')) return ['home-banners'];
+    if (path.startsWith('home-banners')) return ['home-landing-config'];
     if (path.startsWith('patents/operations')) return ['patent-ops'];
     if (path.startsWith('imports/bulk')) return ['bulk-import'];
     if (path.startsWith('patents/claims')) return ['patent-claims'];

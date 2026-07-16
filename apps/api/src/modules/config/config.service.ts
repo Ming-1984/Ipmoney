@@ -239,12 +239,21 @@ export type HomeLandingListingTopicUiItem = {
   order: number;
 };
 
+export type HomeLandingHeroSpotlight = {
+  enabled: boolean;
+  imageUrl: string;
+  title: string;
+  subtitle: string;
+  actionPayload: HomeLandingSearchPrefillAction;
+};
+
 export type HomeLandingConfig = {
   schemaVersion: 1;
   hero: {
     tags: string[];
     searchPlaceholder: string;
   };
+  heroSpotlight?: HomeLandingHeroSpotlight;
   sectionTexts: {
     featuredTitle: string;
     featuredMoreText: string;
@@ -873,10 +882,129 @@ export class ConfigService {
     return out.sort((a, b) => a.order - b.order);
   }
 
+  private normalizeHomeLandingSearchPrefillPayload(
+    payloadRaw: unknown,
+    strict: boolean,
+    topicEnabledSet: Set<ListingTopic>,
+    fieldPrefix: string,
+    opts?: { allowEmptyTab?: boolean },
+  ): HomeLandingSearchPrefillAction {
+    const payload = payloadRaw && typeof payloadRaw === 'object' ? (payloadRaw as Record<string, unknown>) : {};
+    const tabRaw = String(payload.tab || '').trim().toUpperCase();
+    const tab = tabRaw === 'LISTING' || tabRaw === 'ACHIEVEMENT' ? (tabRaw as 'LISTING' | 'ACHIEVEMENT') : undefined;
+    if (strict && tabRaw && !tab) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldPrefix}.tab is invalid` });
+    }
+    if (strict && !opts?.allowEmptyTab && !tab) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldPrefix}.tab is invalid` });
+    }
+
+    const listingTopicRaw = String(payload.listingTopic || '')
+      .trim()
+      .toUpperCase();
+    const listingTopic = LISTING_TOPIC_SET.has(listingTopicRaw as ListingTopic)
+      ? (listingTopicRaw as ListingTopic)
+      : undefined;
+    if (strict && listingTopicRaw && !listingTopic) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldPrefix}.listingTopic is invalid` });
+    }
+    if (strict && listingTopic && !topicEnabledSet.has(listingTopic)) {
+      throw new BadRequestException({
+        code: 'BAD_REQUEST',
+        message: `listingTopic(${listingTopic}) is disabled in listingTopicUi`,
+      });
+    }
+
+    const patentTypeRaw = String(payload.patentType || '')
+      .trim()
+      .toUpperCase();
+    const patentType = PATENT_TYPE_SET.has(patentTypeRaw as PatentType) ? (patentTypeRaw as PatentType) : undefined;
+    if (strict && patentTypeRaw && !patentType) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldPrefix}.patentType is invalid` });
+    }
+
+    return {
+      ...(tab ? { tab } : {}),
+      ...(listingTopic ? { listingTopic } : {}),
+      ...(patentType ? { patentType } : {}),
+      reset: true,
+    };
+  }
+
+  private normalizeHomeLandingHeroSpotlight(
+    input: unknown,
+    strict: boolean,
+    topicEnabledSet: Set<ListingTopic>,
+    fallback: HomeLandingHeroSpotlight,
+  ): HomeLandingHeroSpotlight {
+    const raw = input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
+    const imageUrl = String(raw.imageUrl || fallback.imageUrl || '')
+      .trim()
+      .slice(0, 1000);
+    const title = String(raw.title || '').trim().slice(0, 24);
+    const subtitle = String(raw.subtitle || '').trim().slice(0, 40);
+    const enabled = raw.enabled !== false;
+
+    if (strict && enabled && !imageUrl) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'heroSpotlight.imageUrl is invalid' });
+    }
+    if (strict && String(raw.title || '').trim().length > 24) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'heroSpotlight.title is invalid' });
+    }
+    if (strict && String(raw.subtitle || '').trim().length > 40) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'heroSpotlight.subtitle is invalid' });
+    }
+
+    return {
+      enabled,
+      imageUrl: imageUrl || fallback.imageUrl,
+      title,
+      subtitle,
+      actionPayload: this.normalizeHomeLandingSearchPrefillPayload(
+        raw.actionPayload,
+        strict,
+        topicEnabledSet,
+        'heroSpotlight.actionPayload',
+        { allowEmptyTab: true },
+      ),
+    };
+  }
+
+  private buildLegacyHomeLandingHeroSpotlightFromBanner(config: BannerConfig): HomeLandingHeroSpotlight {
+    const fallbackConfig = buildDefaultHomeLandingConfig();
+    const firstEnabledBanner = (Array.isArray(config?.items) ? [...config.items] : [])
+      .filter((item) => item && item.enabled !== false)
+      .sort((a, b) => this.normalizePositiveInt(a.order, 0, 0, 100000) - this.normalizePositiveInt(b.order, 0, 0, 100000))[0];
+
+    if (!firstEnabledBanner) {
+      return fallbackConfig.heroSpotlight || {
+        enabled: true,
+        imageUrl: 'https://ipmoney.cn/static/images/assets/home/promo-certificate.png',
+        title: '',
+        subtitle: '',
+        actionPayload: { tab: 'LISTING', reset: true },
+      };
+    }
+
+    return {
+      enabled: true,
+      imageUrl: String(firstEnabledBanner.posterUrl || firstEnabledBanner.imageUrl || '').trim() || 'https://ipmoney.cn/static/images/assets/home/promo-certificate.png',
+      title: String(firstEnabledBanner.title || '').trim().slice(0, 24),
+      subtitle: '',
+      actionPayload: {
+        reset: true,
+      },
+    };
+  }
+
   private normalizeHomeLandingConfig(input: unknown, strict: boolean): HomeLandingConfig {
     const fallback = buildDefaultHomeLandingConfig();
     const source = input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
     const heroRaw = source.hero && typeof source.hero === 'object' ? (source.hero as Record<string, unknown>) : {};
+    const heroSpotlightRaw =
+      source.heroSpotlight && typeof source.heroSpotlight === 'object'
+        ? (source.heroSpotlight as Record<string, unknown>)
+        : {};
     const sectionRaw =
       source.sectionTexts && typeof source.sectionTexts === 'object'
         ? (source.sectionTexts as Record<string, unknown>)
@@ -908,6 +1036,23 @@ export class ConfigService {
 
     const listingTopicUiItems = this.normalizeHomeLandingListingTopicUi(listingTopicUiRaw.items, strict);
     const topicEnabledSet = new Set(listingTopicUiItems.filter((item) => item.enabled).map((item) => item.value));
+    const fallbackHeroSpotlight: HomeLandingHeroSpotlight =
+      fallback.heroSpotlight || {
+        enabled: true,
+        imageUrl: 'https://ipmoney.cn/static/images/assets/home/promo-certificate.png',
+        title: '',
+        subtitle: '',
+        actionPayload: {
+          tab: 'LISTING',
+          reset: true,
+        },
+      };
+    const heroSpotlight = this.normalizeHomeLandingHeroSpotlight(
+      heroSpotlightRaw,
+      strict,
+      topicEnabledSet,
+      fallbackHeroSpotlight,
+    );
     const displayCountRaw = Number(featuredRaw.displayCount);
     if (strict && displayCountRaw !== 4 && displayCountRaw !== 6) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredZones.displayCount must be 4 or 6' });
@@ -935,6 +1080,7 @@ export class ConfigService {
         tags: heroTags.length ? heroTags : [...fallback.hero.tags],
         searchPlaceholder: searchPlaceholder || fallback.hero.searchPlaceholder,
       },
+      heroSpotlight,
       sectionTexts: {
         featuredTitle: featuredTitle || fallback.sectionTexts.featuredTitle,
         featuredMoreText: featuredMoreText || fallback.sectionTexts.featuredMoreText,
@@ -955,7 +1101,21 @@ export class ConfigService {
     const row = await this.ensureJsonConfig(KEY_HOME_LANDING_CONFIG, fallback);
     try {
       const parsed = JSON.parse(row.value);
-      return this.normalizeHomeLandingConfig(parsed, false);
+      const normalized = this.normalizeHomeLandingConfig(parsed, false);
+      const source = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
+      const hasHeroSpotlight =
+        Boolean(source.heroSpotlight && typeof source.heroSpotlight === 'object') &&
+        String((source.heroSpotlight as Record<string, unknown>).imageUrl || '')
+          .trim()
+          .length > 0;
+      if (hasHeroSpotlight && String(normalized.heroSpotlight?.imageUrl || '').trim()) {
+        return normalized;
+      }
+      const banner = await this.getBanner();
+      return {
+        ...normalized,
+        heroSpotlight: this.buildLegacyHomeLandingHeroSpotlightFromBanner(banner),
+      };
     } catch {
       return fallback;
     }

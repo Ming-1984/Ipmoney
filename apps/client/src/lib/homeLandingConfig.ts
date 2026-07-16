@@ -1,6 +1,7 @@
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet } from './api';
+import bannerFallbackCover from '../assets/home/promo-certificate.png';
 
 export type ListingTopic = components['schemas']['ListingTopic'];
 export type PatentType = components['schemas']['PatentType'];
@@ -32,12 +33,26 @@ export type HomeLandingFeaturedItem = {
   };
 };
 
+export type HomeLandingHeroSpotlight = {
+  enabled: boolean;
+  imageUrl: string;
+  title: string;
+  subtitle: string;
+  actionPayload: {
+    tab?: 'LISTING' | 'ACHIEVEMENT';
+    listingTopic?: ListingTopic;
+    patentType?: PatentType;
+    reset?: boolean;
+  };
+};
+
 export type HomeLandingConfig = {
   schemaVersion: 1;
   hero: {
     tags: string[];
     searchPlaceholder: string;
   };
+  heroSpotlight: HomeLandingHeroSpotlight;
   sectionTexts: {
     featuredTitle: string;
     featuredMoreText: string;
@@ -69,6 +84,13 @@ export function defaultHomeLandingConfig(): HomeLandingConfig {
     hero: {
       tags: ['\u0030\u5143\u4e13\u5229\u6258\u7ba1', '\u0030\u5143\u4ee3\u529e\u8fc7\u6237', '\u0030\u98ce\u9669\u4ea4\u6613'],
       searchPlaceholder: '\u5f00\u59cb\u5bfb\u627e\u88ab\u4f60\u53d1\u73b0\u7684IP',
+    },
+    heroSpotlight: {
+      enabled: true,
+      imageUrl: bannerFallbackCover,
+      title: '',
+      subtitle: '',
+      actionPayload: { tab: 'LISTING', reset: true },
     },
     sectionTexts: {
       featuredTitle: '\u7279\u8272\u4e13\u533a',
@@ -203,10 +225,44 @@ function normalizeFeaturedItems(input: unknown): HomeLandingFeaturedItem[] {
   return out.sort((a, b) => a.order - b.order);
 }
 
+function normalizeHeroSpotlight(input: unknown, fallback: HomeLandingHeroSpotlight): HomeLandingHeroSpotlight {
+  const source = input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
+  const payload =
+    source.actionPayload && typeof source.actionPayload === 'object'
+      ? (source.actionPayload as Record<string, unknown>)
+      : {};
+  const tabRaw = String(payload.tab || '')
+    .trim()
+    .toUpperCase();
+  const listingTopicRaw = String(payload.listingTopic || '')
+    .trim()
+    .toUpperCase() as ListingTopic;
+  const patentTypeRaw = String(payload.patentType || '')
+    .trim()
+    .toUpperCase() as PatentType;
+
+  return {
+    enabled: source.enabled !== false,
+    imageUrl: String(source.imageUrl || fallback.imageUrl).trim().slice(0, 1000) || fallback.imageUrl,
+    title: String(source.title || '').trim().slice(0, 24),
+    subtitle: String(source.subtitle || '').trim().slice(0, 40),
+    actionPayload: {
+      ...(tabRaw === 'LISTING' || tabRaw === 'ACHIEVEMENT' ? { tab: tabRaw } : {}),
+      ...(LISTING_TOPIC_SET.has(listingTopicRaw) ? { listingTopic: listingTopicRaw } : {}),
+      ...(PATENT_TYPE_SET.has(patentTypeRaw) ? { patentType: patentTypeRaw } : {}),
+      reset: true,
+    },
+  };
+}
+
 export function normalizeHomeLandingConfig(input: unknown): HomeLandingConfig {
   const fallback = defaultHomeLandingConfig();
   const source = input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
   const heroRaw = source.hero && typeof source.hero === 'object' ? (source.hero as Record<string, unknown>) : {};
+  const heroSpotlightRaw =
+    source.heroSpotlight && typeof source.heroSpotlight === 'object'
+      ? (source.heroSpotlight as Record<string, unknown>)
+      : {};
   const sectionRaw =
     source.sectionTexts && typeof source.sectionTexts === 'object'
       ? (source.sectionTexts as Record<string, unknown>)
@@ -243,6 +299,7 @@ export function normalizeHomeLandingConfig(input: unknown): HomeLandingConfig {
       tags: tags.length ? tags : [...fallback.hero.tags],
       searchPlaceholder: searchPlaceholder || fallback.hero.searchPlaceholder,
     },
+    heroSpotlight: normalizeHeroSpotlight(heroSpotlightRaw, fallback.heroSpotlight),
     sectionTexts: {
       featuredTitle: String(sectionRaw.featuredTitle || fallback.sectionTexts.featuredTitle).trim() || fallback.sectionTexts.featuredTitle,
       featuredMoreText: String(sectionRaw.featuredMoreText || fallback.sectionTexts.featuredMoreText).trim() || fallback.sectionTexts.featuredMoreText,

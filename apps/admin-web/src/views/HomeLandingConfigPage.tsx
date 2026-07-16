@@ -51,12 +51,26 @@ type FeaturedItem = {
   };
 };
 
+type HeroSpotlight = {
+  enabled: boolean;
+  imageUrl: string;
+  title: string;
+  subtitle: string;
+  actionPayload: {
+    tab?: SearchTab;
+    listingTopic?: ListingTopic;
+    patentType?: PatentType;
+    reset?: boolean;
+  };
+};
+
 type HomeLandingConfig = {
   schemaVersion: 1;
   hero: {
     tags: string[];
     searchPlaceholder: string;
   };
+  heroSpotlight: HeroSpotlight;
   sectionTexts: {
     featuredTitle: string;
     featuredMoreText: string;
@@ -110,6 +124,7 @@ const TOPIC_META: Record<ListingTopic, { featuredId: string; builtinImageUrl: st
 };
 
 const DEFAULT_FEATURED_ITEM_COUNT = 4;
+const DEFAULT_HERO_SPOTLIGHT_IMAGE_URL = 'https://ipmoney.cn/static/images/assets/home/promo-certificate.png';
 
 function normalizeOperatorText(value: unknown, fallback = '', maxLength = 1000): string {
   const normalized = normalizeUserFacingText(value);
@@ -144,12 +159,53 @@ function defaultLabelForTopic(topic?: ListingTopic | null): string {
   return '特色卡片';
 }
 
+function normalizeHeroSpotlightActionPayload(input: unknown): HeroSpotlight['actionPayload'] {
+  const payload = input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
+  const tabRaw = String(payload.tab || '')
+    .trim()
+    .toUpperCase();
+  const listingTopicRaw = String(payload.listingTopic || '')
+    .trim()
+    .toUpperCase() as ListingTopic;
+  const patentTypeRaw = String(payload.patentType || '')
+    .trim()
+    .toUpperCase() as PatentType;
+
+  return {
+    ...(tabRaw === 'LISTING' || tabRaw === 'ACHIEVEMENT' ? { tab: tabRaw } : {}),
+    ...(TOPIC_SET.has(listingTopicRaw) ? { listingTopic: listingTopicRaw } : {}),
+    ...(PATENT_TYPE_SET.has(patentTypeRaw) ? { patentType: patentTypeRaw } : {}),
+    reset: true,
+  };
+}
+
+function normalizeHeroSpotlight(input: unknown): HeroSpotlight {
+  const source = input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
+  return {
+    enabled: source.enabled !== false,
+    imageUrl: normalizeOperatorText(source.imageUrl, DEFAULT_HERO_SPOTLIGHT_IMAGE_URL, 1000),
+    title: normalizeOperatorText(source.title, '', 24),
+    subtitle: normalizeOperatorText(source.subtitle, '', 40),
+    actionPayload: normalizeHeroSpotlightActionPayload(source.actionPayload),
+  };
+}
+
 function defaultHomeLandingConfig(): HomeLandingConfig {
   return {
     schemaVersion: 1,
     hero: {
       tags: ['0元专利托管', '0元代办过户', '0风险交易'],
       searchPlaceholder: '开始寻找被你发现的IP',
+    },
+    heroSpotlight: {
+      enabled: true,
+      imageUrl: DEFAULT_HERO_SPOTLIGHT_IMAGE_URL,
+      title: '',
+      subtitle: '',
+      actionPayload: {
+        tab: 'LISTING',
+        reset: true,
+      },
     },
     sectionTexts: {
       featuredTitle: '特色专区',
@@ -321,6 +377,12 @@ function deriveListingTopicUiItems(featuredItems: FeaturedItem[], rawTopicItems:
 
 function buildPersistedHomeLandingConfig(input: HomeLandingConfig): HomeLandingConfig {
   const normalized = normalizeHomeLandingConfig(input);
+  const heroSpotlightImage = normalizeOperatorText(
+    normalized.heroSpotlight.imageUrl,
+    DEFAULT_HERO_SPOTLIGHT_IMAGE_URL,
+    1000,
+  );
+  const heroSpotlightTab = normalized.heroSpotlight.actionPayload.tab;
   const featuredItems = normalized.featuredZones.items.map((item, index) => {
     const topic = item.actionPayload.listingTopic;
     const defaultImageUrl = defaultBuiltinImageForTopic(topic);
@@ -345,6 +407,22 @@ function buildPersistedHomeLandingConfig(input: HomeLandingConfig): HomeLandingC
 
   return {
     ...normalized,
+    heroSpotlight: {
+      enabled: normalized.heroSpotlight.enabled,
+      imageUrl: heroSpotlightImage || DEFAULT_HERO_SPOTLIGHT_IMAGE_URL,
+      title: normalizeOperatorText(normalized.heroSpotlight.title, '', 24),
+      subtitle: normalizeOperatorText(normalized.heroSpotlight.subtitle, '', 40),
+      actionPayload: {
+        ...(heroSpotlightTab ? { tab: heroSpotlightTab } : {}),
+        ...(heroSpotlightTab && normalized.heroSpotlight.actionPayload.listingTopic
+          ? { listingTopic: normalized.heroSpotlight.actionPayload.listingTopic }
+          : {}),
+        ...(heroSpotlightTab && normalized.heroSpotlight.actionPayload.patentType
+          ? { patentType: normalized.heroSpotlight.actionPayload.patentType }
+          : {}),
+        reset: true,
+      },
+    },
     featuredZones: {
       ...normalized.featuredZones,
       displayCount: 4,
@@ -360,6 +438,10 @@ function normalizeHomeLandingConfig(input: unknown): HomeLandingConfig {
   const fallback = defaultHomeLandingConfig();
   const source = input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
   const heroRaw = source.hero && typeof source.hero === 'object' ? (source.hero as Record<string, unknown>) : {};
+  const heroSpotlightRaw =
+    source.heroSpotlight && typeof source.heroSpotlight === 'object'
+      ? (source.heroSpotlight as Record<string, unknown>)
+      : {};
   const sectionRaw =
     source.sectionTexts && typeof source.sectionTexts === 'object'
       ? (source.sectionTexts as Record<string, unknown>)
@@ -389,6 +471,7 @@ function normalizeHomeLandingConfig(input: unknown): HomeLandingConfig {
       tags: tags.length ? tags : [...fallback.hero.tags],
       searchPlaceholder: searchPlaceholder || fallback.hero.searchPlaceholder,
     },
+    heroSpotlight: normalizeHeroSpotlight(heroSpotlightRaw),
     sectionTexts: {
       featuredTitle: normalizeOperatorText(sectionRaw.featuredTitle, fallback.sectionTexts.featuredTitle, 20),
       featuredMoreText: normalizeOperatorText(sectionRaw.featuredMoreText, fallback.sectionTexts.featuredMoreText, 10),
@@ -468,6 +551,10 @@ export function HomeLandingConfigPage() {
   }, [form]);
 
   const validateBeforeSave = useCallback((payload: HomeLandingConfig): string | null => {
+    if (payload.heroSpotlight.enabled && !payload.heroSpotlight.imageUrl.trim()) {
+      return '首页固定展示图已启用时，必须上传展示图片。';
+    }
+
     if (payload.featuredZones.enabled) {
       const enabledItems = (payload.featuredZones.items || []).filter((item) => item.enabled);
       if (enabledItems.length < DEFAULT_FEATURED_ITEM_COUNT) {
@@ -593,6 +680,111 @@ export function HomeLandingConfigPage() {
                 <Input maxLength={10} placeholder="例如：更多" />
               </Form.Item>
             </div>
+          </Card>
+
+          <Card>
+            <Typography.Title level={4} style={{ marginTop: 0 }}>
+              首页固定展示图
+            </Typography.Title>
+            <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
+              这里修改首页这张主展示图的图片、文案和点击后的去向。
+            </Typography.Paragraph>
+            <Space direction="vertical" size={12} style={{ width: '100%' }}>
+              <Space wrap size={16}>
+                <Form.Item label="是否显示" name={['heroSpotlight', 'enabled']} valuePropName="checked">
+                  <Switch />
+                </Form.Item>
+              </Space>
+
+              <Form.Item shouldUpdate noStyle>
+                {() => {
+                  const imagePath = ['heroSpotlight', 'imageUrl'] as const;
+                  const tabPath = ['heroSpotlight', 'actionPayload', 'tab'] as const;
+                  const currentImage = form.getFieldValue(imagePath) as string | undefined;
+                  const currentTab = form.getFieldValue(tabPath) as SearchTab | undefined;
+                  const destinationValue = currentTab || 'NONE';
+
+                  return (
+                    <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                      <Form.Item label="展示图片" style={{ width: 520, marginBottom: 0 }}>
+                        <ImageUrlUploadField
+                          value={currentImage}
+                          uploadPurpose="HOME_HERO_SPOTLIGHT_IMAGE"
+                          maxSizeMb={10}
+                          allowUrlInput={false}
+                          uploadButtonText="上传展示图片"
+                          onChange={(next) => {
+                            form.setFieldValue(imagePath, next);
+                            void syncJsonFromForm();
+                          }}
+                        />
+                      </Form.Item>
+
+                      <Space wrap size={12}>
+                        <Form.Item label="主标题" name={['heroSpotlight', 'title']} style={{ width: 260, marginBottom: 0 }}>
+                          <Input maxLength={24} placeholder="可不填，例如：证书交易专区" />
+                        </Form.Item>
+                        <Form.Item label="副标题" name={['heroSpotlight', 'subtitle']} style={{ width: 320, marginBottom: 0 }}>
+                          <Input maxLength={40} placeholder="可不填，例如：平台精选证书可直接查看" />
+                        </Form.Item>
+                      </Space>
+
+                      <Space wrap size={12} align="start">
+                        <Form.Item label="点击后去哪里" style={{ width: 240, marginBottom: 0 }}>
+                          <Select
+                            value={destinationValue}
+                            options={[
+                              { value: 'NONE', label: '不跳转' },
+                              { value: 'LISTING', label: '进入专利交易列表' },
+                              { value: 'ACHIEVEMENT', label: '进入专利成果列表' },
+                            ]}
+                            onChange={(next) => {
+                              if (next === 'NONE') {
+                                form.setFields([
+                                  { name: ['heroSpotlight', 'actionPayload', 'tab'], value: undefined },
+                                  { name: ['heroSpotlight', 'actionPayload', 'listingTopic'], value: undefined },
+                                  { name: ['heroSpotlight', 'actionPayload', 'patentType'], value: undefined },
+                                ]);
+                              } else {
+                                form.setFieldValue(['heroSpotlight', 'actionPayload', 'tab'], next);
+                              }
+                              void syncJsonFromForm();
+                            }}
+                          />
+                        </Form.Item>
+
+                        {destinationValue !== 'NONE' ? (
+                          <>
+                            <Form.Item
+                              label="筛选标签"
+                              name={['heroSpotlight', 'actionPayload', 'listingTopic']}
+                              style={{ width: 220, marginBottom: 0 }}
+                            >
+                              <Select allowClear options={listingTopicOptions} placeholder="可不限制" />
+                            </Form.Item>
+                            <Form.Item
+                              label="专利类型"
+                              name={['heroSpotlight', 'actionPayload', 'patentType']}
+                              style={{ width: 220, marginBottom: 0 }}
+                            >
+                              <Select
+                                allowClear
+                                placeholder="可不限制"
+                                options={[
+                                  { value: 'INVENTION', label: '发明' },
+                                  { value: 'UTILITY_MODEL', label: '实用新型' },
+                                  { value: 'DESIGN', label: '外观' },
+                                ]}
+                              />
+                            </Form.Item>
+                          </>
+                        ) : null}
+                      </Space>
+                    </Space>
+                  );
+                }}
+              </Form.Item>
+            </Space>
           </Card>
 
           <Card>

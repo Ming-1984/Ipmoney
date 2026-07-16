@@ -210,7 +210,6 @@ export function DashboardPage() {
         { label: '专利批量运营', to: '/patents/operations', tone: 'green' as const, permission: 'patent.import' },
         { label: '成果/经理人导入', to: '/imports/bulk', tone: 'volcano' as const, permission: 'patent.import' },
         { label: '首页展示内容', to: '/config/home-landing', tone: 'purple' as const, permission: 'config.manage' },
-        { label: '首页轮播', to: '/home-banners', tone: 'magenta' as const, permission: 'config.manage' },
         { label: '账号权限', to: '/rbac', tone: 'blue' as const, permission: 'rbac.manage' },
         { label: '订单管理', to: '/orders', tone: 'default' as const, permission: 'order.read' },
       ].filter((item) => can(permissionSet, item.permission)),

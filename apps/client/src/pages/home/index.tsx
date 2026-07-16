@@ -19,6 +19,7 @@ import homeIconOrganization from '../../assets/icons/home/home-organization.svg'
 import homeIconUtilityPatent from '../../assets/icons/home/home-utility-patent.svg';
 import homeIconAchievement from '../../assets/icons/home/home-achievement.svg';
 import logoPng from '../../assets/brand/logo.png';
+import bannerFallbackCover from '../../assets/home/promo-certificate.png';
 import { STORAGE_KEYS } from '../../constants';
 import { getToken, onAuthChanged } from '../../lib/auth';
 import { apiGet, apiPost } from '../../lib/api';
@@ -37,13 +38,6 @@ import {
   resolveHomeLandingZoneImage,
 } from '../../lib/homeLandingFeatured';
 import { fetchHomeAnnouncements, type PublicHomeAnnouncementItem } from '../../lib/homeAnnouncements';
-import {
-  buildHomeBannerItems,
-  HOME_BANNER_FALLBACK_COVER,
-  type BannerConfig,
-  type HomeBannerItem,
-} from '../../lib/homeBannerConfig';
-import { isTabPageUrl, normalizePageUrl } from '../../lib/navigation';
 import { EmptyCard, ErrorCard } from '../../ui/StateCards';
 import { PullToRefresh, toast } from '../../ui/nutui';
 import { ListingCard } from '../../ui/ListingCard';
@@ -75,82 +69,46 @@ const HOME_LISTINGS_CACHE_SCOPE = 'home-listings';
 const HOME_RECOMMEND_PAGE_SIZE = 10;
 type HomeRecommendMode = 'RECOMMEND' | 'NEWEST';
 
-async function openBannerLink(linkUrl?: string) {
-  const target = normalizePageUrl(linkUrl);
-  if (!target) return false;
-  try {
-    if (isTabPageUrl(target)) {
-      await Taro.switchTab({ url: target });
-      return true;
-    }
-    await Taro.navigateTo({ url: target });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-const HomeBanner = React.memo(function HomeBanner({ items }: { items: HomeBannerItem[] }) {
-  const [failedCoverIds, setFailedCoverIds] = useState<Set<string>>(() => new Set());
+const HomeHeroSpotlight = React.memo(function HomeHeroSpotlight({ config }: { config: HomeLandingConfig['heroSpotlight'] }) {
+  const [imageSrc, setImageSrc] = useState('');
 
   useEffect(() => {
-    setFailedCoverIds(new Set());
-  }, [items]);
+    setImageSrc(String(config.imageUrl || '').trim());
+  }, [config.imageUrl]);
 
-  if (!items.length) return null;
-  const shouldAutoplay = items.length > 1;
+  if (!config.enabled || !imageSrc) return null;
+
+  const title = normalizeDisplayText(config.title);
+  const subtitle = normalizeDisplayText(config.subtitle);
+  const canOpen = Boolean(config.actionPayload?.tab);
 
   return (
-    <View className="home-banner">
-      <Swiper
-        className="home-banner-swiper"
-        circular={shouldAutoplay}
-        indicatorDots={shouldAutoplay}
-        autoplay={shouldAutoplay}
-        interval={3000}
-        duration={520}
-      >
-        {items.map((item, index) => (
-          <SwiperItem key={item.id}>
-            <View
-              className="home-banner-item"
-              onClick={async () => {
-                if (item.mediaType === 'VIDEO' && item.videoUrl) {
-                  await Taro.navigateTo({
-                    url: `/subpackages/media/video-preview/index?i=${index}`,
-                  });
-                  return;
-                }
-                const opened = await openBannerLink(item.linkUrl);
-                if (!opened && item.linkUrl) {
-                  toast('当前轮播暂不可打开');
-                }
-              }}
-            >
-              <Image
-                src={failedCoverIds.has(item.id) ? HOME_BANNER_FALLBACK_COVER : item.cover}
-                mode="aspectFill"
-                className="home-banner-img"
-                lazyLoad
-                onError={() => {
-                  if (item.cover === HOME_BANNER_FALLBACK_COVER) return;
-                  setFailedCoverIds((prev) => {
-                    if (prev.has(item.id)) return prev;
-                    const next = new Set(prev);
-                    next.add(item.id);
-                    return next;
-                  });
-                }}
-              />
-              <View className="home-banner-overlay">
-                <Text className="home-banner-caption">
-                  {item.mediaType === 'VIDEO' && item.videoUrl ? '点击观看' : item.linkUrl ? '点击查看' : normalizeDisplayText(item.title) || '查看内容'}
-                </Text>
-              </View>
-            </View>
-          </SwiperItem>
-        ))}
-      </Swiper>
+    <View
+      className={`home-spotlight${canOpen ? ' is-clickable' : ''}`}
+      onClick={() => {
+        if (!canOpen) return;
+        executeHomeLandingAction('SEARCH_PREFILL', config.actionPayload);
+      }}
+    >
+      <Image
+        src={imageSrc}
+        mode="aspectFill"
+        className="home-spotlight-img"
+        lazyLoad
+        onError={() => {
+          if (imageSrc === bannerFallbackCover) return;
+          setImageSrc(bannerFallbackCover);
+        }}
+      />
+      {title || subtitle || canOpen ? (
+        <View className="home-spotlight-overlay">
+          <View className="home-spotlight-copy">
+            {title ? <Text className="home-spotlight-title">{title}</Text> : null}
+            {subtitle ? <Text className="home-spotlight-subtitle">{subtitle}</Text> : null}
+          </View>
+          {canOpen ? <Text className="home-spotlight-cta">点击查看</Text> : null}
+        </View>
+      ) : null}
     </View>
   );
 });
@@ -178,7 +136,6 @@ export default function HomePage() {
   const [keyword, setKeyword] = useState('');
   const [announcements, setAnnouncements] = useState<PublicHomeAnnouncementItem[]>([]);
   const [activeAnnouncementIndex, setActiveAnnouncementIndex] = useState(0);
-  const [bannerItems, setBannerItems] = useState<HomeBannerItem[]>(() => buildHomeBannerItems());
   const [homeLandingConfig, setHomeLandingConfig] = useState<HomeLandingConfig>(() => normalizeHomeLandingConfig(null));
   const itemCountRef = useRef(items.length);
   const authStateRef = useRef(isAuthed);
@@ -233,15 +190,6 @@ export default function HomePage() {
     } catch {
       // Announcement loading should never block the homepage core experience.
       setAnnouncements([]);
-    }
-  }, []);
-
-  const loadBanner = useCallback(async () => {
-    try {
-      const banner = await apiGet<BannerConfig>('/public/config/banner');
-      setBannerItems(buildHomeBannerItems(banner));
-    } catch {
-      // keep fallback banner when config request fails
     }
   }, []);
 
@@ -373,10 +321,6 @@ export default function HomePage() {
   useEffect(() => {
     void loadAnnouncements();
   }, [loadAnnouncements]);
-
-  useEffect(() => {
-    void loadBanner();
-  }, [loadBanner]);
 
   useEffect(() => {
     void loadHomeLanding();
@@ -711,7 +655,7 @@ export default function HomePage() {
         </View>
       ) : null}
 
-      <HomeBanner items={bannerItems} />
+      <HomeHeroSpotlight config={homeLandingConfig.heroSpotlight} />
 
       <View className="home-quick">
         {quickEntries.map((entry) => (

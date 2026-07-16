@@ -146,7 +146,7 @@ export function ConfigPage() {
           高级系统配置
         </Typography.Title>
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-          这里用于维护交易规则、推荐权重、客服、词库和告警等系统级参数。首页展示内容、首页轮播、首页公告已拆分到独立运营页面，普通运营日常无需进入本页。
+          这里用于维护交易规则、推荐权重、客服、词库和告警等系统级参数。首页展示内容和首页公告已拆分到独立运营页面，普通运营日常无需进入本页。
         </Typography.Paragraph>
       </Card>
 
