@@ -92,6 +92,9 @@ async function bootstrap() {
 
   // Basic hardening (no extra deps).
   app.disable('x-powered-by');
+  // WeChat Mini Program requests treat API 304 responses as failures in our
+  // client wrapper, so keep JSON API responses explicit during local/prod use.
+  app.set('etag', false);
   app.use((_: unknown, res: { setHeader: (name: string, value: string) => void }, next: () => void) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
