@@ -51,6 +51,7 @@ describe('ListingsService write flow suite', () => {
   let prisma: any;
   let audit: any;
   let notifications: any;
+  let opsNotifications: any;
   let contentSecurity: any;
   let service: ListingsService;
 
@@ -84,13 +85,14 @@ describe('ListingsService write flow suite', () => {
     };
     audit = { log: vi.fn().mockResolvedValue(undefined) };
     notifications = { create: vi.fn().mockResolvedValue(undefined) };
+    opsNotifications = { enqueueListingConsultationCreated: vi.fn().mockResolvedValue({ count: 1 }) };
     const events = { recordView: vi.fn().mockResolvedValue(undefined), recordConsult: vi.fn().mockResolvedValue(true) };
     const config = { getRecommendation: vi.fn().mockResolvedValue({ enabled: false }) };
     contentSecurity = {
       assertSafeTexts: vi.fn().mockResolvedValue(undefined),
       ensureReferencedFilesReady: vi.fn().mockResolvedValue(undefined),
     };
-    service = new ListingsService(prisma, audit, notifications, events as any, config as any, contentSecurity);
+    service = new ListingsService(prisma, audit, notifications, opsNotifications, events as any, config as any, contentSecurity);
   });
 
   it('validates create payload strictly', async () => {

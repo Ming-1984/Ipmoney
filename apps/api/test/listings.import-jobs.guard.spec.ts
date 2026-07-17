@@ -19,6 +19,7 @@ describe('ListingsService import job guard suite', () => {
     };
     const audit = { log: vi.fn().mockResolvedValue(undefined) };
     const notifications = { create: vi.fn().mockResolvedValue(undefined) };
+    const opsNotifications = { enqueueListingConsultationCreated: vi.fn().mockResolvedValue({ count: 1 }) };
     const events = { adjustFavoriteCount: vi.fn().mockResolvedValue(undefined) };
     const config = { getRecommendation: vi.fn().mockResolvedValue({ enabled: false }) };
     const contentSecurity = {
@@ -26,7 +27,15 @@ describe('ListingsService import job guard suite', () => {
       ensureReferencedFilesReady: vi.fn().mockResolvedValue(undefined),
     };
 
-    service = new ListingsService(prisma, audit as any, notifications as any, events as any, config as any, contentSecurity);
+    service = new ListingsService(
+      prisma,
+      audit as any,
+      notifications as any,
+      opsNotifications as any,
+      events as any,
+      config as any,
+      contentSecurity,
+    );
   });
 
   it('rejects validateImportJob when job is running', async () => {

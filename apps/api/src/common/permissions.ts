@@ -24,6 +24,7 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRoleName, string[]> = {
     'report.read',
     'report.export',
     'alert.manage',
+    'ops.notification.read',
     'auditLog.read',
   ],
   cs: [
@@ -36,6 +37,7 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRoleName, string[]> = {
     'milestone.transferCompleted.confirm',
     'refund.read',
     'settlement.read',
+    'ops.notification.read',
     'auditLog.read',
   ],
   finance: [
@@ -52,6 +54,7 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRoleName, string[]> = {
     'report.read',
     'report.export',
     'alert.manage',
+    'ops.notification.read',
     'auditLog.read',
   ],
 };

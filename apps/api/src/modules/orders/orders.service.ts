@@ -22,6 +22,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { ConfigService, TradeRulesConfig } from '../config/config.service';
 import { isDemoPaymentEnabled } from '../../common/demo';
 import { NotificationsService } from '../notifications/notifications.service';
+import { OpsNotificationsService } from '../ops-notifications/ops-notifications.service';
 import { WechatPayClient, WechatPayError } from '../../common/wechat-pay.client';
 import { normalizeDisplayText } from '../content-utils';
 
@@ -222,6 +223,7 @@ export class OrdersService {
     private readonly audit: AuditLogService,
     private readonly config: ConfigService,
     private readonly notifications: NotificationsService,
+    private readonly opsNotifications: OpsNotificationsService,
   ) {}
 
   private async notifyUser(userId: string | null | undefined, title: string, summary: string, source: string) {
@@ -317,8 +319,8 @@ export class OrdersService {
     throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
   }
 
-  private async getOrderContext(orderId: string) {
-    const order = await this.prisma.order.findUnique({
+  private async getOrderContext(orderId: string, client: any = this.prisma) {
+    const order = await client.order.findUnique({
       where: { id: orderId },
       include: { listing: true },
     });
@@ -603,7 +605,20 @@ export class OrdersService {
     });
   }
 
-  private async updateOrderAndMaybeOffShelf(orderId: string, data: any, listingId?: string | null, offShelf?: boolean) {
+  private async updateOrderAndMaybeOffShelf(
+    orderId: string,
+    data: any,
+    listingId?: string | null,
+    offShelf?: boolean,
+    client?: any,
+  ) {
+    if (client) {
+      const updatedOrder = await client.order.update({ where: { id: orderId }, data });
+      if (offShelf && listingId && typeof client.listing?.update === 'function') {
+        await client.listing.update({ where: { id: listingId }, data: { status: 'OFF_SHELF' } });
+      }
+      return updatedOrder;
+    }
     if (typeof (this.prisma as any).$transaction === 'function') {
       return await (this.prisma as any).$transaction(async (client: any) => {
         const updatedOrder = await client.order.update({ where: { id: orderId }, data });
@@ -1409,29 +1424,51 @@ export class OrdersService {
     const parsedTradeNo = hasTradeNo ? this.parseNullableNonEmptyStringStrict(body?.tradeNo, 'tradeNo') : undefined;
     const tradeNo = hasTradeNo ? (parsedTradeNo ?? fallbackTradeNo) : fallbackTradeNo;
     const targetStatus = payType === 'FINAL' ? 'FINAL_PAID_ESCROW' : 'DEPOSIT_PAID';
-    const payment = existingPayment
-      ? await this.prisma.payment.update({
-          where: { id: existingPayment.id },
-          data: { status: 'PAID', paidAt, tradeNo, amount },
-        })
-      : await this.prisma.payment.create({
-          data: {
+    const persistPaymentAndNotification = async (client: any) => {
+      const payment = existingPayment
+        ? await client.payment.update({
+            where: { id: existingPayment.id },
+            data: { status: 'PAID', paidAt, tradeNo, amount },
+          })
+        : await client.payment.create({
+            data: {
+              orderId: normalizedOrderId,
+              payType: normalizedPayType,
+              channel: 'WECHAT',
+              tradeNo,
+              amount,
+              status: 'PAID',
+              paidAt,
+            },
+          });
+
+      const updated = await this.updateOrderAndMaybeOffShelf(
+        normalizedOrderId,
+        { status: targetStatus },
+        order.listingId,
+        payType === 'DEPOSIT',
+        client,
+      );
+      const ctx = await this.getOrderContext(normalizedOrderId, client);
+      if (ctx && payType === 'DEPOSIT') {
+        await this.opsNotifications.enqueueOrderDepositPaid(
+          {
             orderId: normalizedOrderId,
-            payType: normalizedPayType,
-            channel: 'WECHAT',
-            tradeNo,
-            amount,
-            status: 'PAID',
+            listingTitle: ctx.listingTitle,
+            depositAmountFen: order.depositAmount,
+            buyerUserId: ctx.buyerUserId,
+            sellerUserId: ctx.sellerUserId,
             paidAt,
           },
-        });
-
-    const updated = await this.updateOrderAndMaybeOffShelf(
-      normalizedOrderId,
-      { status: targetStatus },
-      order.listingId,
-      payType === 'DEPOSIT',
-    );
+          client,
+        );
+      }
+      return { ctx, payment, updated };
+    };
+    const { ctx, payment, updated } =
+      typeof (this.prisma as any).$transaction === 'function'
+        ? await (this.prisma as any).$transaction((client: any) => persistPaymentAndNotification(client))
+        : await persistPaymentAndNotification(this.prisma);
 
     await this.audit.log({
       actorUserId: req.auth.userId,
@@ -1443,7 +1480,6 @@ export class OrdersService {
     });
 
     await this.ensureCaseForOrder(updated);
-    const ctx = await this.getOrderContext(normalizedOrderId);
     if (ctx) {
       const title = payType === 'FINAL' ? '尾款支付确认' : '订金支付确认';
       const summary =

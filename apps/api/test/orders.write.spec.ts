@@ -51,6 +51,7 @@ describe('OrdersService write-first suite', () => {
   let audit: any;
   let config: any;
   let notifications: any;
+  let opsNotifications: any;
   let service: OrdersService;
   let originalDemoPayment: string | undefined;
 
@@ -71,6 +72,7 @@ describe('OrdersService write-first suite', () => {
       csCase: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
       csMilestone: { findMany: vi.fn(), createMany: vi.fn(), updateMany: vi.fn() },
     };
+    prisma.$transaction = vi.fn(async (run: any) => run(prisma));
     audit = { log: vi.fn().mockResolvedValue(undefined) };
     config = {
       getTradeRules: vi.fn().mockResolvedValue({
@@ -86,8 +88,9 @@ describe('OrdersService write-first suite', () => {
       }),
     };
     notifications = { create: vi.fn().mockResolvedValue(undefined) };
+    opsNotifications = { enqueueOrderDepositPaid: vi.fn().mockResolvedValue({ count: 1 }) };
 
-    service = new OrdersService(prisma, audit, config, notifications);
+    service = new OrdersService(prisma, audit, config, notifications, opsNotifications);
   });
 
   afterEach(() => {

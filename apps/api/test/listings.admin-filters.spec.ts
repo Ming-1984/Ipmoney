@@ -20,6 +20,7 @@ describe('ListingsService admin list filter strictness suite', () => {
     };
     const audit = { log: vi.fn().mockResolvedValue(undefined) };
     const notifications = { create: vi.fn().mockResolvedValue(undefined) };
+    const opsNotifications = { enqueueListingConsultationCreated: vi.fn().mockResolvedValue({ count: 1 }) };
     const events = { adjustFavoriteCount: vi.fn().mockResolvedValue(undefined) };
     const config = { getRecommendation: vi.fn().mockResolvedValue({ enabled: false }) };
     contentSecurity = {
@@ -27,7 +28,15 @@ describe('ListingsService admin list filter strictness suite', () => {
       ensureReferencedFilesReady: vi.fn().mockResolvedValue(undefined),
     };
 
-    service = new ListingsService(prisma, audit as any, notifications as any, events as any, config as any, contentSecurity);
+    service = new ListingsService(
+      prisma,
+      audit as any,
+      notifications as any,
+      opsNotifications as any,
+      events as any,
+      config as any,
+      contentSecurity,
+    );
   });
 
   it('rejects invalid admin filters strictly', async () => {

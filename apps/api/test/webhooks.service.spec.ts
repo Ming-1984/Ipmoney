@@ -17,10 +17,6 @@ describe('WebhooksService strictness suite', () => {
       paymentWebhookEvent: {
         upsert: vi.fn().mockResolvedValue(undefined),
       },
-      order: {
-        findUnique: vi.fn(),
-        update: vi.fn(),
-      },
       payment: {
         findFirst: vi.fn(),
         create: vi.fn(),
@@ -37,12 +33,14 @@ describe('WebhooksService strictness suite', () => {
         update: vi.fn(),
       },
     } as any;
+    prisma.$transaction = vi.fn(async (run: any) => run(prisma));
 
     const audit = { log: vi.fn().mockResolvedValue(undefined) } as any;
     const notifications = { createMany: vi.fn().mockResolvedValue(undefined) } as any;
+    const opsNotifications = { enqueueOrderDepositPaid: vi.fn().mockResolvedValue({ count: 1 }) } as any;
     const contentSecurity = { handleMediaModerationCallback: vi.fn().mockResolvedValue(undefined) } as any;
 
-    const service = new WebhooksService(prisma, audit, notifications, contentSecurity);
+    const service = new WebhooksService(prisma, audit, notifications, opsNotifications, contentSecurity);
     const wechatPay = {
       isWebhookVerificationEnabled: vi.fn().mockReturnValue(false),
       verifyNotifySignature: vi.fn().mockResolvedValue(undefined),
@@ -54,6 +52,7 @@ describe('WebhooksService strictness suite', () => {
       prisma,
       audit,
       notifications,
+      opsNotifications,
       contentSecurity,
       wechatPay,
       service,

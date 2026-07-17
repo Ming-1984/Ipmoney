@@ -1453,6 +1453,27 @@ model PaymentWebhookEvent {
   @@map("payment_webhook_events")
 }
 
+model OpsNotificationJob {
+  id            String    @id @default(uuid()) @db.Uuid
+  eventType     String    @map("event_type")
+  eventKey      String    @map("event_key")
+  channel       String
+  status        String
+  recipientJson Json      @map("recipient_json")
+  payloadJson   Json      @map("payload_json")
+  attempts      Int       @default(0)
+  nextAttemptAt DateTime  @default(now()) @map("next_attempt_at")
+  sentAt        DateTime? @map("sent_at")
+  lastError     String?   @map("last_error")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@unique([channel, eventKey])
+  @@index([status, nextAttemptAt])
+  @@index([eventType, createdAt])
+  @@map("ops_notification_jobs")
+}
+
 model RefundRequest {
   id         String       @id @default(uuid()) @db.Uuid
   orderId    String       @map("order_id") @db.Uuid

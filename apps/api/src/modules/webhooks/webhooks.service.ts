@@ -7,6 +7,7 @@ import { WechatContentSecurityService } from '../../common/wechat-content-securi
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { WechatPayClient, WechatPayError } from '../../common/wechat-pay.client';
 import { NotificationsService } from '../notifications/notifications.service';
+import { OpsNotificationsService } from '../ops-notifications/ops-notifications.service';
 
 const SYSTEM_ACTOR_USER_ID = '00000000-0000-0000-0000-000000000001';
 const LISTING_LOCKING_ORDER_STATUSES = [
@@ -38,6 +39,7 @@ export class WebhooksService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogService,
     private readonly notifications: NotificationsService,
+    private readonly opsNotifications: OpsNotificationsService,
     private readonly contentSecurity: WechatContentSecurityService,
   ) {}
 
@@ -241,8 +243,8 @@ export class WebhooksService {
     return actor.id;
   }
 
-  private async getOrderContext(orderId: string) {
-    const order = await this.prisma.order.findUnique({
+  private async getOrderContext(orderId: string, client: any = this.prisma) {
+    const order = await client.order.findUnique({
       where: { id: orderId },
       include: { listing: true },
     });
@@ -263,7 +265,19 @@ export class WebhooksService {
     });
   }
 
-  private async updateOrderAndMaybeOffShelf(orderId: string, data: Record<string, any>, offShelfListingId?: string | null) {
+  private async updateOrderAndMaybeOffShelf(
+    orderId: string,
+    data: Record<string, any>,
+    offShelfListingId?: string | null,
+    client?: any,
+  ) {
+    if (client) {
+      const updatedOrder = await client.order.update({ where: { id: orderId }, data });
+      if (offShelfListingId && typeof client.listing?.update === 'function') {
+        await client.listing.update({ where: { id: offShelfListingId }, data: { status: 'OFF_SHELF' } });
+      }
+      return updatedOrder;
+    }
     if (typeof (this.prisma as any).$transaction === 'function') {
       return await (this.prisma as any).$transaction(async (client: any) => {
         const updatedOrder = await client.order.update({ where: { id: orderId }, data });
@@ -424,32 +438,34 @@ export class WebhooksService {
             orderBy: { createdAt: 'desc' },
           });
 
-    if (!existingPayment) {
-      await this.prisma.payment.create({
-        data: {
-          orderId,
-          payType,
-          channel: 'WECHAT',
-          tradeNo,
-          amount: amountFen,
-          status: 'PAID',
-          paidAt: now,
-        },
-      });
-    } else if (existingPayment.status !== 'PAID') {
-      await this.prisma.payment.update({
-        where: { id: existingPayment.id },
-        data: {
-          status: 'PAID',
-          paidAt: now,
-          tradeNo,
-          amount: amountFen,
-        },
-      });
-    }
-
     const targetStatus = payType === 'DEPOSIT' ? 'DEPOSIT_PAID' : 'FINAL_PAID_ESCROW';
-    if (order.status !== targetStatus) {
+    const persistPaymentAndNotification = async (client: any) => {
+      if (!existingPayment) {
+        await client.payment.create({
+          data: {
+            orderId,
+            payType,
+            channel: 'WECHAT',
+            tradeNo,
+            amount: amountFen,
+            status: 'PAID',
+            paidAt: now,
+          },
+        });
+      } else if (existingPayment.status !== 'PAID') {
+        await client.payment.update({
+          where: { id: existingPayment.id },
+          data: {
+            status: 'PAID',
+            paidAt: now,
+            tradeNo,
+            amount: amountFen,
+          },
+        });
+      }
+
+      if (order.status === targetStatus) return { ctx: null, updated: null };
+
       const update: Record<string, any> = { status: targetStatus };
       if (payType === 'FINAL' && order.finalAmount == null && order.dealAmount != null) {
         update.finalAmount = Math.max(0, order.dealAmount - order.depositAmount);
@@ -458,8 +474,30 @@ export class WebhooksService {
         orderId,
         update,
         payType === 'DEPOSIT' ? order.listingId : undefined,
+        client,
       );
+      const ctx = await this.getOrderContext(orderId, client);
+      if (ctx && payType === 'DEPOSIT') {
+        await this.opsNotifications.enqueueOrderDepositPaid(
+          {
+            orderId,
+            listingTitle: ctx.listingTitle,
+            depositAmountFen: order.depositAmount,
+            buyerUserId: ctx.buyerUserId,
+            sellerUserId: ctx.sellerUserId,
+            paidAt: now,
+          },
+          client,
+        );
+      }
+      return { ctx, updated };
+    };
+    const { ctx, updated } =
+      typeof (this.prisma as any).$transaction === 'function'
+        ? await (this.prisma as any).$transaction((client: any) => persistPaymentAndNotification(client))
+        : await persistPaymentAndNotification(this.prisma);
 
+    if (updated) {
       const actorUserId = await this.ensureSystemActorId();
       await this.audit.log({
         actorUserId,
@@ -473,7 +511,6 @@ export class WebhooksService {
         userAgent: req?.headers?.['user-agent'],
       });
 
-      const ctx = await this.getOrderContext(orderId);
       if (ctx) {
         const title = payType === 'DEPOSIT' ? 'Deposit payment succeeded' : 'Final payment succeeded';
         const summary =

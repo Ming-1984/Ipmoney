@@ -19,6 +19,7 @@ import { resolveRegionCodeForStorage } from '../../common/region-code';
 import { WechatContentSecurityService } from '../../common/wechat-content-security.service';
 import { resolveUploadDir } from '../../common/upload-dir';
 import { NotificationsService } from '../notifications/notifications.service';
+import { OpsNotificationsService } from '../ops-notifications/ops-notifications.service';
 import {
   mapStats,
   resolvePublicFileUrl,
@@ -232,6 +233,7 @@ export class ListingsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogService,
     private readonly notifications: NotificationsService,
+    private readonly opsNotifications: OpsNotificationsService,
     private readonly events: ContentEventService,
     private readonly config: ConfigService,
     private readonly contentSecurity: WechatContentSecurityService,
@@ -4359,34 +4361,56 @@ export class ListingsService {
     const hasChannel = this.hasOwn(payload, 'channel');
     const channel = hasChannel ? this.parseConsultChannelStrict(payload?.channel, 'channel') : 'FORM';
     const recorded = await this.events.recordConsult(req, 'LISTING', listingId);
-    if (recorded) {
-      await this.prisma.listingConsultEvent.create({
-        data: {
-          listingId,
-          userId: req.auth.userId,
-          channel,
-        },
-      });
-    }
-    let conversation = await this.prisma.conversation.findFirst({
-      where: {
-        contentType: 'LISTING',
-        contentId: listingId,
-        buyerUserId: req.auth.userId,
-        sellerUserId: listing.sellerUserId,
-      },
-    });
-    if (!conversation) {
-      conversation = await this.prisma.conversation.create({
-        data: {
+    const run = async (client: any) => {
+      if (recorded) {
+        await client.listingConsultEvent.create({
+          data: {
+            listingId,
+            userId: req.auth.userId,
+            channel,
+          },
+        });
+      }
+      let conversation = await client.conversation.findFirst({
+        where: {
           contentType: 'LISTING',
           contentId: listingId,
-          listingId: listing.id,
           buyerUserId: req.auth.userId,
           sellerUserId: listing.sellerUserId,
         },
       });
-    }
+      const isNewConversation = !conversation;
+      if (!conversation) {
+        conversation = await client.conversation.create({
+          data: {
+            contentType: 'LISTING',
+            contentId: listingId,
+            listingId: listing.id,
+            buyerUserId: req.auth.userId,
+            sellerUserId: listing.sellerUserId,
+          },
+        });
+      }
+      if (isNewConversation) {
+        await this.opsNotifications.enqueueListingConsultationCreated(
+          {
+            conversationId: conversation.id,
+            listingId: listing.id,
+            listingTitle: listing.title,
+            channel,
+            buyerUserId: req.auth.userId,
+            sellerUserId: listing.sellerUserId,
+            createdAt: conversation.createdAt,
+          },
+          client,
+        );
+      }
+      return conversation;
+    };
+    const conversation =
+      typeof (this.prisma as any).$transaction === 'function'
+        ? await (this.prisma as any).$transaction((client: any) => run(client))
+        : await run(this.prisma);
     return { ok: true, conversationId: conversation.id };
   }
 }

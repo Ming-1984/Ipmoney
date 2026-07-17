@@ -24,7 +24,8 @@ describe('OrdersService list filter strictness suite', () => {
       }),
     };
     const notifications = { create: vi.fn().mockResolvedValue(undefined) };
-    service = new OrdersService(prisma, audit as any, config as any, notifications as any);
+    const opsNotifications = { enqueueOrderDepositPaid: vi.fn().mockResolvedValue({ count: 1 }) };
+    service = new OrdersService(prisma, audit as any, config as any, notifications as any, opsNotifications as any);
   });
 
   it('requires auth for listOrders/listInvoices', async () => {
