@@ -1,1 +1,97 @@
-{}
+{
+  "GET /public/config/home-landing": {
+    "status": 200,
+    "body": {
+      "schemaVersion": 1,
+      "hero": {
+        "tags": ["0元专利年费代缴", "0元代办过户", "0风险交易"],
+        "searchPlaceholder": "开始寻找被你发现的IP"
+      },
+      "heroSpotlight": {
+        "enabled": true,
+        "imageUrl": "https://ipmoney.cn/static/images/assets/home/promo-certificate.png",
+        "title": "点击查看上架专利",
+        "subtitle": "",
+        "actionPayload": {
+          "tab": "LISTING",
+          "reset": true
+        }
+      },
+      "sectionTexts": {
+        "featuredTitle": "特色专区",
+        "featuredMoreText": "更多"
+      },
+      "featuredZones": {
+        "enabled": true,
+        "displayCount": 4,
+        "items": [
+          {
+            "id": "retired",
+            "title": "退役专利",
+            "subtitle": "平台审核通过的退役专利",
+            "imageUrl": "builtin://zone-retired",
+            "enabled": true,
+            "order": 10,
+            "actionType": "SEARCH_PREFILL",
+            "actionPayload": {
+              "tab": "LISTING",
+              "listingTopic": "HIGH_TECH_RETIRED",
+              "reset": true
+            }
+          },
+          {
+            "id": "sleeping",
+            "title": "沉睡专利",
+            "subtitle": "转让次数为 0 的专利",
+            "imageUrl": "builtin://zone-sleeping",
+            "enabled": true,
+            "order": 20,
+            "actionType": "SEARCH_PREFILL",
+            "actionPayload": {
+              "tab": "LISTING",
+              "listingTopic": "SLEEPING",
+              "reset": true
+            }
+          },
+          {
+            "id": "award-winning",
+            "title": "获奖专利",
+            "subtitle": "平台标记的获奖专利",
+            "imageUrl": "builtin://zone-award-winning",
+            "enabled": true,
+            "order": 30,
+            "actionType": "SEARCH_PREFILL",
+            "actionPayload": {
+              "tab": "LISTING",
+              "listingTopic": "AWARD_WINNING",
+              "reset": true
+            }
+          },
+          {
+            "id": "five-star",
+            "title": "五星专利",
+            "subtitle": "平台优选的高质量专利",
+            "imageUrl": "builtin://zone-five-star",
+            "enabled": true,
+            "order": 40,
+            "actionType": "SEARCH_PREFILL",
+            "actionPayload": {
+              "tab": "LISTING",
+              "listingTopic": "FIVE_STAR",
+              "reset": true
+            }
+          }
+        ]
+      },
+      "listingTopicUi": {
+        "items": [
+          { "value": "HIGH_TECH_RETIRED", "label": "退役专利", "enabled": true, "order": 10 },
+          { "value": "SLEEPING", "label": "沉睡专利", "enabled": true, "order": 20 },
+          { "value": "AWARD_WINNING", "label": "获奖专利", "enabled": true, "order": 30 },
+          { "value": "FIVE_STAR", "label": "五星专利", "enabled": true, "order": 40 },
+          { "value": "OPEN_LICENSE", "label": "开放许可", "enabled": false, "order": 50 }
+        ]
+      }
+    }
+  }
+}

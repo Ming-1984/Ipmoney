@@ -68,6 +68,15 @@ const HOME_FAVORITES_SYNC_DELAY_MS = 800;
 const HOME_LISTINGS_CACHE_SCOPE = 'home-listings';
 const HOME_RECOMMEND_PAGE_SIZE = 10;
 type HomeRecommendMode = 'RECOMMEND' | 'NEWEST';
+const HOME_SPOTLIGHT_CTA_TEXT = '点击查看';
+const HOME_SPOTLIGHT_INLINE_ACTION_PATTERN = /(点击查看|立即查看|去查看|查看详情|点击了解|立即了解|去了解)/;
+
+function hasInlineSpotlightActionCopy(...values: Array<string | undefined>): boolean {
+  return values.some((value) => {
+    const text = normalizeDisplayText(value);
+    return Boolean(text) && HOME_SPOTLIGHT_INLINE_ACTION_PATTERN.test(text);
+  });
+}
 
 const HomeHeroSpotlight = React.memo(function HomeHeroSpotlight({ config }: { config: HomeLandingConfig['heroSpotlight'] }) {
   const [imageSrc, setImageSrc] = useState('');
@@ -81,6 +90,7 @@ const HomeHeroSpotlight = React.memo(function HomeHeroSpotlight({ config }: { co
   const title = normalizeDisplayText(config.title);
   const subtitle = normalizeDisplayText(config.subtitle);
   const canOpen = Boolean(config.actionPayload?.tab);
+  const showCta = canOpen && !hasInlineSpotlightActionCopy(title, subtitle);
 
   return (
     <View
@@ -106,7 +116,7 @@ const HomeHeroSpotlight = React.memo(function HomeHeroSpotlight({ config }: { co
             {title ? <Text className="home-spotlight-title">{title}</Text> : null}
             {subtitle ? <Text className="home-spotlight-subtitle">{subtitle}</Text> : null}
           </View>
-          {canOpen ? <Text className="home-spotlight-cta">点击查看</Text> : null}
+          {showCta ? <Text className="home-spotlight-cta">{HOME_SPOTLIGHT_CTA_TEXT}</Text> : null}
         </View>
       ) : null}
     </View>
