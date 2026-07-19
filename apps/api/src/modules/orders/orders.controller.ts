@@ -29,6 +29,13 @@ export class OrdersController {
   }
 
   @UseGuards(BearerAuthGuard)
+  @Get('/admin/orders/assigned')
+  async listAssignedOrders(@Req() req: any, @Query() query: any) {
+    requirePermission(req, 'order.assigned.read');
+    return await this.orders.listAssignedOrders(req, query);
+  }
+
+  @UseGuards(BearerAuthGuard)
   @Get('/admin/refund-requests')
   async listAdminRefundRequests(@Req() req: any, @Query() query: any) {
     requirePermission(req, 'refund.read');
@@ -113,6 +120,20 @@ export class OrdersController {
   async getAdminOrder(@Req() req: any, @Param('orderId') orderId: string) {
     requirePermission(req, 'order.read');
     return await this.orders.getAdminOrderDetail(req, orderId);
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Get('/admin/orders/assigned/:orderId')
+  async getAssignedOrder(@Req() req: any, @Param('orderId') orderId: string) {
+    requirePermission(req, 'order.assigned.read');
+    return await this.orders.getAssignedOrderDetail(req, orderId);
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Post('/admin/orders/assigned/:orderId/milestones/contract-signed')
+  async assignedContractSigned(@Req() req: any, @Param('orderId') orderId: string, @Body() body: any) {
+    requirePermission(req, 'order.assigned.contract.confirm');
+    return await this.orders.assignedContractSigned(req, orderId, body || {});
   }
 
   @UseGuards(BearerAuthGuard)

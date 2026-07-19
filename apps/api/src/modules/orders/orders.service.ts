@@ -18,6 +18,7 @@ type AuditStatus = (typeof AuditStatus)[keyof typeof AuditStatus];
 type ListingStatus = (typeof ListingStatus)[keyof typeof ListingStatus];
 
 import { AuditLogService } from '../../common/audit-log.service';
+import { requirePermission } from '../../common/permissions';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ConfigService, TradeRulesConfig } from '../config/config.service';
 import { isDemoPaymentEnabled } from '../../common/demo';
@@ -98,6 +99,13 @@ type PagedOrder = {
   page: { page: number; pageSize: number; total: number };
 };
 
+type AssignedOrderDto = Omit<OrderDto, 'invoiceNo' | 'invoiceFileId' | 'invoiceIssuedAt'>;
+
+type PagedAssignedOrder = {
+  items: AssignedOrderDto[];
+  page: { page: number; pageSize: number; total: number };
+};
+
 type AdminOrderMilestoneDto = {
   id: string;
   name: string;
@@ -107,6 +115,14 @@ type AdminOrderMilestoneDto = {
 
 type AdminOrderDetailDto = OrderDto & {
   milestones: AdminOrderMilestoneDto[];
+};
+
+type AssignedOrderDetailDto = AssignedOrderDto & {
+  milestones: AdminOrderMilestoneDto[];
+};
+
+type ContractSignedOptions = {
+  assignedUserId?: string;
 };
 
 type CaseWithMilestones = {
@@ -696,6 +712,45 @@ export class OrdersService {
     };
   }
 
+  private toAssignedOrderDto(order: any, listing?: any, patent?: any): AssignedOrderDto {
+    const dto = this.toOrderDto(order, listing, patent);
+    return {
+      id: dto.id,
+      listingId: dto.listingId,
+      buyerUserId: dto.buyerUserId,
+      buyerDisplayName: dto.buyerDisplayName,
+      sellerUserId: dto.sellerUserId,
+      sellerDisplayName: dto.sellerDisplayName,
+      status: dto.status,
+      depositAmountFen: dto.depositAmountFen,
+      dealAmountFen: dto.dealAmountFen,
+      finalAmountFen: dto.finalAmountFen,
+      createdAt: dto.createdAt,
+      updatedAt: dto.updatedAt,
+      listingTitle: dto.listingTitle,
+      applicationNoDisplay: dto.applicationNoDisplay,
+    };
+  }
+
+  private toAssignedOrderDtoFromOrderDto(dto: OrderDto): AssignedOrderDto {
+    return {
+      id: dto.id,
+      listingId: dto.listingId,
+      buyerUserId: dto.buyerUserId,
+      buyerDisplayName: dto.buyerDisplayName,
+      sellerUserId: dto.sellerUserId,
+      sellerDisplayName: dto.sellerDisplayName,
+      status: dto.status,
+      depositAmountFen: dto.depositAmountFen,
+      dealAmountFen: dto.dealAmountFen,
+      finalAmountFen: dto.finalAmountFen,
+      createdAt: dto.createdAt,
+      updatedAt: dto.updatedAt,
+      listingTitle: dto.listingTitle,
+      applicationNoDisplay: dto.applicationNoDisplay,
+    };
+  }
+
   private toAdminOrderContext(order: any): AdminOrderContextDto | null {
     if (!order) return null;
     const listing = order.listing;
@@ -1012,6 +1067,62 @@ export class OrdersService {
 
     return {
       items: items.map((it: any) => this.toOrderDto(it, it.listing, it.listing?.patent)),
+      page: { page, pageSize, total },
+    };
+  }
+
+  async listAssignedOrders(req: any, query: any): Promise<PagedAssignedOrder> {
+    this.ensureAdmin(req);
+    requirePermission(req, 'order.assigned.read');
+    const userId = String(req?.auth?.userId || '').trim();
+    if (!userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
+    const hasPage = this.hasOwn(query, 'page');
+    const hasPageSize = this.hasOwn(query, 'pageSize');
+    const page = hasPage ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = hasPageSize ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
+    const hasStatus = this.hasOwn(query, 'status');
+    const hasStatusGroup = this.hasOwn(query, 'statusGroup');
+    const status = hasStatus ? this.normalizeOrderStatus(query?.status) : undefined;
+    const statusGroup = hasStatusGroup ? this.normalizeOrderStatusGroup(query?.statusGroup) : undefined;
+
+    if (hasStatus && !status) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
+    }
+    if (hasStatusGroup && !statusGroup) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'statusGroup is invalid' });
+    }
+
+    const where: any = { assignedCsUserId: userId };
+    if (status) {
+      where.status = status;
+    } else if (statusGroup) {
+      const inStatuses =
+        statusGroup === 'PAYMENT_PENDING'
+          ? ['DEPOSIT_PENDING', 'WAIT_FINAL_PAYMENT']
+          : statusGroup === 'IN_PROGRESS'
+            ? ['DEPOSIT_PAID', 'FINAL_PAID_ESCROW', 'READY_TO_SETTLE']
+            : statusGroup === 'REFUND'
+              ? ['REFUNDING', 'REFUNDED']
+              : statusGroup === 'DONE'
+                ? ['COMPLETED', 'CANCELLED']
+                : [];
+      if (inStatuses.length) where.status = { in: inStatuses };
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        include: this.adminOrderContextInclude(),
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    return {
+      items: items.map((it: any) => this.toAssignedOrderDto(it, it.listing, it.listing?.patent)),
       page: { page, pageSize, total },
     };
   }
@@ -2049,7 +2160,29 @@ export class OrdersService {
     };
   }
 
-  async adminContractSigned(req: any, orderId: string, body: any) {
+  async getAssignedOrderDetail(req: any, orderId: string): Promise<AssignedOrderDetailDto> {
+    this.ensureAdmin(req);
+    requirePermission(req, 'order.assigned.read');
+    const userId = String(req?.auth?.userId || '').trim();
+    if (!userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
+    const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
+    const order = await this.prisma.order.findFirst({
+      where: { id: normalizedOrderId, assignedCsUserId: userId },
+      include: this.adminOrderContextInclude(),
+    });
+    if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
+    const csCase = await this.ensureCaseForOrder(order);
+    const milestones = await this.prisma.csMilestone.findMany({
+      where: { caseId: csCase.id },
+      orderBy: { createdAt: 'asc' },
+    });
+    return {
+      ...this.toAssignedOrderDto(order, order.listing, order.listing?.patent),
+      milestones: milestones.map((milestone: any) => this.toAdminOrderMilestoneDto(milestone)),
+    };
+  }
+
+  async adminContractSigned(req: any, orderId: string, body: any, options: ContractSignedOptions = {}) {
     this.ensureAdmin(req);
     const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
     const rawDealAmountFen = body?.dealAmountFen;
@@ -2066,7 +2199,10 @@ export class OrdersService {
     const evidenceFileId = hasEvidenceFileId
       ? this.parseNullableNonEmptyStringStrict(body?.evidenceFileId, 'evidenceFileId')
       : undefined;
-    const existing = await this.prisma.order.findUnique({ where: { id: normalizedOrderId } });
+    const assignedUserId = String(options.assignedUserId || '').trim();
+    const existing = assignedUserId
+      ? await this.prisma.order.findFirst({ where: { id: normalizedOrderId, assignedCsUserId: assignedUserId } })
+      : await this.prisma.order.findUnique({ where: { id: normalizedOrderId } });
     if (!existing) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
     }
@@ -2120,6 +2256,15 @@ export class OrdersService {
       );
     }
     return this.toOrderDto(order);
+  }
+
+  async assignedContractSigned(req: any, orderId: string, body: any): Promise<AssignedOrderDto> {
+    this.ensureAdmin(req);
+    requirePermission(req, 'order.assigned.contract.confirm');
+    const userId = String(req?.auth?.userId || '').trim();
+    if (!userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
+    const dto = await this.adminContractSigned(req, orderId, body, { assignedUserId: userId });
+    return this.toAssignedOrderDtoFromOrderDto(dto);
   }
 
   async adminTransferCompleted(req: any, orderId: string, body: any) {

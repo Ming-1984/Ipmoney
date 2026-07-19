@@ -37,7 +37,7 @@
 Role IDs are stable and map to default role names:
 - `role-admin` (admin): all permissions (`*`)
 - `role-operator` (operator): verification/listing review + listing batch/import + patent import + claim review + platform conversation management + operations reporting/config
-- `role-cs` (cs): platform conversation reply for conversations assigned to the current staff member
+- `role-cs` (cs): assigned platform conversation reply + assigned order follow-up actions
 - `role-finance` (finance): payment/refund/settlement/invoice + reporting
 
 See `apps/api/src/common/permissions.ts` for the authoritative permission list and
@@ -66,6 +66,26 @@ This maps backend enforcement (`requirePermission`) to admin modules/pages:
   - Implies `conversation.platform.reply`
 - `order.read`:
   - `/admin/orders`, `/admin/orders/:id`
+- `order.assigned.read`:
+  - `/admin/orders/assigned`, `/admin/orders/assigned/:id`
+  - Scope must be limited to `Order.assignedCsUserId = current user`
+- `order.assigned.contract.confirm`:
+  - `/admin/orders/assigned/:id/milestones/contract-signed`
+  - Allows confirming contract signature and writing deal amount only on orders assigned to the current user
+- `order.assigned.followup.note`:
+  - Planned assigned-order follow-up note action
+  - Scope must be limited to orders assigned to the current user
+- `payment.assigned.confirm.request`:
+  - Planned request flow for customer service to ask finance to verify deposit/final payment
+  - Must not directly mark money as received
+- `payment.confirm.request.review`:
+  - Planned finance review flow for payment verification requests
+- `order.assigned.transfer.submit`:
+  - Planned assigned-order delivery/transfer completion submission action
+  - Must not directly release settlement by default
+- `order.assigned.transfer.confirm`:
+  - Optional stronger assigned-order delivery/transfer confirmation action
+  - Intended for lead/operator fallback rather than default customer service use
 - `payment.manual.confirm`, `milestone.*`, `settlement.read`, `payout.manual.confirm`, `invoice.manage`, `refund.*`:
   - Orders / Refunds / Settlements / Invoices flows
 - `case.manage`:

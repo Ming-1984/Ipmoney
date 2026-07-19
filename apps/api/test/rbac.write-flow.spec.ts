@@ -92,6 +92,40 @@ describe('RbacService write flow suite', () => {
     });
   });
 
+  it('createRole accepts assigned order follow-up permission ids', async () => {
+    const permissionIds = [
+      'order.assigned.read',
+      'order.assigned.contract.confirm',
+      'order.assigned.followup.note',
+      'payment.assigned.confirm.request',
+      'payment.confirm.request.review',
+      'order.assigned.transfer.submit',
+      'order.assigned.transfer.confirm',
+    ];
+    prisma.rbacRole.create.mockResolvedValueOnce({
+      id: ROLE_ID,
+      name: 'Assigned order ops',
+      description: null,
+      permissionIds,
+      updatedAt: new Date('2026-07-19T00:00:00.000Z'),
+    });
+
+    const result = await service.createRole(USER_REQ, {
+      name: 'Assigned order ops',
+      permissionIds,
+    });
+
+    expect(prisma.rbacRole.create).toHaveBeenCalledWith({
+      data: {
+        id: expect.any(String),
+        name: 'Assigned order ops',
+        description: null,
+        permissionIds,
+      },
+    });
+    expect(result.permissionIds).toEqual(permissionIds);
+  });
+
   it('updateRole validates roleId format and maps missing role', async () => {
     await expect(service.updateRole(USER_REQ, 'bad-role-id', {})).rejects.toBeInstanceOf(BadRequestException);
 

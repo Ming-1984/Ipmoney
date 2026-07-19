@@ -61,8 +61,15 @@ export function buildDefaultRbacRoles(now = new Date()): RbacRole[] {
     {
       id: SYSTEM_ROLE_IDS.cs,
       name: '客服',
-      description: '已分配平台会话的查看与回复',
-      permissionIds: ['conversation.platform.reply'],
+      description: '已分配平台会话与自己负责订单的跟进处理',
+      permissionIds: [
+        'conversation.platform.reply',
+        'order.assigned.read',
+        'order.assigned.contract.confirm',
+        'order.assigned.followup.note',
+        'payment.assigned.confirm.request',
+        'order.assigned.transfer.submit',
+      ],
       updatedAt,
     },
     {
@@ -77,6 +84,7 @@ export function buildDefaultRbacRoles(now = new Date()): RbacRole[] {
         'refund.reject',
         'refund.complete',
         'payment.manual.confirm',
+        'payment.confirm.request.review',
         'settlement.read',
         'payout.manual.confirm',
         'invoice.manage',

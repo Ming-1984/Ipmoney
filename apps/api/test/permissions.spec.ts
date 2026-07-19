@@ -2,6 +2,7 @@ import { ForbiddenException } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
 
 import { hasPermission, requirePermission, resolvePermissions, resolvePermissionsFromRoleIds } from '../src/common/permissions';
+import { SYSTEM_ROLE_IDS, buildDefaultRbacRoles } from '../src/common/rbac';
 
 describe('permissions utility suite', () => {
   it('resolves merged permissions from multiple role names', () => {
@@ -38,16 +39,39 @@ describe('permissions utility suite', () => {
     expect(() => requirePermission(req, 'order.update')).toThrow(ForbiddenException);
   });
 
-  it('keeps the customer service default role limited to platform conversation replies', () => {
+  it('keeps the customer service role limited to assigned service work', () => {
     const result = resolvePermissions(['cs']);
 
     expect(result.has('conversation.platform.reply')).toBe(true);
+    expect(result.has('order.assigned.read')).toBe(true);
+    expect(result.has('order.assigned.contract.confirm')).toBe(true);
+    expect(result.has('order.assigned.followup.note')).toBe(true);
+    expect(result.has('payment.assigned.confirm.request')).toBe(true);
+    expect(result.has('order.assigned.transfer.submit')).toBe(true);
     expect(result.has('conversation.platform.manage')).toBe(false);
     expect(result.has('order.read')).toBe(false);
+    expect(result.has('payment.manual.confirm')).toBe(false);
+    expect(result.has('payment.confirm.request.review')).toBe(false);
     expect(result.has('case.manage')).toBe(false);
     expect(result.has('maintenance.manage')).toBe(false);
+    expect(result.has('refund.read')).toBe(false);
     expect(result.has('settlement.read')).toBe(false);
+    expect(result.has('invoice.manage')).toBe(false);
     expect(result.has('auditLog.read')).toBe(false);
+  });
+
+  it('keeps the default RBAC customer service role aligned with assigned service permissions', () => {
+    const roles = buildDefaultRbacRoles(new Date('2026-07-19T00:00:00.000Z'));
+    const csRole = roles.find((role) => role.id === SYSTEM_ROLE_IDS.cs);
+
+    expect(csRole?.permissionIds).toEqual([
+      'conversation.platform.reply',
+      'order.assigned.read',
+      'order.assigned.contract.confirm',
+      'order.assigned.followup.note',
+      'payment.assigned.confirm.request',
+      'order.assigned.transfer.submit',
+    ]);
   });
 
   it('treats platform conversation manage as an implied reply permission', () => {
@@ -55,5 +79,24 @@ describe('permissions utility suite', () => {
 
     expect(hasPermission(req, 'conversation.platform.reply')).toBe(true);
     expect(() => requirePermission(req, 'conversation.platform.reply')).not.toThrow();
+  });
+
+  it('treats broad order and milestone permissions as covering assigned scoped actions', () => {
+    const req = {
+      auth: {
+        permissions: new Set([
+          'order.read',
+          'milestone.contractSigned.confirm',
+          'milestone.transferCompleted.confirm',
+          'payment.manual.confirm',
+        ]),
+      },
+    };
+
+    expect(hasPermission(req, 'order.assigned.read')).toBe(true);
+    expect(hasPermission(req, 'order.assigned.contract.confirm')).toBe(true);
+    expect(hasPermission(req, 'order.assigned.transfer.submit')).toBe(true);
+    expect(hasPermission(req, 'order.assigned.transfer.confirm')).toBe(true);
+    expect(hasPermission(req, 'payment.confirm.request.review')).toBe(true);
   });
 });

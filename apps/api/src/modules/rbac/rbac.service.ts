@@ -48,6 +48,17 @@ const PERMISSIONS: Permission[] = [
   { id: 'conversation.platform.reply', name: '平台会话回复', description: '查看并回复已分配给自己的平台会话' },
   { id: 'conversation.platform.manage', name: '平台会话调度', description: '查看平台会话池并分配客服，包含回复权限' },
   { id: 'order.read', name: '订单查看', description: '查看订单详情' },
+  { id: 'order.assigned.read', name: '我的订单查看', description: '查看分配给自己的订单跟进信息' },
+  {
+    id: 'order.assigned.contract.confirm',
+    name: '我的订单合同确认',
+    description: '确认自己负责订单的合同签署并填写成交金额',
+  },
+  { id: 'order.assigned.followup.note', name: '我的订单跟进备注', description: '记录自己负责订单的跟进备注' },
+  { id: 'payment.assigned.confirm.request', name: '我的订单核款申请', description: '为自己负责订单发起订金或尾款核验' },
+  { id: 'payment.confirm.request.review', name: '核款申请复核', description: '复核客服提交的订金或尾款核验申请' },
+  { id: 'order.assigned.transfer.submit', name: '我的订单交付提交', description: '提交自己负责订单的交付完成材料' },
+  { id: 'order.assigned.transfer.confirm', name: '我的订单交付确认', description: '确认自己负责订单的权属变更或交付完成' },
   { id: 'case.manage', name: '工单管理', description: '创建、分派和跟踪工单' },
   { id: 'maintenance.manage', name: '年费托管管理', description: '管理专利年费托管排期与任务' },
   {

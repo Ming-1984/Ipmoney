@@ -13,8 +13,12 @@ describe('OrdersController delegation suite', () => {
     orders = {
       createOrder: vi.fn(),
       listAdminOrders: vi.fn(),
+      listAssignedOrders: vi.fn(),
       getAdminOrderDetail: vi.fn(),
+      getAssignedOrderDetail: vi.fn(),
+      assignedContractSigned: vi.fn(),
       adminManualConfirmPayment: vi.fn(),
+      adminContractSigned: vi.fn(),
       adminDeleteOrderInvoice: vi.fn(),
       adminRejectRefundRequest: vi.fn(),
       adminCompleteRefundRequest: vi.fn(),
@@ -47,6 +51,63 @@ describe('OrdersController delegation suite', () => {
     await expect(controller.listAdminOrders(req, { page: '2' })).resolves.toEqual({ items: [] });
 
     expect(orders.listAdminOrders).toHaveBeenCalledWith(req, { page: '2' });
+  });
+
+  it('delegates assigned order list with assigned read permission', async () => {
+    const req: any = { auth: { permissions: new Set(['order.assigned.read']) } };
+    orders.listAssignedOrders.mockResolvedValueOnce({ items: [] });
+
+    await expect(controller.listAssignedOrders(req, { statusGroup: 'in_progress' })).resolves.toEqual({ items: [] });
+
+    expect(orders.listAssignedOrders).toHaveBeenCalledWith(req, { statusGroup: 'in_progress' });
+  });
+
+  it('allows broad order.read permission to use assigned order detail', async () => {
+    const req: any = { auth: { permissions: new Set(['order.read']) } };
+    orders.getAssignedOrderDetail.mockResolvedValueOnce({ id: VALID_UUID });
+
+    await expect(controller.getAssignedOrder(req, VALID_UUID)).resolves.toEqual({ id: VALID_UUID });
+
+    expect(orders.getAssignedOrderDetail).toHaveBeenCalledWith(req, VALID_UUID);
+  });
+
+  it('rejects assigned order detail when assigned read permission is absent', async () => {
+    const req: any = { auth: { permissions: new Set(['conversation.platform.reply']) } };
+
+    await expect(controller.getAssignedOrder(req, VALID_UUID)).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(orders.getAssignedOrderDetail).not.toHaveBeenCalled();
+  });
+
+  it('delegates assignedContractSigned with assigned contract permission', async () => {
+    const req: any = { auth: { permissions: new Set(['order.assigned.contract.confirm']) } };
+    orders.assignedContractSigned.mockResolvedValueOnce({ id: VALID_UUID, status: 'WAIT_FINAL_PAYMENT' });
+
+    await expect(controller.assignedContractSigned(req, VALID_UUID, null as any)).resolves.toEqual({
+      id: VALID_UUID,
+      status: 'WAIT_FINAL_PAYMENT',
+    });
+
+    expect(orders.assignedContractSigned).toHaveBeenCalledWith(req, VALID_UUID, {});
+  });
+
+  it('rejects assignedContractSigned when assigned contract permission is absent', async () => {
+    const req: any = { auth: { permissions: new Set(['order.assigned.read']) } };
+
+    await expect(controller.assignedContractSigned(req, VALID_UUID, {})).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(orders.assignedContractSigned).not.toHaveBeenCalled();
+  });
+
+  it('allows broad contract milestone permission to use assignedContractSigned', async () => {
+    const req: any = { auth: { permissions: new Set(['milestone.contractSigned.confirm']) } };
+    orders.assignedContractSigned.mockResolvedValueOnce({ id: VALID_UUID });
+
+    await expect(controller.assignedContractSigned(req, VALID_UUID, { dealAmountFen: 10000 })).resolves.toEqual({
+      id: VALID_UUID,
+    });
+
+    expect(orders.assignedContractSigned).toHaveBeenCalledWith(req, VALID_UUID, { dealAmountFen: 10000 });
   });
 
   it('delegates adminManualPayment with fallback empty body', async () => {

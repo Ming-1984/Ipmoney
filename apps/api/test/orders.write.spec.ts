@@ -99,6 +99,9 @@ describe('OrdersService write-first suite', () => {
 
   const buyerReq = { auth: { userId: USER_ID } };
   const adminReq = { auth: { userId: ADMIN_ID, isAdmin: true } };
+  const assignedReq = {
+    auth: { userId: 'cs-1', isAdmin: true, permissions: new Set(['order.assigned.contract.confirm']) },
+  };
 
   it('rejects unauthenticated createOrder', async () => {
     await expect(service.createOrder({}, { listingId: LISTING_ID })).rejects.toBeInstanceOf(ForbiddenException);
@@ -1031,6 +1034,100 @@ describe('OrdersService write-first suite', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('moves own assigned order to WAIT_FINAL_PAYMENT on assignedContractSigned', async () => {
+    const ensureCaseSpy = vi.spyOn(service as any, 'ensureCaseForOrder').mockResolvedValue({ id: 'case-1' });
+    const markCaseSpy = vi.spyOn(service as any, 'markCaseMilestone').mockResolvedValue(undefined);
+    prisma.order.findFirst.mockResolvedValueOnce(
+      makeOrder({ status: 'DEPOSIT_PAID', assignedCsUserId: 'cs-1', depositAmount: 2000 }),
+    );
+    prisma.order.findUnique.mockResolvedValueOnce(
+      makeOrder({ status: 'WAIT_FINAL_PAYMENT', listing: { sellerUserId: SELLER_ID, title: 'Patent Listing' } }),
+    );
+    prisma.order.update.mockResolvedValueOnce(
+      makeOrder({
+        status: 'WAIT_FINAL_PAYMENT',
+        assignedCsUserId: 'cs-1',
+        depositAmount: 2000,
+        dealAmount: 10000,
+        finalAmount: 8000,
+        commissionAmount: 500,
+        invoiceNo: 'INV-SECRET',
+        invoiceFileId: FILE_ID,
+        invoiceIssuedAt: new Date('2026-03-14T00:00:00.000Z'),
+      }),
+    );
+
+    const result = await service.assignedContractSigned(assignedReq, ORDER_ID, {
+      dealAmountFen: 10000,
+      remark: 'ok',
+    });
+
+    expect(prisma.order.findFirst).toHaveBeenCalledWith({
+      where: { id: ORDER_ID, assignedCsUserId: 'cs-1' },
+    });
+    expect(prisma.order.update).toHaveBeenCalledWith({
+      where: { id: ORDER_ID },
+      data: {
+        dealAmount: 10000,
+        finalAmount: 8000,
+        commissionAmount: 500,
+        status: 'WAIT_FINAL_PAYMENT',
+      },
+    });
+    expect(ensureCaseSpy).toHaveBeenCalledTimes(1);
+    expect(markCaseSpy).toHaveBeenCalledWith('case-1', 'CONTRACT_SIGNED');
+    expect(result).toMatchObject({
+      id: ORDER_ID,
+      status: 'WAIT_FINAL_PAYMENT',
+      finalAmountFen: 8000,
+      dealAmountFen: 10000,
+    });
+    expect(result).not.toHaveProperty('invoiceNo');
+    expect(result).not.toHaveProperty('invoiceFileId');
+    expect(result).not.toHaveProperty('invoiceIssuedAt');
+  });
+
+  it('rejects assignedContractSigned without assigned contract permission', async () => {
+    const forbiddenReq = {
+      auth: { userId: 'cs-1', isAdmin: true, permissions: new Set(['order.assigned.read']) },
+    };
+
+    await expect(
+      service.assignedContractSigned(forbiddenReq, ORDER_ID, { dealAmountFen: 10000 }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.order.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('enforces assigned order scope on assignedContractSigned', async () => {
+    prisma.order.findFirst.mockResolvedValueOnce(null);
+
+    await expect(
+      service.assignedContractSigned(assignedReq, ORDER_ID, { dealAmountFen: 10000 }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.order.findFirst).toHaveBeenCalledWith({
+      where: { id: ORDER_ID, assignedCsUserId: 'cs-1' },
+    });
+    expect(prisma.order.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects assignedContractSigned when assigned order is not deposit paid', async () => {
+    prisma.order.findFirst.mockResolvedValueOnce(
+      makeOrder({ status: 'WAIT_FINAL_PAYMENT', assignedCsUserId: 'cs-1', depositAmount: 2000 }),
+    );
+
+    await expect(
+      service.assignedContractSigned(assignedReq, ORDER_ID, { dealAmountFen: 10000 }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.order.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects unsafe integer dealAmountFen on assignedContractSigned before order lookup', async () => {
+    await expect(
+      service.assignedContractSigned(assignedReq, ORDER_ID, { dealAmountFen: '9007199254740992' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.order.findFirst).not.toHaveBeenCalled();
+  });
+
   it('moves order to READY_TO_SETTLE on adminTransferCompleted and marks milestone', async () => {
     const ensureCaseSpy = vi.spyOn(service as any, 'ensureCaseForOrder').mockResolvedValue({ id: 'case-2' });
     const markCaseSpy = vi.spyOn(service as any, 'markCaseMilestone').mockResolvedValue(undefined);
@@ -1457,5 +1554,75 @@ describe('OrdersService write-first suite', () => {
         },
       ],
     });
+  });
+
+  it('validates getAssignedOrderDetail scope and returns milestone dto without invoice fields', async () => {
+    const assignedReq = {
+      auth: { userId: 'cs-1', isAdmin: true, permissions: new Set(['order.assigned.read']) },
+    };
+
+    await expect(service.getAssignedOrderDetail({}, ORDER_ID)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.getAssignedOrderDetail(assignedReq, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
+
+    prisma.order.findFirst.mockResolvedValueOnce(null);
+    await expect(service.getAssignedOrderDetail(assignedReq, ORDER_ID)).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.order.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: ORDER_ID, assignedCsUserId: 'cs-1' },
+      }),
+    );
+
+    prisma.order.findFirst.mockResolvedValueOnce(
+      makeOrder({
+        assignedCsUserId: 'cs-1',
+        status: 'DEPOSIT_PAID',
+        dealAmount: 10000,
+        finalAmount: 8000,
+        invoiceNo: 'INV-SECRET',
+        invoiceFileId: FILE_ID,
+        invoiceIssuedAt: new Date('2026-03-14T00:00:00.000Z'),
+        listing: { sellerUserId: SELLER_ID, title: 'Patent Listing', patent: { applicationNoDisplay: 'CN123' } },
+      }),
+    );
+    prisma.csCase.findFirst.mockResolvedValueOnce({
+      id: 'case-1',
+      orderId: ORDER_ID,
+      csUserId: 'cs-1',
+      type: 'FOLLOWUP',
+      status: 'OPEN',
+      createdAt: new Date('2026-03-12T00:00:00.000Z'),
+    });
+    prisma.csMilestone.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: 'milestone-1',
+          caseId: 'case-1',
+          name: 'CONTRACT_SIGNED',
+          status: 'DONE',
+          createdAt: new Date('2026-03-12T01:00:00.000Z'),
+        },
+      ]);
+
+    const result = await service.getAssignedOrderDetail(assignedReq, ORDER_ID);
+
+    expect(result).toMatchObject({
+      id: ORDER_ID,
+      listingId: LISTING_ID,
+      sellerUserId: SELLER_ID,
+      listingTitle: 'Patent Listing',
+      applicationNoDisplay: 'CN123',
+      milestones: [
+        {
+          id: 'milestone-1',
+          name: 'CONTRACT_SIGNED',
+          status: 'DONE',
+          createdAt: '2026-03-12T01:00:00.000Z',
+        },
+      ],
+    });
+    expect(result).not.toHaveProperty('invoiceNo');
+    expect(result).not.toHaveProperty('invoiceFileId');
+    expect(result).not.toHaveProperty('invoiceIssuedAt');
   });
 });

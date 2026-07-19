@@ -31,6 +31,7 @@ describe('OrdersService list filter strictness suite', () => {
   it('requires auth for listOrders/listInvoices', async () => {
     await expect(service.listOrders({}, {})).rejects.toBeInstanceOf(ForbiddenException);
     await expect(service.listAdminOrders({}, {})).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.listAssignedOrders({}, {})).rejects.toBeInstanceOf(ForbiddenException);
     await expect(service.listInvoices({}, {})).rejects.toBeInstanceOf(ForbiddenException);
   });
 
@@ -198,6 +199,91 @@ describe('OrdersService list filter strictness suite', () => {
       take: 50,
     });
     expect(result.page).toEqual({ page: 2, pageSize: 50, total: 0 });
+  });
+
+  it('requires assigned order permission and narrows list to current customer service user', async () => {
+    const forbiddenReq = { auth: { userId: 'cs-1', isAdmin: true, permissions: new Set(['conversation.platform.reply']) } };
+    await expect(service.listAssignedOrders(forbiddenReq, {})).rejects.toBeInstanceOf(ForbiddenException);
+
+    const req = { auth: { userId: 'cs-1', isAdmin: true, permissions: new Set(['order.assigned.read']) } };
+    prisma.order.findMany.mockResolvedValueOnce([]);
+    prisma.order.count.mockResolvedValueOnce(0);
+
+    const result = await service.listAssignedOrders(req, {
+      page: '2',
+      pageSize: '120',
+      statusGroup: 'in_progress',
+    });
+
+    const expectedWhere = {
+      assignedCsUserId: 'cs-1',
+      status: { in: ['DEPOSIT_PAID', 'FINAL_PAID_ESCROW', 'READY_TO_SETTLE'] },
+    };
+    expect(prisma.order.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expectedWhere,
+        skip: 50,
+        take: 50,
+      }),
+    );
+    expect(prisma.order.count).toHaveBeenCalledWith({ where: expectedWhere });
+    expect(result.page).toEqual({ page: 2, pageSize: 50, total: 0 });
+  });
+
+  it('rejects invalid assigned order list filters strictly', async () => {
+    const req = { auth: { userId: 'cs-1', isAdmin: true, permissions: new Set(['order.assigned.read']) } };
+    await expect(service.listAssignedOrders(req, { page: '0' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listAssignedOrders(req, { pageSize: '1.5' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listAssignedOrders(req, { status: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listAssignedOrders(req, { statusGroup: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('maps assigned order list without invoice fields', async () => {
+    const req = { auth: { userId: 'cs-1', isAdmin: true, permissions: new Set(['order.assigned.read']) } };
+    prisma.order.findMany.mockResolvedValueOnce([
+      {
+        id: '88888888-8888-4888-8888-888888888888',
+        listingId: '77777777-7777-4777-8777-777777777777',
+        buyerUserId: 'buyer-1',
+        assignedCsUserId: 'cs-1',
+        status: 'DEPOSIT_PAID',
+        depositAmount: 2000,
+        dealAmount: 10000,
+        finalAmount: 8000,
+        createdAt: new Date('2026-03-13T00:00:00.000Z'),
+        updatedAt: new Date('2026-03-13T01:00:00.000Z'),
+        invoiceNo: 'INV-SECRET',
+        invoiceFileId: 'file-secret',
+        invoiceIssuedAt: new Date('2026-03-14T00:00:00.000Z'),
+        buyer: {
+          nickname: 'buyer nick',
+          verifications: [{ displayName: 'Buyer Co' }],
+        },
+        listing: {
+          title: 'Patent A',
+          sellerUserId: 'seller-1',
+          patent: { applicationNoDisplay: 'CN123' },
+          seller: {
+            nickname: 'seller nick',
+            verifications: [{ displayName: 'Seller Co' }],
+          },
+        },
+      },
+    ]);
+    prisma.order.count.mockResolvedValueOnce(1);
+
+    const result = await service.listAssignedOrders(req, {});
+
+    expect(result.items[0]).toMatchObject({
+      id: '88888888-8888-4888-8888-888888888888',
+      listingTitle: 'Patent A',
+      applicationNoDisplay: 'CN123',
+      buyerDisplayName: 'Buyer Co',
+      sellerDisplayName: 'Seller Co',
+    });
+    expect(result.items[0]).not.toHaveProperty('invoiceNo');
+    expect(result.items[0]).not.toHaveProperty('invoiceFileId');
+    expect(result.items[0]).not.toHaveProperty('invoiceIssuedAt');
   });
 
   it('treats admin invoice status ALL as no invoice status filter', async () => {

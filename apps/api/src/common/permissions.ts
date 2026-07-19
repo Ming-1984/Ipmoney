@@ -4,6 +4,11 @@ export type AdminRoleName = 'admin' | 'cs' | 'operator' | 'finance';
 
 const IMPLIED_PERMISSION_IDS: Record<string, string[]> = {
   'conversation.platform.manage': ['conversation.platform.reply'],
+  'order.read': ['order.assigned.read'],
+  'milestone.contractSigned.confirm': ['order.assigned.contract.confirm'],
+  'milestone.transferCompleted.confirm': ['order.assigned.transfer.confirm', 'order.assigned.transfer.submit'],
+  'order.assigned.transfer.confirm': ['order.assigned.transfer.submit'],
+  'payment.manual.confirm': ['payment.confirm.request.review'],
 };
 
 function addPermission(out: Set<string>, permission: string) {
@@ -38,7 +43,14 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRoleName, string[]> = {
     'ops.notification.read',
     'auditLog.read',
   ],
-  cs: ['conversation.platform.reply'],
+  cs: [
+    'conversation.platform.reply',
+    'order.assigned.read',
+    'order.assigned.contract.confirm',
+    'order.assigned.followup.note',
+    'payment.assigned.confirm.request',
+    'order.assigned.transfer.submit',
+  ],
   finance: [
     'verification.read',
     'order.read',
@@ -47,6 +59,7 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRoleName, string[]> = {
     'refund.reject',
     'refund.complete',
     'payment.manual.confirm',
+    'payment.confirm.request.review',
     'settlement.read',
     'payout.manual.confirm',
     'invoice.manage',
