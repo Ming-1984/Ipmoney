@@ -968,6 +968,9 @@ export function PlatformConversationsPage() {
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
           统一处理咨询、客服和订单争议会话，支持筛选、分配、连续对话与历史追溯。
         </Typography.Paragraph>
+        <Typography.Text type="secondary" style={{ display: 'block', marginTop: 6, fontSize: 12, lineHeight: 1.5 }}>
+          注：红点为待处理提醒。客服账号表示有新消息；客服队长或全权限管理员表示有未分配的新会话。
+        </Typography.Text>
       </Card>
 
       <div
