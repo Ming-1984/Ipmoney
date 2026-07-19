@@ -10,7 +10,7 @@ import {
   ShoppingCartOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import type { components } from '@ipmoney/api-types';
@@ -188,12 +188,82 @@ function MetricCard({
       <div className="ipm-showcase-metric-icon">{icon}</div>
       <div className="ipm-showcase-metric-content">
         <span>{title}</span>
-        <strong>
-          {value}
-          {suffix ? <small>{suffix}</small> : null}
-        </strong>
+        <MetricValue value={value} suffix={suffix} />
       </div>
     </div>
+  );
+}
+
+function MetricValue({ value, suffix }: { value: string; suffix?: string }) {
+  const hostRef = useRef<HTMLStrongElement>(null);
+  const probeRef = useRef<HTMLSpanElement>(null);
+  const [fontSize, setFontSize] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    const host = hostRef.current;
+    const probe = probeRef.current;
+    if (!host || !probe) return;
+
+    const minFontSize = 12;
+    const maxFontSize = 42;
+    let frame = 0;
+
+    const fit = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const availableWidth = host.clientWidth;
+        if (availableWidth <= 0) return;
+
+        let low = minFontSize;
+        let high = maxFontSize;
+        let best = minFontSize;
+
+        for (let i = 0; i < 12; i += 1) {
+          const mid = (low + high) / 2;
+          probe.style.fontSize = `${mid}px`;
+          if (probe.scrollWidth <= availableWidth) {
+            best = mid;
+            low = mid;
+          } else {
+            high = mid;
+          }
+        }
+
+        setFontSize(Number(best.toFixed(1)));
+      });
+    };
+
+    fit();
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(fit);
+      observer.observe(host);
+      return () => {
+        if (frame) cancelAnimationFrame(frame);
+        observer.disconnect();
+      };
+    }
+
+    window.addEventListener('resize', fit);
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener('resize', fit);
+    };
+  }, [suffix, value]);
+
+  const visibleStyle = fontSize ? { fontSize: `${fontSize}px` } : undefined;
+
+  return (
+    <strong ref={hostRef} className="ipm-showcase-metric-value" style={visibleStyle}>
+      <span className="ipm-showcase-metric-value-text">
+        <span className="ipm-showcase-metric-value-main">{value}</span>
+        {suffix ? <small className="ipm-showcase-metric-value-suffix">{suffix}</small> : null}
+      </span>
+      <span aria-hidden="true" className="ipm-showcase-metric-value-probe" ref={probeRef}>
+        <span className="ipm-showcase-metric-value-main">{value}</span>
+        {suffix ? <small className="ipm-showcase-metric-value-suffix">{suffix}</small> : null}
+      </span>
+    </strong>
   );
 }
 

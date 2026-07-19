@@ -359,18 +359,45 @@ body {
   color: #111827;
 }
 
-.ipm-showcase-metric-content strong {
+.ipm-showcase-metric-value {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  position: relative;
   color: var(--ipm-primary);
-  font-size: clamp(28px, 3vw, 42px);
+  font-size: 42px;
   line-height: 1;
   font-weight: 900;
   white-space: nowrap;
 }
 
-.ipm-showcase-metric-content small {
+.ipm-showcase-metric-value-text {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: baseline;
+  white-space: nowrap;
+}
+
+.ipm-showcase-metric-value-main {
+  white-space: nowrap;
+}
+
+.ipm-showcase-metric-value-suffix {
+  flex: none;
   margin-left: 5px;
-  font-size: 14px;
+  font-size: 0.34em;
   font-weight: 700;
+}
+
+.ipm-showcase-metric-value-probe {
+  position: absolute;
+  inset: auto auto 0 0;
+  display: inline-flex;
+  align-items: baseline;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: nowrap;
+  font: inherit;
 }
 
 .ipm-showcase-metric-content em {
