@@ -185,13 +185,12 @@ function MetricCard({
           {value}
           {suffix ? <small>{suffix}</small> : null}
         </strong>
-        <em>平台统计口径</em>
       </div>
     </div>
   );
 }
 
-function AreaLineChart({
+function BarChart({
   points,
   color,
   money,
@@ -209,34 +208,32 @@ function AreaLineChart({
     const padding = { top: 18, right: 18, bottom: 42, left: 54 };
     const innerWidth = width - padding.left - padding.right;
     const innerHeight = height - padding.top - padding.bottom;
-    const step = values.length > 1 ? innerWidth / (values.length - 1) : 0;
-    const coords = values.map((value, index) => {
-      const x = padding.left + step * index;
-      const y = padding.top + innerHeight - (value / max) * innerHeight;
-      return { x, y, value };
+    const slotWidth = innerWidth / Math.max(1, values.length);
+    const barWidth = values.length <= 1 ? Math.min(48, Math.max(18, innerWidth * 0.38)) : Math.max(1.5, Math.min(16, slotWidth * 0.72));
+    const bars = values.map((value, index) => {
+      const x = padding.left + slotWidth * index + (slotWidth - barWidth) / 2;
+      const barHeight = (value / max) * innerHeight;
+      const y = padding.top + innerHeight - barHeight;
+      return { barHeight, value, width: barWidth, x, y };
     });
-    const line = coords.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(' ');
-    const area = coords.length
-      ? `M ${padding.left} ${padding.top + innerHeight} L ${line} L ${padding.left + innerWidth} ${padding.top + innerHeight} Z`
-      : '';
     const yTicks = [0, 0.25, 0.5, 0.75, 1].map((ratio) => ({
       value: Math.round(max * ratio),
       y: padding.top + innerHeight - ratio * innerHeight,
     }));
-    return { area, coords, height, innerHeight, innerWidth, line, max, padding, width, yTicks };
+    return { bars, height, innerHeight, innerWidth, max, padding, slotWidth, width, yTicks };
   }, [points]);
   const axisLabels = selectAxisLabels(points);
 
   if (points.length === 0) {
     return (
       <div className="ipm-showcase-chart-empty">
-        <Typography.Text type="secondary">暂无趋势数据</Typography.Text>
+        <Typography.Text type="secondary">暂无统计数据</Typography.Text>
       </div>
     );
   }
 
   return (
-    <svg viewBox={`0 0 ${geometry.width} ${geometry.height}`} width="100%" height="100%" role="img" aria-label="trend chart">
+    <svg viewBox={`0 0 ${geometry.width} ${geometry.height}`} width="100%" height="100%" role="img" aria-label="bar chart">
       <defs>
         <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.3" />
@@ -257,14 +254,20 @@ function AreaLineChart({
           </text>
         </g>
       ))}
-      <path d={geometry.area} fill={`url(#${gradientId})`} />
-      <polyline fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" points={geometry.line} />
-      {geometry.coords.map((point, index) => (
-        <circle key={`${point.x}-${point.y}-${index}`} cx={point.x} cy={point.y} r={4} fill="#fff" stroke={color} strokeWidth="3" />
+      {geometry.bars.map((bar, index) => (
+        <rect
+          key={`${bar.x}-${bar.y}-${index}`}
+          x={bar.x}
+          y={bar.y}
+          width={bar.width}
+          height={Math.max(0, bar.barHeight)}
+          rx={3}
+          fill={`url(#${gradientId})`}
+        />
       ))}
       {axisLabels.map((point) => {
         const index = points.findIndex((item) => item.key === point.key);
-        const x = geometry.padding.left + (geometry.innerWidth / Math.max(1, points.length - 1)) * Math.max(0, index);
+        const x = geometry.padding.left + geometry.slotWidth * Math.max(0, index) + geometry.slotWidth / 2;
         return (
           <text key={point.key} x={x} y={geometry.height - 14} textAnchor="middle" className="ipm-showcase-axis-text">
             {point.label}
@@ -296,7 +299,7 @@ function TrendPanel({
         <Typography.Text type="secondary">{legend}</Typography.Text>
       </div>
       <div className="ipm-showcase-chart-wrap">
-        <AreaLineChart points={points} color={color} money={money} />
+        <BarChart points={points} color={color} money={money} />
       </div>
     </div>
   );
@@ -841,9 +844,9 @@ export function DashboardPage() {
         </div>
 
         <div className="ipm-showcase-trends">
-          <TrendPanel title="订单数量趋势" legend="订单数量（单）" points={ordersTrend} color="#ff6a00" />
-          <TrendPanel title="已完成订单趋势" legend="已完成订单数（单）" points={completedTrend} color="#ff7a1a" />
-          <TrendPanel title="成交额趋势" legend="成交额（万元）" points={amountTrend} color="#ff8f3d" money />
+          <TrendPanel title="订单数量统计" legend="订单数量（单）" points={ordersTrend} color="#ff6a00" />
+          <TrendPanel title="已完成订单统计" legend="已完成订单数（单）" points={completedTrend} color="#ff7a1a" />
+          <TrendPanel title="成交额统计" legend="成交额（万元）" points={amountTrend} color="#ff8f3d" money />
         </div>
 
         <div className="ipm-showcase-distributions">
