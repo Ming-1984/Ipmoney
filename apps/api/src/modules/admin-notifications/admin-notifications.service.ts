@@ -126,7 +126,7 @@ export class AdminNotificationsService {
       {
         key: 'refunds',
         permission: 'refund.read',
-        count: () => this.prisma.refundRequest.count({ where: { status: 'PENDING' } }),
+        count: () => this.prisma.refundRequest.count({ where: { status: { in: ['PENDING', 'REFUNDING'] } } }),
       },
       {
         key: 'settlements',

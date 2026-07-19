@@ -805,6 +805,7 @@ export class OrdersService {
 
   private normalizeRefundStatus(value: unknown): string | undefined {
     const raw = String(value || '').trim().toUpperCase();
+    if (raw === 'ACTIVE') return raw;
     if (raw === 'ALL') return raw;
     if (['PENDING', 'APPROVED', 'REJECTED', 'REFUNDING', 'REFUNDED'].includes(raw)) return raw;
     return undefined;
@@ -1136,13 +1137,17 @@ export class OrdersService {
     const pageSize = Math.min(50, pageSizeInput);
     const hasStatus = this.hasOwn(query, 'status');
     const hasOrderId = this.hasOwn(query, 'orderId');
-    const status = hasStatus ? this.normalizeRefundStatus(query?.status) : 'PENDING';
+    const status = hasStatus ? this.normalizeRefundStatus(query?.status) : 'ACTIVE';
     if (hasStatus && !status) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
     }
 
     const where: any = {};
-    if (status && status !== 'ALL') where.status = status;
+    if (status === 'ACTIVE') {
+      where.status = { in: ['PENDING', 'REFUNDING'] };
+    } else if (status && status !== 'ALL') {
+      where.status = status;
+    }
     if (hasOrderId && String(query?.orderId || '').trim()) {
       where.orderId = this.parseUuidStrict(query.orderId, 'orderId');
     }

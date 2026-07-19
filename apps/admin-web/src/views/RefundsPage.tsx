@@ -11,7 +11,7 @@ import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
 import { confirmActionWithReason } from '../ui/confirm';
 
 type RefundRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'REFUNDING' | 'REFUNDED';
-type RefundStatusFilter = RefundRequestStatus | 'ALL';
+type RefundStatusFilter = RefundRequestStatus | 'ACTIVE' | 'ALL';
 
 type OrderContext = {
   orderId: string;
@@ -44,7 +44,8 @@ type PagedRefundRequest = {
 const WECHAT_PAY_MERCHANT_URL = 'https://pay.weixin.qq.com/';
 
 const STATUS_OPTIONS = [
-  { value: 'PENDING', label: '待处理' },
+  { value: 'ACTIVE', label: '待处理' },
+  { value: 'PENDING', label: '待审核' },
   { value: 'REFUNDING', label: '退款中' },
   { value: 'REFUNDED', label: '已退款' },
   { value: 'REJECTED', label: '已驳回' },
@@ -53,7 +54,7 @@ const STATUS_OPTIONS = [
 
 const TEXT = {
   title: '退款管理',
-  subtitle: '集中处理退款申请；默认展示待处理退款，支持按订单号直达。',
+  subtitle: '集中处理退款申请；默认展示待审核和退款中的退款，支持按订单号直达。',
   orderIdPlaceholder: '订单号（可选）',
   loadFailed: '加载失败',
   actionFailed: '操作失败',
@@ -106,7 +107,7 @@ export function RefundsPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [orderId, setOrderId] = useState('');
-  const [status, setStatus] = useState<RefundStatusFilter>('PENDING');
+  const [status, setStatus] = useState<RefundStatusFilter>('ACTIVE');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
   const [data, setData] = useState<PagedRefundRequest | null>(null);

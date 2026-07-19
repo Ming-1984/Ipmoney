@@ -12701,7 +12701,7 @@ export interface operations {
     adminListRefundRequests: {
         parameters: {
             query?: {
-                status?: components["schemas"]["RefundRequestStatus"] | "ALL";
+                status?: components["schemas"]["RefundRequestStatus"] | ("ACTIVE" | "ALL");
                 orderId?: components["schemas"]["Uuid"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];

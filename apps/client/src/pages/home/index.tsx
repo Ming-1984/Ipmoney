@@ -1,4 +1,4 @@
-﻿import { View, Text, Image, Input, Swiper, SwiperItem } from '@tarojs/components';
+﻿import { View, Text, Image, Input } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow, usePullDownRefresh, useReachBottom } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';

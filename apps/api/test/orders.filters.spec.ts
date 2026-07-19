@@ -13,6 +13,10 @@ describe('OrdersService list filter strictness suite', () => {
         findMany: vi.fn(),
         count: vi.fn(),
       },
+      refundRequest: {
+        findMany: vi.fn(),
+        count: vi.fn(),
+      },
     };
     const audit = { log: vi.fn().mockResolvedValue(undefined) };
     const config = {
@@ -152,6 +156,40 @@ describe('OrdersService list filter strictness suite', () => {
     await expect(service.listAdminOrders(req, { pageSize: '1.5' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listAdminOrders(req, { status: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listAdminOrders(req, { statusGroup: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('defaults admin refund list to active requests needing work', async () => {
+    const req = { auth: { userId: 'admin-1', isAdmin: true } };
+    prisma.refundRequest.findMany.mockResolvedValueOnce([]);
+    prisma.refundRequest.count.mockResolvedValueOnce(0);
+
+    const result = await service.listAdminRefundRequests(req, {});
+
+    const expectedWhere = { status: { in: ['PENDING', 'REFUNDING'] } };
+    expect(prisma.refundRequest.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expectedWhere,
+        skip: 0,
+        take: 20,
+      }),
+    );
+    expect(prisma.refundRequest.count).toHaveBeenCalledWith({ where: expectedWhere });
+    expect(result.page).toEqual({ page: 1, pageSize: 20, total: 0 });
+  });
+
+  it('keeps exact admin refund status filters available', async () => {
+    const req = { auth: { userId: 'admin-1', isAdmin: true } };
+    prisma.refundRequest.findMany.mockResolvedValueOnce([]);
+    prisma.refundRequest.count.mockResolvedValueOnce(0);
+
+    await service.listAdminRefundRequests(req, { status: 'pending' });
+
+    expect(prisma.refundRequest.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { status: 'PENDING' },
+      }),
+    );
+    expect(prisma.refundRequest.count).toHaveBeenCalledWith({ where: { status: 'PENDING' } });
   });
 
   it('caps admin list pageSize and applies statusGroup without buyer or seller narrowing', async () => {

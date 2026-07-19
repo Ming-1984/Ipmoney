@@ -37,7 +37,7 @@ describe('AdminNotificationsService', () => {
     expect(result.badges.refunds).toBe(3);
     expect(result.badges.orders).toBe(0);
     expect(result.badges.settlements).toBe(0);
-    expect(prisma.refundRequest.count).toHaveBeenCalledWith({ where: { status: 'PENDING' } });
+    expect(prisma.refundRequest.count).toHaveBeenCalledWith({ where: { status: { in: ['PENDING', 'REFUNDING'] } } });
     expect(prisma.order.count).not.toHaveBeenCalled();
   });
 
