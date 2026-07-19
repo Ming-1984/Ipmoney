@@ -104,10 +104,10 @@ function formatFenValue(value: MetricValue): string {
 }
 
 function readStoredRangeDays(): number {
-  if (typeof window === 'undefined') return 30;
+  if (typeof window === 'undefined') return 365;
   const raw = Number(window.localStorage.getItem(RANGE_KEY));
   if (raw === 180) return 365;
-  return RANGE_OPTIONS.includes(raw as (typeof RANGE_OPTIONS)[number]) ? raw : 30;
+  return RANGE_OPTIONS.includes(raw as (typeof RANGE_OPTIONS)[number]) ? raw : 365;
 }
 
 function latestCreatedAt(items: Array<{ createdAt?: string | null }>): string {
