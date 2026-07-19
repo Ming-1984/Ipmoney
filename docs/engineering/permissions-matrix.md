@@ -37,7 +37,7 @@
 Role IDs are stable and map to default role names:
 - `role-admin` (admin): all permissions (`*`)
 - `role-operator` (operator): verification/listing review + listing batch/import + patent import + claim review + platform conversation management + operations reporting/config
-- `role-cs` (cs): verification/listing read + platform conversation reply + order/case/maintenance + milestone confirm
+- `role-cs` (cs): platform conversation reply for conversations assigned to the current staff member
 - `role-finance` (finance): payment/refund/settlement/invoice + reporting
 
 See `apps/api/src/common/permissions.ts` for the authoritative permission list and

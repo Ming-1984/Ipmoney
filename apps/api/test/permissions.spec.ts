@@ -38,6 +38,18 @@ describe('permissions utility suite', () => {
     expect(() => requirePermission(req, 'order.update')).toThrow(ForbiddenException);
   });
 
+  it('keeps the customer service default role limited to platform conversation replies', () => {
+    const result = resolvePermissions(['cs']);
+
+    expect(result.has('conversation.platform.reply')).toBe(true);
+    expect(result.has('conversation.platform.manage')).toBe(false);
+    expect(result.has('order.read')).toBe(false);
+    expect(result.has('case.manage')).toBe(false);
+    expect(result.has('maintenance.manage')).toBe(false);
+    expect(result.has('settlement.read')).toBe(false);
+    expect(result.has('auditLog.read')).toBe(false);
+  });
+
   it('treats platform conversation manage as an implied reply permission', () => {
     const req = { auth: { permissions: new Set(['conversation.platform.manage']) } };
 
