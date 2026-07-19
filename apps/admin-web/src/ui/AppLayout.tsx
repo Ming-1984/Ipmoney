@@ -96,19 +96,12 @@ function formatBadgeNoticeCount(count: number): string {
   return normalized > 99 ? '99+' : normalized.toLocaleString('zh-CN');
 }
 
-function buildBadgeNotice(item: AppMenuItem, nextCount: number, previousCount: number, createdAt: string): LiveNotice {
-  const delta = Math.max(0, nextCount - previousCount);
-  const countLabel = formatBadgeNoticeCount(nextCount);
-  const summary =
-    previousCount > 0
-      ? `当前 ${countLabel} 项待处理，新增 ${formatBadgeNoticeCount(delta)} 项`
-      : `当前 ${countLabel} 项待处理`;
-
+function buildBadgeNotice(item: AppMenuItem, addedCount: number, createdAt: string): LiveNotice {
   return {
-    id: `badge-${item.key}-${nextCount}-${createdAt}`,
+    id: `badge-${item.key}-${addedCount}-${createdAt}`,
     kind: 'badge',
     title: item.label,
-    summary,
+    summary: `新增 ${formatBadgeNoticeCount(addedCount)} 项待处理`,
     href: item.to,
     createdAt,
     icon: item.icon ?? <BellOutlined />,
@@ -170,17 +163,21 @@ function AppLayoutShell() {
         const data = await apiGet<AdminBadgesResponse>('/admin/notifications/badges');
         if (!alive) return;
         const nextBadges = data?.badges || {};
-        const previousBadges = badgeSeededRef.current ? previousBadgesRef.current : {};
+        const hasBadgeBaseline = badgeSeededRef.current;
+        const previousBadges = hasBadgeBaseline ? previousBadgesRef.current : {};
         const createdAt = data?.updatedAt || new Date().toISOString();
-        const nextNotices = menuConfig
-          .filter((item) => hasPermission(permissionSet, item.permission))
-          .map((item) => {
-            const nextCount = Math.max(0, Number(nextBadges[item.key] || 0));
-            const previousCount = Math.max(0, Number(previousBadges[item.key] || 0));
-            if (nextCount <= previousCount || nextCount <= 0) return null;
-            return buildBadgeNotice(item, nextCount, previousCount, createdAt);
-          })
-          .filter(Boolean) as LiveNotice[];
+        const nextNotices = hasBadgeBaseline
+          ? (menuConfig
+              .filter((item) => hasPermission(permissionSet, item.permission))
+              .map((item) => {
+                const nextCount = Math.max(0, Number(nextBadges[item.key] || 0));
+                const previousCount = Math.max(0, Number(previousBadges[item.key] || 0));
+                const addedCount = nextCount - previousCount;
+                if (addedCount <= 0) return null;
+                return buildBadgeNotice(item, addedCount, createdAt);
+              })
+              .filter(Boolean) as LiveNotice[])
+          : [];
         pushLiveNotices(nextNotices);
         badgeSeededRef.current = true;
         previousBadgesRef.current = nextBadges;
