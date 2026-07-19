@@ -198,8 +198,56 @@ export class ReportsService {
     return buckets;
   }
 
+  private formatMonthKey(date: Date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  }
+
+  private formatMonthLabel(date: Date) {
+    return `${date.getFullYear()}/${date.getMonth() + 1}`;
+  }
+
+  private buildMonthlyBuckets(start: Date, end: Date) {
+    const startMonth = new Date(start);
+    startMonth.setHours(0, 0, 0, 0);
+    startMonth.setDate(1);
+    const endMonth = new Date(end);
+    endMonth.setHours(0, 0, 0, 0);
+    endMonth.setDate(1);
+
+    const buckets: Array<{
+      key: string;
+      label: string;
+      orders: number;
+      completedOrders: number;
+      dealAmountFen: number;
+    }> = [];
+
+    const cursor = new Date(startMonth);
+    while (cursor.getTime() <= endMonth.getTime()) {
+      buckets.push({
+        key: this.formatMonthKey(cursor),
+        label: this.formatMonthLabel(cursor),
+        orders: 0,
+        completedOrders: 0,
+        dealAmountFen: 0,
+      });
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+
+    return buckets;
+  }
+
+  private buildTrendBuckets(start: Date, end: Date, days: number) {
+    if (days >= 365) {
+      return this.buildMonthlyBuckets(start, end);
+    }
+    return this.buildDailyBuckets(start, end);
+  }
+
   private buildRangeLabel(days: number) {
-    return `近${days}天`;
+    return days >= 365 ? '近1年' : `近${days}天`;
   }
 
   async getShowcaseSummary(req: any): Promise<ShowcaseSummary> {
@@ -291,12 +339,13 @@ export class ReportsService {
     ]);
 
     const bucketMap = new Map<string, { key: string; label: string; orders: number; completedOrders: number; dealAmountFen: number }>();
-    for (const bucket of this.buildDailyBuckets(start, end)) {
+    for (const bucket of this.buildTrendBuckets(start, end, days)) {
       bucketMap.set(bucket.key, bucket);
     }
 
     for (const row of orderRows as Array<{ createdAt: Date; status: string; dealAmount?: number | null }>) {
-      const key = this.formatDayKey(new Date(row.createdAt));
+      const key =
+        days >= 365 ? this.formatMonthKey(new Date(row.createdAt)) : this.formatDayKey(new Date(row.createdAt));
       const bucket = bucketMap.get(key);
       if (!bucket) continue;
       bucket.orders += 1;

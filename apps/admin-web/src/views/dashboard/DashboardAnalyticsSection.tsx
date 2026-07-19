@@ -54,7 +54,13 @@ type Props = {
   operations: DashboardOperationsSnapshot;
 };
 
-const RANGE_OPTIONS = [7, 30, 90, 180] as const;
+const RANGE_OPTIONS = [7, 30, 90, 365] as const;
+const RANGE_OPTION_LABELS: Record<(typeof RANGE_OPTIONS)[number], string> = {
+  7: '7天',
+  30: '30天',
+  90: '90天',
+  365: '一年',
+};
 
 const FOCUS_META: Record<
   DashboardAnalysisFocus,
@@ -333,7 +339,7 @@ export function DashboardAnalyticsSection({
   roleLabel,
   operations,
 }: Props) {
-  const rangeLabel = data?.range?.label ? data.range.label : `近${rangeDays}天`;
+  const rangeLabel = data?.range?.label ? data.range.label : rangeDays >= 365 ? '近1年' : `近${rangeDays}天`;
   const focusMeta = FOCUS_META[focus];
 
   const focusOptions = useMemo(
@@ -469,7 +475,7 @@ export function DashboardAnalyticsSection({
         <Space wrap>
           <Segmented
             value={rangeDays}
-            options={RANGE_OPTIONS.map((value) => ({ value, label: `${value}天` }))}
+            options={RANGE_OPTIONS.map((value) => ({ value, label: RANGE_OPTION_LABELS[value] }))}
             onChange={(value) => onRangeDaysChange(Number(value))}
           />
           <Segmented value={focus} options={focusOptions} onChange={(value) => onFocusChange(value as DashboardAnalysisFocus)} />

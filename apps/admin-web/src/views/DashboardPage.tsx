@@ -10,7 +10,7 @@ import {
   ShoppingCartOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
-import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import type { components } from '@ipmoney/api-types';
@@ -68,7 +68,13 @@ type DashboardConversationsFeedResponse = {
 };
 
 const RANGE_KEY = 'admin.dashboard.analysisRangeDays';
-const RANGE_OPTIONS = [7, 30, 90, 180] as const;
+const RANGE_OPTIONS = [7, 30, 90, 365] as const;
+const RANGE_OPTION_LABELS: Record<(typeof RANGE_OPTIONS)[number], string> = {
+  7: '7天',
+  30: '30天',
+  90: '90天',
+  365: '一年',
+};
 const CHART_COLORS = ['#ff6a00', '#ffb020', '#ff8f3d', '#f45b5b', '#13c2c2', '#722ed1'];
 const LIVE_NOTICE_PAGE_SIZE = 10;
 const QUICK_ACTIONS_PANEL_KEY = 'quick-actions';
@@ -100,6 +106,7 @@ function formatFenValue(value: MetricValue): string {
 function readStoredRangeDays(): number {
   if (typeof window === 'undefined') return 30;
   const raw = Number(window.localStorage.getItem(RANGE_KEY));
+  if (raw === 180) return 365;
   return RANGE_OPTIONS.includes(raw as (typeof RANGE_OPTIONS)[number]) ? raw : 30;
 }
 
@@ -199,7 +206,6 @@ function BarChart({
   color: string;
   money?: boolean;
 }) {
-  const gradientId = useId().replace(/:/g, '-');
   const geometry = useMemo(() => {
     const values = points.map((item) => Math.max(0, toNumber(item.value)));
     const max = Math.max(1, ...values);
@@ -234,12 +240,6 @@ function BarChart({
 
   return (
     <svg viewBox={`0 0 ${geometry.width} ${geometry.height}`} width="100%" height="100%" role="img" aria-label="bar chart">
-      <defs>
-        <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
-          <stop offset="100%" stopColor={color} stopOpacity="0.03" />
-        </linearGradient>
-      </defs>
       {geometry.yTicks.map((tick) => (
         <g key={tick.y}>
           <line
@@ -262,7 +262,7 @@ function BarChart({
           width={bar.width}
           height={Math.max(0, bar.barHeight)}
           rx={3}
-          fill={`url(#${gradientId})`}
+          fill={color}
         />
       ))}
       {axisLabels.map((point) => {
@@ -832,7 +832,7 @@ export function DashboardPage() {
         <div className="ipm-showcase-range-row">
           <Segmented
             value={rangeDays}
-            options={RANGE_OPTIONS.map((value) => ({ value, label: `${value}天` }))}
+            options={RANGE_OPTIONS.map((value) => ({ value, label: RANGE_OPTION_LABELS[value] }))}
             onChange={(value) => setRangeDays(Number(value))}
           />
         </div>

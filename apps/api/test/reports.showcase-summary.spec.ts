@@ -192,6 +192,67 @@ describe('ReportsService showcase summary suite', () => {
     });
   });
 
+  it('aggregates annual dashboard trends by month', async () => {
+    prisma.patent.count.mockResolvedValueOnce(12);
+    prisma.userVerification.count.mockResolvedValueOnce(4);
+    prisma.order.count.mockResolvedValueOnce(30);
+    prisma.order.count.mockResolvedValueOnce(18);
+    prisma.order.aggregate.mockResolvedValueOnce({ _sum: { dealAmount: 999999 } });
+    prisma.userVerification.count.mockResolvedValueOnce(9);
+    prisma.listing.count.mockResolvedValueOnce(5);
+    prisma.conversation.count.mockResolvedValueOnce(2);
+    prisma.csCase.count.mockResolvedValueOnce(1);
+    prisma.order.findMany.mockResolvedValueOnce([
+      {
+        createdAt: new Date('2025-07-15T08:00:00.000Z'),
+        status: 'COMPLETED',
+        dealAmount: 1200,
+      },
+      {
+        createdAt: new Date('2025-08-03T08:00:00.000Z'),
+        status: 'DEPOSIT_PAID',
+        dealAmount: 300,
+      },
+      {
+        createdAt: new Date('2026-06-20T08:00:00.000Z'),
+        status: 'COMPLETED',
+        dealAmount: 2400,
+      },
+    ]);
+    prisma.patent.findMany.mockResolvedValueOnce([
+      { patentType: 'INVENTION' },
+      { patentType: 'UTILITY_MODEL' },
+      { patentType: 'UTILITY_MODEL' },
+      { patentType: 'DESIGN' },
+    ]);
+
+    const result = await service.getShowcaseSummary({
+      auth: { userId: 'admin-1', permissions: new Set(['*']) },
+      query: {
+        start: '2025-07-15T08:00:00.000Z',
+        end: '2026-07-15T07:59:59.999Z',
+        days: '365',
+      },
+    });
+
+    expect(result.trends.range).toEqual({
+      start: '2025-07-15T08:00:00.000Z',
+      end: '2026-07-15T07:59:59.999Z',
+      days: 365,
+      label: '近1年',
+    });
+    expect(result.trends.orders30d).toHaveLength(13);
+    expect(result.trends.orders30d[0]).toEqual({ key: '2025-07', label: '2025/7', value: 1 });
+    expect(result.trends.completedOrders30d[0]).toEqual({ key: '2025-07', label: '2025/7', value: 1 });
+    expect(result.trends.dealAmount30d[0]).toEqual({ key: '2025-07', label: '2025/7', value: 1200 });
+    expect(result.trends.orders30d[1]).toEqual({ key: '2025-08', label: '2025/8', value: 1 });
+    expect(result.trends.completedOrders30d[1]).toEqual({ key: '2025-08', label: '2025/8', value: 0 });
+    expect(result.trends.dealAmount30d[1]).toEqual({ key: '2025-08', label: '2025/8', value: 0 });
+    expect(result.trends.orders30d[11]).toEqual({ key: '2026-06', label: '2026/6', value: 1 });
+    expect(result.trends.completedOrders30d[11]).toEqual({ key: '2026-06', label: '2026/6', value: 1 });
+    expect(result.trends.dealAmount30d[11]).toEqual({ key: '2026-06', label: '2026/6', value: 2400 });
+  });
+
   it('keeps conversation count scoped to the current operator without wildcard access', async () => {
     prisma.conversation.count.mockResolvedValueOnce(4);
 
