@@ -18,6 +18,12 @@ type ShowcaseSummary = {
     completedOrdersTotal: number | null;
     completedDealAmountFen: number | null;
   };
+  operations: {
+    pendingVerifications: number | null;
+    pendingListings: number | null;
+    unassignedConversations: number | null;
+    openCases: number | null;
+  };
 };
 
 @Injectable()
@@ -31,6 +37,11 @@ export class ReportsService {
 
   private ensureAuth(req: any) {
     if (!req?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
+  }
+
+  private can(req: any, permission: string): boolean {
+    const perms: Set<string> | undefined = req?.auth?.permissions;
+    return Boolean(perms && (perms.has('*') || perms.has(permission)));
   }
 
   private parsePositiveIntegerDays(input: any, fallbackDays: number) {
@@ -103,29 +114,75 @@ export class ReportsService {
 
   async getShowcaseSummary(req: any): Promise<ShowcaseSummary> {
     this.ensureAuth(req);
-    const perms: Set<string> | undefined = req?.auth?.permissions;
-    const can = (permission: string) => Boolean(perms && (perms.has('*') || perms.has(permission)));
+    const fullAccess = Boolean(req?.auth?.permissions?.has('*'));
+    const userId = String(req?.auth?.userId || '').trim();
+    const platformConversationScope = {
+      OR: [
+        { contentType: 'SUPPORT' },
+        { contentType: 'DISPUTE' },
+        { contentType: 'MAINTENANCE' },
+        { contentType: 'ACHIEVEMENT' },
+        { contentType: 'LISTING', listing: { consultationRouting: 'PLATFORM' } },
+      ],
+    };
 
-    const [patentsTotal, techManagersApprovedTotal, ordersTotal, completedOrdersTotal, completedDealAmountAgg] =
-      await Promise.all([
-        can('listing.read') ? this.prisma.patent.count() : Promise.resolve(null),
-        can('verification.read')
-          ? this.prisma.userVerification.count({
-              where: {
-                verificationType: 'TECH_MANAGER',
-                verificationStatus: 'APPROVED',
-              },
-            })
-          : Promise.resolve(null),
-        can('order.read') ? this.prisma.order.count() : Promise.resolve(null),
-        can('order.read') ? this.prisma.order.count({ where: { status: 'COMPLETED' } }) : Promise.resolve(null),
-        can('order.read')
-          ? this.prisma.order.aggregate({
-              where: { status: 'COMPLETED' },
-              _sum: { dealAmount: true },
-            })
-          : Promise.resolve(null),
-      ]);
+    const [
+      patentsTotal,
+      techManagersApprovedTotal,
+      ordersTotal,
+      completedOrdersTotal,
+      completedDealAmountAgg,
+      pendingVerifications,
+      pendingListings,
+      unassignedConversations,
+      openCases,
+    ] = await Promise.all([
+      this.can(req, 'listing.read') ? this.prisma.patent.count() : Promise.resolve(null),
+      this.can(req, 'verification.read')
+        ? this.prisma.userVerification.count({
+            where: {
+              verificationType: 'TECH_MANAGER',
+              verificationStatus: 'APPROVED',
+            },
+          })
+        : Promise.resolve(null),
+      this.can(req, 'order.read') ? this.prisma.order.count() : Promise.resolve(null),
+      this.can(req, 'order.read') ? this.prisma.order.count({ where: { status: 'COMPLETED' } }) : Promise.resolve(null),
+      this.can(req, 'order.read')
+        ? this.prisma.order.aggregate({
+            where: { status: 'COMPLETED' },
+            _sum: { dealAmount: true },
+          })
+        : Promise.resolve(null),
+      this.can(req, 'verification.read')
+        ? this.prisma.userVerification.count({
+            where: {
+              verificationStatus: 'PENDING',
+            },
+          })
+        : Promise.resolve(null),
+      this.can(req, 'listing.read')
+        ? this.prisma.listing.count({
+            where: {
+              auditStatus: 'PENDING',
+              status: { not: 'DRAFT' },
+            },
+          })
+        : Promise.resolve(null),
+      this.can(req, 'conversation.platform.manage')
+        ? this.prisma.conversation.count({
+            where: {
+              AND: [
+                platformConversationScope,
+                fullAccess
+                  ? { agents: { none: { active: true } } }
+                  : { agents: { some: { operatorUserId: userId, active: true } } },
+              ],
+            },
+          })
+        : Promise.resolve(null),
+      this.can(req, 'case.manage') ? this.prisma.csCase.count({ where: { status: 'OPEN' } }) : Promise.resolve(null),
+    ]);
 
     return {
       overview: {
@@ -134,6 +191,12 @@ export class ReportsService {
         ordersTotal,
         completedOrdersTotal,
         completedDealAmountFen: completedDealAmountAgg?._sum?.dealAmount ?? null,
+      },
+      operations: {
+        pendingVerifications,
+        pendingListings,
+        unassignedConversations,
+        openCases,
       },
     };
   }

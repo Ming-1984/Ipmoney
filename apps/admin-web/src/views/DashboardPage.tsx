@@ -23,21 +23,23 @@ import type { components } from '@ipmoney/api-types';
 import { apiGet } from '../lib/api';
 import { fenToYuan, formatTimeSmart } from '../lib/format';
 
-type PagedUserVerification = components['schemas']['PagedUserVerification'];
-type PagedListing = components['schemas']['PagedListing'];
-type PagedConversationSummary = components['schemas']['PagedConversationSummary'];
-type PagedCase = components['schemas']['PagedCase'];
 type FinanceSummary = components['schemas']['FinanceReportSummary'];
 type HealthResponse = { ok?: boolean; checks?: Record<string, { ok?: boolean; error?: string }> };
 type SessionInfo = { permissions?: string[] };
 
-type ShowcaseSummaryResponse = {
+type DashboardSummaryResponse = {
   overview?: {
     patentsTotal?: number | null;
     techManagersApprovedTotal?: number | null;
     ordersTotal?: number | null;
     completedOrdersTotal?: number | null;
     completedDealAmountFen?: number | null;
+  } | null;
+  operations?: {
+    pendingVerifications?: number | null;
+    pendingListings?: number | null;
+    unassignedConversations?: number | null;
+    openCases?: number | null;
   } | null;
 };
 
@@ -160,20 +162,10 @@ export function DashboardPage() {
       const canConversationManage = can(perms, 'conversation.platform.manage');
       const canCaseManage = can(perms, 'case.manage');
       const canReportRead = can(perms, 'report.read');
-      const needsShowcaseSummary = canListingRead || canVerificationRead || canOrderRead;
+      const needsDashboardSummary = canListingRead || canVerificationRead || canOrderRead || canConversationManage || canCaseManage;
 
       const results = await Promise.allSettled([
-        needsShowcaseSummary ? apiGet<ShowcaseSummaryResponse>('/admin/dashboard/showcase-summary') : Promise.resolve(null),
-        canVerificationRead ? apiGet<PagedUserVerification>('/admin/user-verifications', { status: 'PENDING', page: 1, pageSize: 1 }) : Promise.resolve(null),
-        canListingRead ? apiGet<PagedListing>('/admin/listings', { auditStatus: 'PENDING', page: 1, pageSize: 1 }) : Promise.resolve(null),
-        canConversationManage
-          ? apiGet<PagedConversationSummary>('/admin/conversations/platform', {
-              assigned: 'UNASSIGNED',
-              page: 1,
-              pageSize: 1,
-            })
-          : Promise.resolve(null),
-        canCaseManage ? apiGet<PagedCase>('/admin/cases', { status: 'OPEN', page: 1, pageSize: 1 }) : Promise.resolve(null),
+        needsDashboardSummary ? apiGet<DashboardSummaryResponse>('/admin/dashboard/showcase-summary') : Promise.resolve(null),
         canReportRead ? apiGet<FinanceSummary>('/admin/reports/finance/summary') : Promise.resolve(null),
         apiGet<HealthResponse>('/health'),
       ]);
@@ -185,10 +177,11 @@ export function DashboardPage() {
         healthChecks: {},
       };
 
-      const [summaryRes, verRes, listingRes, convRes, caseRes, financeRes, healthRes] = results;
+      const [summaryRes, financeRes, healthRes] = results;
 
       if (summaryRes.status === 'fulfilled' && summaryRes.value) {
         const overview = summaryRes.value.overview || {};
+        const operations = summaryRes.value.operations || {};
         next.showcase = {
           patentsTotal: toMetricValue(overview.patentsTotal),
           techManagersApprovedTotal: toMetricValue(overview.techManagersApprovedTotal),
@@ -196,25 +189,12 @@ export function DashboardPage() {
           completedOrdersTotal: toMetricValue(overview.completedOrdersTotal),
           completedDealAmountFen: toMetricValue(overview.completedDealAmountFen),
         };
-      } else if (needsShowcaseSummary) {
+        next.pendingVerifications = toMetricValue(operations.pendingVerifications);
+        next.pendingListings = toMetricValue(operations.pendingListings);
+        next.unassignedConversations = toMetricValue(operations.unassignedConversations);
+        next.openCases = toMetricValue(operations.openCases);
+      } else if (needsDashboardSummary) {
         errors.push('展示摘要');
-      }
-
-      if (canVerificationRead) {
-        if (verRes.status === 'fulfilled') next.pendingVerifications = toMetricValue(verRes.value?.page?.total);
-        else errors.push('认证审核');
-      }
-      if (canListingRead) {
-        if (listingRes.status === 'fulfilled') next.pendingListings = toMetricValue(listingRes.value?.page?.total);
-        else errors.push('上架审核');
-      }
-      if (canConversationManage) {
-        if (convRes.status === 'fulfilled') next.unassignedConversations = toMetricValue(convRes.value?.page?.total);
-        else errors.push('平台会话');
-      }
-      if (canCaseManage) {
-        if (caseRes.status === 'fulfilled') next.openCases = toMetricValue(caseRes.value?.page?.total);
-        else errors.push('工单统计');
       }
       if (canReportRead) {
         if (financeRes.status === 'fulfilled') next.finance = financeRes.value;

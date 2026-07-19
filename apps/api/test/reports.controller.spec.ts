@@ -8,10 +8,20 @@ describe('ReportsController delegation suite', () => {
 
   beforeEach(() => {
     reports = {
+      getShowcaseSummary: vi.fn(),
       getFinanceSummary: vi.fn(),
       exportFinanceReport: vi.fn(),
     };
     controller = new ReportsController(reports);
+  });
+
+  it('delegates showcaseSummary with request context', async () => {
+    const req: any = { auth: { userId: 'admin-1' } };
+    reports.getShowcaseSummary.mockResolvedValueOnce({ overview: { patentsTotal: 1 } });
+
+    await expect(controller.showcaseSummary(req)).resolves.toEqual({ overview: { patentsTotal: 1 } });
+
+    expect(reports.getShowcaseSummary).toHaveBeenCalledWith(req);
   });
 
   it('delegates financeSummary with request context', async () => {
