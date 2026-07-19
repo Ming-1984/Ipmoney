@@ -68,6 +68,7 @@ This maps backend enforcement (`requirePermission`) to admin modules/pages:
   - `/admin/orders`, `/admin/orders/:id`
 - `order.assigned.read`:
   - `/admin/orders/assigned`, `/admin/orders/assigned/:id`
+  - Admin web: `/orders/assigned`
   - Scope must be limited to `Order.assignedCsUserId = current user`
 - `order.assigned.contract.confirm`:
   - `/admin/orders/assigned/:id/milestones/contract-signed`

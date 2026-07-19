@@ -64,6 +64,7 @@ const menuConfig: AppMenuItem[] = [
   { key: 'patent-ops', icon: <BookOutlined />, label: '专利批量处理', to: '/patents/operations', permission: 'patent.import', group: 'content' },
   { key: 'bulk-import', icon: <BookOutlined />, label: '成果/经理人导入', to: '/imports/bulk', permission: 'patent.import', group: 'content' },
   { key: 'orders', icon: <ShoppingCartOutlined />, label: '订单管理', to: '/orders', permission: 'order.read', group: 'commerce' },
+  { key: 'assigned-orders', icon: <ScheduleOutlined />, label: '我的订单跟进', to: '/orders/assigned', permission: 'order.assigned.read', group: 'commerce' },
   { key: 'cases', icon: <SolutionOutlined />, label: '工单/争议', to: '/cases', permission: 'case.manage', group: 'commerce' },
   { key: 'maintenance', icon: <ScheduleOutlined />, label: '年费托管', to: '/maintenance', permission: 'maintenance.manage', group: 'commerce' },
   { key: 'refunds', icon: <RollbackOutlined />, label: '退款管理', to: '/refunds', permission: 'refund.read', group: 'commerce' },
@@ -262,7 +263,9 @@ function AppLayoutShell() {
     );
     const currentKey = location.pathname.replace(/^\//, '') || 'dashboard';
     const normalizedCurrentKey =
-      currentKey.startsWith('orders/')
+      currentKey.startsWith('orders/assigned')
+        ? 'assigned-orders'
+        : currentKey.startsWith('orders/')
         ? 'orders'
         : currentKey.startsWith('config/home-landing')
         ? 'home-landing-config'
@@ -290,6 +293,7 @@ function AppLayoutShell() {
   const selectedKeys = useMemo(() => {
     const path = location.pathname.replace(/^\//, '');
     if (!path) return ['dashboard'];
+    if (path.startsWith('orders/assigned')) return ['assigned-orders'];
     if (path.startsWith('orders/')) return ['orders'];
     if (path.startsWith('config/home-landing')) return ['home-landing-config'];
     if (path.startsWith('home-banners')) return ['home-landing-config'];

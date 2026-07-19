@@ -383,7 +383,7 @@ function buildPersistedHomeLandingConfig(input: HomeLandingConfig): HomeLandingC
     1000,
   );
   const heroSpotlightTab = normalized.heroSpotlight.actionPayload.tab;
-  const featuredItems = normalized.featuredZones.items.map((item, index) => {
+  const featuredItems: FeaturedItem[] = normalized.featuredZones.items.map((item, index) => {
     const topic = item.actionPayload.listingTopic;
     const defaultImageUrl = defaultBuiltinImageForTopic(topic);
     const currentImageUrl = normalizeOperatorText(item.imageUrl, defaultImageUrl, 1000);
@@ -698,8 +698,8 @@ export function HomeLandingConfigPage() {
 
               <Form.Item shouldUpdate noStyle>
                 {() => {
-                  const imagePath = ['heroSpotlight', 'imageUrl'] as const;
-                  const tabPath = ['heroSpotlight', 'actionPayload', 'tab'] as const;
+                  const imagePath: ['heroSpotlight', 'imageUrl'] = ['heroSpotlight', 'imageUrl'];
+                  const tabPath: ['heroSpotlight', 'actionPayload', 'tab'] = ['heroSpotlight', 'actionPayload', 'tab'];
                   const currentImage = form.getFieldValue(imagePath) as string | undefined;
                   const currentTab = form.getFieldValue(tabPath) as SearchTab | undefined;
                   const destinationValue = currentTab || 'NONE';
@@ -896,7 +896,12 @@ export function HomeLandingConfigPage() {
                               placeholder="请选择标签"
                               onChange={(next) => {
                                 const topic = (next || undefined) as ListingTopic | undefined;
-                                const imagePath = ['featuredZones', 'items', field.name, 'imageUrl'] as const;
+                                const imagePath: ['featuredZones', 'items', number, 'imageUrl'] = [
+                                  'featuredZones',
+                                  'items',
+                                  field.name,
+                                  'imageUrl',
+                                ];
                                 const currentImage = String(form.getFieldValue(imagePath) || '').trim();
                                 if (!currentImage || currentImage.startsWith('builtin://')) {
                                   form.setFieldValue(imagePath, defaultBuiltinImageForTopic(topic));

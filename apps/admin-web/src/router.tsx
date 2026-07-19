@@ -35,6 +35,10 @@ const OrdersPage = lazy(async () => {
   const mod = await import('./views/OrdersPage');
   return { default: mod.OrdersPage };
 });
+const AssignedOrdersPage = lazy(async () => {
+  const mod = await import('./views/AssignedOrdersPage');
+  return { default: mod.AssignedOrdersPage };
+});
 const OrderDetailPage = lazy(async () => {
   const mod = await import('./views/OrderDetailPage');
   return { default: mod.OrderDetailPage };
@@ -141,6 +145,7 @@ export const router = createBrowserRouter([
       { path: 'tech-managers', element: <TechManagersPage /> },
       { path: 'achievements', element: <AchievementsPage /> },
       { path: 'orders', element: <OrdersPage /> },
+      { path: 'orders/assigned', element: <AssignedOrdersPage /> },
       { path: 'orders/:orderId', element: <OrderDetailPage /> },
       { path: 'cases', element: <CasesPage /> },
       { path: 'refunds', element: <RefundsPage /> },
