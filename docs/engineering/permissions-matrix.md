@@ -37,7 +37,7 @@
 Role IDs are stable and map to default role names:
 - `role-admin` (admin): all permissions (`*`)
 - `role-operator` (operator): verification/listing review + listing batch/import + patent import + claim review + platform conversation management + operations reporting/config
-- `role-cs` (cs): verification/listing read + platform conversation management + order/case/maintenance + milestone confirm
+- `role-cs` (cs): verification/listing read + platform conversation reply + order/case/maintenance + milestone confirm
 - `role-finance` (finance): payment/refund/settlement/invoice + reporting
 
 See `apps/api/src/common/permissions.ts` for the authoritative permission list and
@@ -59,8 +59,11 @@ This maps backend enforcement (`requirePermission`) to admin modules/pages:
   - `/admin/patents/jobs/import*`, `/admin/patents/jobs/listings`
 - `patent.claim.review`:
   - `/admin/patent-claims`, `/admin/patent-claims/:claimId/approve`, `/admin/patent-claims/:claimId/reject`
+- `conversation.platform.reply`:
+  - `/admin/conversations/platform` (assigned conversations), conversation messages/read/reply
 - `conversation.platform.manage`:
-  - `/admin/conversations/platform`, `/admin/conversations/:conversationId/agents*`
+  - Platform conversation pool/unassigned queue and `/admin/conversations/:conversationId/agents*`
+  - Implies `conversation.platform.reply`
 - `order.read`:
   - `/admin/orders`, `/admin/orders/:id`
 - `payment.manual.confirm`, `milestone.*`, `settlement.read`, `payout.manual.confirm`, `invoice.manage`, `refund.*`:

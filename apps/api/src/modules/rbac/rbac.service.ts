@@ -3,7 +3,7 @@ import { randomUUID } from 'crypto';
 
 import { Prisma } from '@prisma/client';
 import { AuditLogService } from '../../common/audit-log.service';
-import { requirePermission } from '../../common/permissions';
+import { hasPermission as requestHasPermission, requirePermission } from '../../common/permissions';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import {
   RBAC_CONFIG_KEY,
@@ -45,7 +45,8 @@ const PERMISSIONS: Permission[] = [
   { id: 'listing.import', name: '挂牌导入', description: '执行挂牌导入任务' },
   { id: 'patent.import', name: '专利导入', description: '执行专利导入与挂牌生成任务' },
   { id: 'patent.claim.review', name: '专利认领审核', description: '审核并处理专利权属认领' },
-  { id: 'conversation.platform.manage', name: '平台会话调度', description: '查看平台会话池并分配客服' },
+  { id: 'conversation.platform.reply', name: '平台会话回复', description: '查看并回复已分配给自己的平台会话' },
+  { id: 'conversation.platform.manage', name: '平台会话调度', description: '查看平台会话池并分配客服，包含回复权限' },
   { id: 'order.read', name: '订单查看', description: '查看订单详情' },
   { id: 'case.manage', name: '工单管理', description: '创建、分派和跟踪工单' },
   { id: 'maintenance.manage', name: '年费托管管理', description: '管理专利年费托管排期与任务' },
@@ -92,8 +93,7 @@ export class RbacService {
   }
 
   private hasPermission(request: any, permission: string): boolean {
-    const perms: Set<string> | undefined = request?.auth?.permissions;
-    return !!perms && (perms.has('*') || perms.has(permission));
+    return requestHasPermission(request, permission);
   }
 
   private hasOwn(input: any, key: string) {
@@ -403,7 +403,12 @@ export class RbacService {
     const scope = this.hasOwn(query, 'scope') ? this.parseUserListScopeStrict(query?.scope, 'scope') : 'STAFF';
     if (
       !this.hasPermission(request, 'rbac.manage') &&
-      !(scope === 'STAFF' && (this.hasPermission(request, 'conversation.platform.manage') || this.hasPermission(request, 'maintenance.manage')))
+      !(
+        scope === 'STAFF' &&
+        (this.hasPermission(request, 'conversation.platform.reply') ||
+          this.hasPermission(request, 'conversation.platform.manage') ||
+          this.hasPermission(request, 'maintenance.manage'))
+      )
     ) {
       throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
     }

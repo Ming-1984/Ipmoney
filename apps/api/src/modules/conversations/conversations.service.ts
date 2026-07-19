@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { ContentEventService } from '../../common/content-event.service';
+import { hasPermission as requestHasPermission } from '../../common/permissions';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { WechatContentSecurityService } from '../../common/wechat-content-security.service';
 import { normalizeDisplayText, resolvePublicAvatarUrl, resolvePublicFileUrl } from '../content-utils';
@@ -496,13 +497,7 @@ export class ConversationsService {
   }
 
   private hasPermission(req: any, permission: string): boolean {
-    const perms: Set<string> | undefined = req?.auth?.permissions;
-    return Boolean(perms && (perms.has('*') || perms.has(permission)));
-  }
-
-  private hasWildcardPermission(req: any): boolean {
-    const perms: Set<string> | undefined = req?.auth?.permissions;
-    return Boolean(perms && perms.has('*'));
+    return requestHasPermission(req, permission);
   }
 
   private isPlatformConversation(conv: any): boolean {
@@ -606,12 +601,16 @@ export class ConversationsService {
 
   private async assertConversationAccessible(conv: any, req: any, options: { allowPlatformManager?: boolean } = {}): Promise<void> {
     const userId = req?.auth?.userId;
-    if (options.allowPlatformManager && this.canManagePlatformConversation(req, conv) && this.hasWildcardPermission(req)) return;
+    if (options.allowPlatformManager && this.canManagePlatformConversation(req, conv)) return;
     if (conv.buyerUserId === userId || conv.sellerUserId === userId) return;
     const isAgent = await this.isConversationAgent(conv.id, userId);
-    if (!isAgent) {
-      throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限访问该会话' });
+    if (isAgent) {
+      if (this.isPlatformConversation(conv) && !this.hasPermission(req, 'conversation.platform.reply')) {
+        throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限访问该会话' });
+      }
+      return;
     }
+    throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限访问该会话' });
   }
 
   private toConversationDto(conv: any, contentTitle?: string | null, listingTitle?: string | null): ConversationDto {
@@ -1296,7 +1295,7 @@ export class ConversationsService {
     const channel = this.hasOwn(query, 'channel')
       ? this.parsePlatformConversationChannelStrict(query?.channel, 'channel')
       : 'ALL';
-    const fullAccess = this.hasWildcardPermission(req);
+    const fullAccess = this.hasPermission(req, 'conversation.platform.manage');
     const effectiveAssignedFilter = !fullAccess || mineOnly ? ('MINE' as const) : assignedFilter;
     const q = String(query?.q || '').trim();
     const listingTopic = this.hasOwn(query, 'listingTopic')

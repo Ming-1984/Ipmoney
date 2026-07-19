@@ -392,6 +392,59 @@ describe('ConversationsService pagination and id strictness suite', () => {
     expect(prisma.conversationAgent.findFirst).not.toHaveBeenCalled();
   });
 
+  it('allows reply-only assigned platform users to read platform conversation messages', async () => {
+    const req = {
+      auth: {
+        userId: 'agent-1',
+        isAdmin: true,
+        permissions: new Set(['conversation.platform.reply']),
+      },
+    };
+    const id = '11111111-1111-1111-1111-111111111111';
+    prisma.conversation.findUnique.mockResolvedValueOnce({
+      id,
+      contentType: 'SUPPORT',
+      buyerUserId: 'u-1',
+      sellerUserId: 'u-2',
+    });
+    prisma.conversationAgent.findFirst.mockResolvedValueOnce({ id: 'assignment-1' });
+    prisma.conversationMessage.findMany.mockResolvedValueOnce([
+      {
+        id: 'm-1',
+        conversationId: id,
+        senderUserId: 'u-1',
+        type: 'TEXT',
+        text: 'hello',
+        createdAt: new Date('2026-03-14T01:00:00.000Z'),
+      },
+    ]);
+
+    await expect(service.listMessages(req, id, {})).resolves.toMatchObject({
+      items: [{ id: 'm-1', text: 'hello' }],
+    });
+  });
+
+  it('rejects assigned platform users without reply permission', async () => {
+    const req = {
+      auth: {
+        userId: 'agent-1',
+        isAdmin: true,
+        permissions: new Set(['listing.read']),
+      },
+    };
+    const id = '11111111-1111-1111-1111-111111111111';
+    prisma.conversation.findUnique.mockResolvedValueOnce({
+      id,
+      contentType: 'SUPPORT',
+      buyerUserId: 'u-1',
+      sellerUserId: 'u-2',
+    });
+    prisma.conversationAgent.findFirst.mockResolvedValueOnce({ id: 'assignment-1' });
+
+    await expect(service.listMessages(req, id, {})).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.conversationMessage.findMany).not.toHaveBeenCalled();
+  });
+
   it('supports cursor pagination for listMessages', async () => {
     const req = { auth: { userId: 'u-1' } };
     const conversationId = '11111111-1111-1111-1111-111111111111';
@@ -567,12 +620,12 @@ describe('ConversationsService pagination and id strictness suite', () => {
     );
   });
 
-  it('forces non-wildcard platform conversation managers to only list assigned conversations', async () => {
+  it('forces reply-only platform conversation users to only list assigned conversations', async () => {
     const req = {
       auth: {
         userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         isAdmin: true,
-        permissions: new Set(['conversation.platform.manage']),
+        permissions: new Set(['conversation.platform.reply']),
       },
     };
     prisma.conversation.findMany.mockResolvedValueOnce([]);
@@ -607,12 +660,44 @@ describe('ConversationsService pagination and id strictness suite', () => {
     );
   });
 
-  it('does not let non-wildcard platform managers read unassigned platform conversation messages by id', async () => {
+  it('lets platform conversation managers list the platform conversation pool', async () => {
     const req = {
       auth: {
         userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         isAdmin: true,
         permissions: new Set(['conversation.platform.manage']),
+      },
+    };
+    prisma.conversation.findMany.mockResolvedValueOnce([]);
+    prisma.conversation.count.mockResolvedValueOnce(0);
+
+    await service.listPlatformConversations(req, { assigned: 'ALL' });
+
+    expect(prisma.conversation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [
+            {
+              OR: [
+                { contentType: 'SUPPORT' },
+                { contentType: 'DISPUTE' },
+                { contentType: 'MAINTENANCE' },
+                { contentType: 'ACHIEVEMENT' },
+                { contentType: 'LISTING', listing: { consultationRouting: 'PLATFORM' } },
+              ],
+            },
+          ],
+        },
+      }),
+    );
+  });
+
+  it('does not let reply-only platform users read unassigned platform conversation messages by id', async () => {
+    const req = {
+      auth: {
+        userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        isAdmin: true,
+        permissions: new Set(['conversation.platform.reply']),
       },
     };
     const id = '11111111-1111-1111-1111-111111111111';

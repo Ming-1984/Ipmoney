@@ -181,9 +181,17 @@ const CHANNEL_FILTER_OPTIONS: Array<{ value: ConversationChannelFilter; label: s
   { value: 'MAINTENANCE', label: '年费托管' },
 ];
 
-function hasFullPlatformConversationAccess(session?: AuthSession | null): boolean {
+function sessionHasPermission(session: AuthSession | null | undefined, permission: string): boolean {
   if (!session) return false;
   if ((session.permissions || []).includes('*')) return true;
+  if ((session.permissions || []).includes(permission)) return true;
+  if (permission === 'conversation.platform.reply' && (session.permissions || []).includes('conversation.platform.manage')) return true;
+  return false;
+}
+
+function canManagePlatformConversations(session?: AuthSession | null): boolean {
+  if (sessionHasPermission(session, 'conversation.platform.manage')) return true;
+  if (!session) return false;
   if (String(session.role || '').toLowerCase() === 'admin') return true;
   if ((session.roleNames || []).some((item) => String(item || '').toLowerCase() === 'admin')) return true;
   return (session.roleIds || []).some((item) => String(item || '') === 'role-admin');
@@ -424,7 +432,7 @@ export function PlatformConversationsPage() {
   const [targetUserId, setTargetUserId] = useState('');
   const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
   const [currentUserId, setCurrentUserId] = useState('');
-  const [fullConversationAccess, setFullConversationAccess] = useState<boolean | null>(null);
+  const [canManageConversations, setCanManageConversations] = useState<boolean | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [patentDetailOpen, setPatentDetailOpen] = useState(false);
   const [patentDetailLoading, setPatentDetailLoading] = useState(false);
@@ -481,15 +489,17 @@ export function PlatformConversationsPage() {
 
   const loadStaffContext = useCallback(async () => {
     try {
-      const [staffRes, sessionRes] = await Promise.all([
-        apiGet<UserListResponse>('/admin/rbac/users', { scope: 'STAFF' }),
-        apiGet<AuthSession>('/auth/session'),
-      ]);
-      setStaffUsers(staffRes.items || []);
+      const sessionRes = await apiGet<AuthSession>('/auth/session');
       setCurrentUserId(String(sessionRes?.userId || ''));
-      setFullConversationAccess(hasFullPlatformConversationAccess(sessionRes));
+      setCanManageConversations(canManagePlatformConversations(sessionRes));
+      try {
+        const staffRes = await apiGet<UserListResponse>('/admin/rbac/users', { scope: 'STAFF' });
+        setStaffUsers(staffRes.items || []);
+      } catch {
+        setStaffUsers([]);
+      }
     } catch {
-      // fail open
+      setCanManageConversations(false);
     }
   }, []);
 
@@ -592,7 +602,7 @@ export function PlatformConversationsPage() {
 
   const applyFilters = useCallback(() => {
     const shouldDropListingTopic = draftChannel !== 'ALL' && draftChannel !== 'CONSULTATION';
-    const nextAssigned = fullConversationAccess === false ? 'MINE' : draftAssigned;
+    const nextAssigned = canManageConversations === false ? 'MINE' : draftAssigned;
     setPage(1);
     setAppliedQ(draftQ);
     setDraftAssigned(nextAssigned);
@@ -603,7 +613,7 @@ export function PlatformConversationsPage() {
     if (shouldDropListingTopic && draftListingTopic) {
       setDraftListingTopic('');
     }
-  }, [draftAssigned, draftChannel, draftListingTopic, draftQ, draftUpdatedRange, fullConversationAccess]);
+  }, [canManageConversations, draftAssigned, draftChannel, draftListingTopic, draftQ, draftUpdatedRange]);
 
   const applyAssignedFilter = useCallback((value: AssignedFilter) => {
     setPage(1);
@@ -636,7 +646,7 @@ export function PlatformConversationsPage() {
   );
 
   const resetFilters = useCallback(() => {
-    const nextAssigned = fullConversationAccess === false ? 'MINE' : 'ALL';
+    const nextAssigned = canManageConversations === false ? 'MINE' : 'ALL';
     setPage(1);
     setDraftQ('');
     setDraftAssigned(nextAssigned);
@@ -648,14 +658,14 @@ export function PlatformConversationsPage() {
     setAppliedChannel('ALL');
     setAppliedListingTopic('');
     setAppliedUpdatedRange(null);
-  }, [fullConversationAccess]);
+  }, [canManageConversations]);
 
   const assignedFilterOptions = useMemo(
     () =>
-      fullConversationAccess === false
+      canManageConversations === false
         ? ASSIGNED_FILTER_OPTIONS.filter((item) => item.value === 'MINE')
         : ASSIGNED_FILTER_OPTIONS,
-    [fullConversationAccess],
+    [canManageConversations],
   );
 
   const refreshCurrent = useCallback(async () => {
@@ -893,13 +903,13 @@ export function PlatformConversationsPage() {
   }, [loadStaffContext]);
 
   useEffect(() => {
-    if (fullConversationAccess !== false) return;
+    if (canManageConversations !== false) return;
     if (draftAssigned !== 'MINE') setDraftAssigned('MINE');
     if (appliedAssigned !== 'MINE') {
       setPage(1);
       setAppliedAssigned('MINE');
     }
-  }, [appliedAssigned, draftAssigned, fullConversationAccess]);
+  }, [appliedAssigned, canManageConversations, draftAssigned]);
 
   useEffect(() => {
     (async () => {
@@ -959,6 +969,8 @@ export function PlatformConversationsPage() {
     setPatentDetail(null);
   }, [activeConversationId]);
 
+  const canManageAssignments = canManageConversations === true;
+
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Card>
@@ -996,7 +1008,7 @@ export function PlatformConversationsPage() {
                 value={draftAssigned}
                 style={{ width: 140 }}
                 options={assignedFilterOptions}
-                disabled={fullConversationAccess === false}
+                disabled={!canManageAssignments}
                 onChange={applyAssignedFilter}
               />
               <Select<ConversationChannelFilter>
@@ -1152,25 +1164,29 @@ export function PlatformConversationsPage() {
                         专利详情
                       </Button>
                     ) : null}
-                    <Button size="small" loading={assigning} onClick={() => void assignAgent()}>
-                      分配给我
-                    </Button>
-                    <Select
-                      showSearch
-                      value={targetUserId || undefined}
-                      style={{ width: 340 }}
-                      placeholder="选择坐席"
-                      optionFilterProp="label"
-                      options={staffUsers.map((user) => ({
-                        value: user.id,
-                        label: staffDisplayName(user, '未命名坐席'),
-                      }))}
-                      onChange={(value) => setTargetUserId(String(value || ''))}
-                      allowClear
-                    />
-                    <Button size="small" loading={assigning} disabled={!targetUserId.trim()} onClick={() => void assignAgent(targetUserId)}>
-                      指定分配
-                    </Button>
+                    {canManageAssignments ? (
+                      <>
+                        <Button size="small" loading={assigning} onClick={() => void assignAgent()}>
+                          分配给我
+                        </Button>
+                        <Select
+                          showSearch
+                          value={targetUserId || undefined}
+                          style={{ width: 340 }}
+                          placeholder="选择坐席"
+                          optionFilterProp="label"
+                          options={staffUsers.map((user) => ({
+                            value: user.id,
+                            label: staffDisplayName(user, '未命名坐席'),
+                          }))}
+                          onChange={(value) => setTargetUserId(String(value || ''))}
+                          allowClear
+                        />
+                        <Button size="small" loading={assigning} disabled={!targetUserId.trim()} onClick={() => void assignAgent(targetUserId)}>
+                          指定分配
+                        </Button>
+                      </>
+                    ) : null}
                     <Button size="small" onClick={() => void loadLatestMessages(activeConversation.id)}>
                       刷新消息
                     </Button>
@@ -1182,14 +1198,18 @@ export function PlatformConversationsPage() {
                         <Tag key={id} color="blue">
                           <Space size={4}>
                             <span>{assignedStaffName(id, staffNameMap)}</span>
-                            <Button type="link" size="small" danger onClick={() => void removeAgent(id)}>
-                              移除
-                            </Button>
+                            {canManageAssignments ? (
+                              <Button type="link" size="small" danger onClick={() => void removeAgent(id)}>
+                                移除
+                              </Button>
+                            ) : null}
                           </Space>
                         </Tag>
                       ))
-                    ) : (
+                    ) : canManageAssignments ? (
                       <Typography.Text type="secondary">当前未分配坐席</Typography.Text>
+                    ) : (
+                      <Typography.Text type="secondary">当前由我负责</Typography.Text>
                     )}
                   </Space>
                 </Space>

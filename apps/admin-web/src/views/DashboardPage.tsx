@@ -195,7 +195,7 @@ function MetricCard({
 }
 
 function MetricValue({ value, suffix }: { value: string; suffix?: string }) {
-  const hostRef = useRef<HTMLStrongElement>(null);
+  const hostRef = useRef<HTMLElement>(null);
   const probeRef = useRef<HTMLSpanElement>(null);
   const [fontSize, setFontSize] = useState<number | null>(null);
 
@@ -636,14 +636,14 @@ export function DashboardPage() {
       if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
 
       const canOrderRead = can(permissionSet, 'order.read');
-      const canConversationManage = can(permissionSet, 'conversation.platform.manage');
-      if (!canOrderRead && !canConversationManage) return;
+      const canConversationReply = can(permissionSet, 'conversation.platform.reply');
+      if (!canOrderRead && !canConversationReply) return;
 
       liveFeedInFlightRef.current = true;
       try {
         const [orderRes, conversationRes] = await Promise.all([
           canOrderRead ? apiGet<DashboardOrdersFeedResponse>('/admin/orders', { page: 1, pageSize: LIVE_NOTICE_PAGE_SIZE }) : Promise.resolve(null),
-          canConversationManage
+          canConversationReply
             ? apiGet<DashboardConversationsFeedResponse>('/admin/conversations/platform', { page: 1, pageSize: LIVE_NOTICE_PAGE_SIZE })
             : Promise.resolve(null),
         ]);
@@ -667,7 +667,7 @@ export function DashboardPage() {
           }
         }
 
-        if (canConversationManage) {
+        if (canConversationReply) {
           const conversationItems = conversationRes?.items || [];
           const newestConversationCreatedAt = latestCreatedAt(conversationItems);
           if (!liveConversationSeededRef.current) {
@@ -712,7 +712,7 @@ export function DashboardPage() {
   useEffect(() => {
     if (typeof document === 'undefined') return;
 
-    const canPollLiveFeed = can(permissionSet, 'order.read') || can(permissionSet, 'conversation.platform.manage');
+    const canPollLiveFeed = can(permissionSet, 'order.read') || can(permissionSet, 'conversation.platform.reply');
     if (!canPollLiveFeed) return;
 
     const refreshSilently = () => {
@@ -823,7 +823,7 @@ export function DashboardPage() {
       [
         { label: '认证审核', to: '/verifications', tone: 'processing' as const, permission: 'verification.read' },
         { label: '上架审核', to: '/listings', tone: 'gold' as const, permission: 'listing.read' },
-        { label: '平台会话', to: '/conversations/platform', tone: 'cyan' as const, permission: 'conversation.platform.manage' },
+        { label: '平台会话', to: '/conversations/platform', tone: 'cyan' as const, permission: 'conversation.platform.reply' },
         { label: '专利批量运营', to: '/patents/operations', tone: 'green' as const, permission: 'patent.import' },
         { label: '成果/经理人导入', to: '/imports/bulk', tone: 'volcano' as const, permission: 'patent.import' },
         { label: '首页展示内容', to: '/config/home-landing', tone: 'purple' as const, permission: 'config.manage' },

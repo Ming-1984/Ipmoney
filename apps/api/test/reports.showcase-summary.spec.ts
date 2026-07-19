@@ -253,7 +253,7 @@ describe('ReportsService showcase summary suite', () => {
     expect(result.trends.dealAmount30d[11]).toEqual({ key: '2026-06', label: '2026/6', value: 2400 });
   });
 
-  it('keeps conversation count scoped to the current operator without wildcard access', async () => {
+  it('counts unassigned conversations for platform conversation managers', async () => {
     prisma.conversation.count.mockResolvedValueOnce(4);
 
     const result = await service.getShowcaseSummary({
@@ -281,7 +281,7 @@ describe('ReportsService showcase summary suite', () => {
               { contentType: 'LISTING', listing: { consultationRouting: 'PLATFORM' } },
             ],
           },
-          { agents: { some: { operatorUserId: 'operator-1', active: true } } },
+          { agents: { none: { active: true } } },
         ],
       },
     });
@@ -290,5 +290,22 @@ describe('ReportsService showcase summary suite', () => {
     expect(prisma.userVerification.count).not.toHaveBeenCalled();
     expect(prisma.order.count).not.toHaveBeenCalled();
     expect(prisma.csCase.count).not.toHaveBeenCalled();
+  });
+
+  it('does not expose unassigned conversation operations to reply-only users', async () => {
+    const result = await service.getShowcaseSummary({
+      auth: {
+        userId: 'cs-1',
+        permissions: new Set(['conversation.platform.reply']),
+      },
+    });
+
+    expect(result.operations).toEqual({
+      pendingVerifications: null,
+      pendingListings: null,
+      unassignedConversations: null,
+      openCases: null,
+    });
+    expect(prisma.conversation.count).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,6 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
+import { hasPermission as requestHasPermission } from '../../common/permissions';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 type BadgeKey =
@@ -32,13 +33,7 @@ export class AdminNotificationsService {
   }
 
   private hasPermission(req: any, permission: string): boolean {
-    const perms: Set<string> | undefined = req?.auth?.permissions;
-    return !!perms && (perms.has('*') || perms.has(permission));
-  }
-
-  private hasWildcardPermission(req: any): boolean {
-    const perms: Set<string> | undefined = req?.auth?.permissions;
-    return !!perms && perms.has('*');
+    return requestHasPermission(req, permission);
   }
 
   private async countAssignedUnreadPlatformConversations(req: any, managedConversationScope: any): Promise<number> {
@@ -108,9 +103,9 @@ export class AdminNotificationsService {
       },
       {
         key: 'platform-conversations',
-        permission: 'conversation.platform.manage',
+        permission: 'conversation.platform.reply',
         count: () =>
-          this.hasWildcardPermission(req)
+          this.hasPermission(req, 'conversation.platform.manage')
             ? this.prisma.conversation.count({
                 where: {
                   AND: [managedConversationScope, { agents: { none: { active: true } } }],

@@ -96,7 +96,7 @@ describe('RbacService read/update strictness suite', () => {
     });
   });
 
-  it('allows conversation managers to read staff users without rbac management access', async () => {
+  it('allows platform conversation reply users to read staff users without rbac management access', async () => {
     prisma.rbacRole.count.mockResolvedValueOnce(1);
     prisma.user.findMany.mockResolvedValueOnce([
       {
@@ -110,7 +110,7 @@ describe('RbacService read/update strictness suite', () => {
     ]);
 
     const result = await service.listUsers(
-      { auth: { userId: 'cs-1', permissions: new Set(['conversation.platform.manage']) } },
+      { auth: { userId: 'cs-1', permissions: new Set(['conversation.platform.reply']) } },
       { scope: 'STAFF' },
     );
 
@@ -120,9 +120,9 @@ describe('RbacService read/update strictness suite', () => {
     });
   });
 
-  it('does not allow conversation managers to read all users', async () => {
+  it('does not allow platform conversation users to read all users', async () => {
     await expect(
-      service.listUsers({ auth: { userId: 'cs-1', permissions: new Set(['conversation.platform.manage']) } }, { scope: 'ALL' }),
+      service.listUsers({ auth: { userId: 'cs-1', permissions: new Set(['conversation.platform.reply']) } }, { scope: 'ALL' }),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 

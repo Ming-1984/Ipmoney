@@ -1,7 +1,7 @@
 import { ForbiddenException } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
 
-import { requirePermission, resolvePermissions, resolvePermissionsFromRoleIds } from '../src/common/permissions';
+import { hasPermission, requirePermission, resolvePermissions, resolvePermissionsFromRoleIds } from '../src/common/permissions';
 
 describe('permissions utility suite', () => {
   it('resolves merged permissions from multiple role names', () => {
@@ -36,5 +36,12 @@ describe('permissions utility suite', () => {
   it('throws forbidden when permission is missing', () => {
     const req = { auth: { permissions: new Set(['order.read']) } };
     expect(() => requirePermission(req, 'order.update')).toThrow(ForbiddenException);
+  });
+
+  it('treats platform conversation manage as an implied reply permission', () => {
+    const req = { auth: { permissions: new Set(['conversation.platform.manage']) } };
+
+    expect(hasPermission(req, 'conversation.platform.reply')).toBe(true);
+    expect(() => requirePermission(req, 'conversation.platform.reply')).not.toThrow();
   });
 });

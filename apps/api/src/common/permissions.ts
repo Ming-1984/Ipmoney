@@ -1,6 +1,17 @@
 ﻿import { ForbiddenException } from '@nestjs/common';
 
 export type AdminRoleName = 'admin' | 'cs' | 'operator' | 'finance';
+
+const IMPLIED_PERMISSION_IDS: Record<string, string[]> = {
+  'conversation.platform.manage': ['conversation.platform.reply'],
+};
+
+function addPermission(out: Set<string>, permission: string) {
+  if (out.has(permission)) return;
+  out.add(permission);
+  (IMPLIED_PERMISSION_IDS[permission] || []).forEach((implied) => addPermission(out, implied));
+}
+
 export const ADMIN_ROLE_PERMISSIONS: Record<AdminRoleName, string[]> = {
   admin: ['*'],
   operator: [
@@ -30,6 +41,7 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRoleName, string[]> = {
   cs: [
     'verification.read',
     'listing.read',
+    'conversation.platform.reply',
     'order.read',
     'case.manage',
     'maintenance.manage',
@@ -62,7 +74,7 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRoleName, string[]> = {
 export function resolvePermissions(roleNames: AdminRoleName[]) {
   const out = new Set<string>();
   roleNames.forEach((r) => {
-    (ADMIN_ROLE_PERMISSIONS[r] || []).forEach((p) => out.add(p));
+    (ADMIN_ROLE_PERMISSIONS[r] || []).forEach((p) => addPermission(out, p));
   });
   return out;
 }
@@ -85,15 +97,24 @@ export function resolvePermissionsFromRoleIds(
 
   roleIds.forEach((id) => {
     const perms = roleMap.get(id) || [];
-    perms.forEach((p) => out.add(p));
+    perms.forEach((p) => addPermission(out, p));
   });
 
   return out;
 }
 
-export function requirePermission(req: any, permission: string) {
+export function hasPermission(req: any, permission: string) {
   const perms: Set<string> | undefined = req?.auth?.permissions;
-  if (!perms || (!perms.has('*') && !perms.has(permission))) {
+  if (!perms) return false;
+  if (perms.has('*') || perms.has(permission)) return true;
+  for (const sourcePermission of perms) {
+    if ((IMPLIED_PERMISSION_IDS[sourcePermission] || []).includes(permission)) return true;
+  }
+  return false;
+}
+
+export function requirePermission(req: any, permission: string) {
+  if (!hasPermission(req, permission)) {
     throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
   }
 }

@@ -103,7 +103,7 @@ export class ConversationsController {
   @Get('/admin/conversations/platform')
   async listPlatformConversations(@Req() req: any, @Query() query: any) {
     this.ensureAdmin(req);
-    requirePermission(req, 'conversation.platform.manage');
+    requirePermission(req, 'conversation.platform.reply');
     return await this.conversations.listPlatformConversations(req, query || {});
   }
 

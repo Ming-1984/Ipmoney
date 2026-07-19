@@ -65,6 +65,7 @@ export function buildDefaultRbacRoles(now = new Date()): RbacRole[] {
       permissionIds: [
         'verification.read',
         'listing.read',
+        'conversation.platform.reply',
         'order.read',
         'case.manage',
         'maintenance.manage',

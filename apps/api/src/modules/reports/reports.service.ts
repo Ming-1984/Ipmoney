@@ -6,7 +6,7 @@ import crypto from 'node:crypto';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { resolveUploadDir } from '../../common/upload-dir';
-import { requirePermission } from '../../common/permissions';
+import { hasPermission as requestHasPermission, requirePermission } from '../../common/permissions';
 import { FilesService } from '../files/files.service';
 
 const UPLOAD_DIR = resolveUploadDir();
@@ -86,8 +86,7 @@ export class ReportsService {
   }
 
   private can(req: any, permission: string): boolean {
-    const perms: Set<string> | undefined = req?.auth?.permissions;
-    return Boolean(perms && (perms.has('*') || perms.has(permission)));
+    return requestHasPermission(req, permission);
   }
 
   private parsePositiveIntegerDays(input: any, fallbackDays: number) {
@@ -254,8 +253,6 @@ export class ReportsService {
     this.ensureAuth(req);
     const days = this.parsePositiveIntegerDays(req?.query, 30);
     const { start, end } = this.buildRange(req?.query, days);
-    const fullAccess = Boolean(req?.auth?.permissions?.has('*'));
-    const userId = String(req?.auth?.userId || '').trim();
     const platformConversationScope: Prisma.ConversationWhereInput = {
       OR: [
         { contentType: 'SUPPORT' },
@@ -314,12 +311,7 @@ export class ReportsService {
       this.can(req, 'conversation.platform.manage')
         ? this.prisma.conversation.count({
             where: {
-              AND: [
-                platformConversationScope,
-                fullAccess
-                  ? { agents: { none: { active: true } } }
-                  : { agents: { some: { operatorUserId: userId, active: true } } },
-              ],
+              AND: [platformConversationScope, { agents: { none: { active: true } } }],
             },
           })
         : Promise.resolve(null),

@@ -82,25 +82,33 @@ describe('ConversationsController delegation suite', () => {
     expect(conversations.markRead).toHaveBeenCalledWith(req, VALID_UUID);
   });
 
-  it('delegates admin platform conversation routes when permission exists', async () => {
-    const req: any = { auth: { userId: 'admin-1', isAdmin: true, permissions: new Set(['conversation.platform.manage']) } };
+  it('delegates admin platform conversation routes for reply and manage permissions', async () => {
+    const replyReq: any = { auth: { userId: 'cs-1', isAdmin: true, permissions: new Set(['conversation.platform.reply']) } };
+    const manageReq: any = { auth: { userId: 'admin-1', isAdmin: true, permissions: new Set(['conversation.platform.manage']) } };
     conversations.listPlatformConversations.mockResolvedValueOnce({ items: [] });
     conversations.assignPlatformAgent.mockResolvedValueOnce({ id: 'agent-1', userId: VALID_UUID, active: true });
     conversations.removePlatformAgent.mockResolvedValueOnce({ id: 'agent-1', userId: VALID_UUID, active: false });
 
-    await expect(controller.listPlatformConversations(req, { mineOnly: 'true' })).resolves.toEqual({ items: [] });
-    await expect(controller.assignPlatformAgent(req, ` ${VALID_UUID} `, { userId: VALID_UUID })).resolves.toMatchObject({
+    await expect(controller.listPlatformConversations(replyReq, { mineOnly: 'true' })).resolves.toEqual({ items: [] });
+    await expect(controller.assignPlatformAgent(manageReq, ` ${VALID_UUID} `, { userId: VALID_UUID })).resolves.toMatchObject({
       userId: VALID_UUID,
       active: true,
     });
-    await expect(controller.removePlatformAgent(req, ` ${VALID_UUID} `, ` ${VALID_UUID} `)).resolves.toMatchObject({
+    await expect(controller.removePlatformAgent(manageReq, ` ${VALID_UUID} `, ` ${VALID_UUID} `)).resolves.toMatchObject({
       userId: VALID_UUID,
       active: false,
     });
 
-    expect(conversations.listPlatformConversations).toHaveBeenCalledWith(req, { mineOnly: 'true' });
-    expect(conversations.assignPlatformAgent).toHaveBeenCalledWith(req, VALID_UUID, { userId: VALID_UUID });
-    expect(conversations.removePlatformAgent).toHaveBeenCalledWith(req, VALID_UUID, VALID_UUID);
+    expect(conversations.listPlatformConversations).toHaveBeenCalledWith(replyReq, { mineOnly: 'true' });
+    expect(conversations.assignPlatformAgent).toHaveBeenCalledWith(manageReq, VALID_UUID, { userId: VALID_UUID });
+    expect(conversations.removePlatformAgent).toHaveBeenCalledWith(manageReq, VALID_UUID, VALID_UUID);
+  });
+
+  it('does not let reply-only admins assign or remove platform agents', async () => {
+    const req: any = { auth: { userId: 'cs-1', isAdmin: true, permissions: new Set(['conversation.platform.reply']) } };
+
+    await expect(controller.assignPlatformAgent(req, VALID_UUID, {})).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(controller.removePlatformAgent(req, VALID_UUID, VALID_UUID)).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('rejects admin platform routes without admin or permission', async () => {

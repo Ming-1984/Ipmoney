@@ -91,7 +91,40 @@ describe('AdminNotificationsService', () => {
     });
   });
 
-  it('counts assigned unread platform conversations for non-wildcard conversation managers', async () => {
+  it('counts unassigned platform conversations for conversation managers', async () => {
+    const prisma = makePrisma();
+    prisma.conversation.count.mockResolvedValueOnce(6);
+    const service = new AdminNotificationsService(prisma as any);
+
+    const result = await service.getBadges({
+      auth: {
+        isAdmin: true,
+        userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        permissions: new Set(['conversation.platform.manage']),
+      },
+    });
+
+    expect(result.badges['platform-conversations']).toBe(6);
+    expect(prisma.conversation.count).toHaveBeenCalledWith({
+      where: {
+        AND: [
+          {
+            OR: [
+              { contentType: 'SUPPORT' },
+              { contentType: 'DISPUTE' },
+              { contentType: 'MAINTENANCE' },
+              { contentType: 'ACHIEVEMENT' },
+              { contentType: 'LISTING', listing: { consultationRouting: 'PLATFORM' } },
+            ],
+          },
+          { agents: { none: { active: true } } },
+        ],
+      },
+    });
+    expect(prisma.conversation.findMany).not.toHaveBeenCalled();
+  });
+
+  it('counts assigned unread platform conversations for reply-only conversation users', async () => {
     const prisma = makePrisma();
     prisma.conversation.findMany.mockResolvedValueOnce([
       {
@@ -117,7 +150,7 @@ describe('AdminNotificationsService', () => {
       auth: {
         isAdmin: true,
         userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-        permissions: new Set(['conversation.platform.manage']),
+        permissions: new Set(['conversation.platform.reply']),
       },
     });
 
