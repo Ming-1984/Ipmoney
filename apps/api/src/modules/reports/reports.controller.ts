@@ -8,6 +8,12 @@ export class ReportsController {
   constructor(private readonly reports: ReportsService) {}
 
   @UseGuards(BearerAuthGuard)
+  @Get('/admin/dashboard/showcase-summary')
+  async showcaseSummary(@Req() req: any) {
+    return await this.reports.getShowcaseSummary(req);
+  }
+
+  @UseGuards(BearerAuthGuard)
   @Get('/admin/reports/finance/summary')
   async financeSummary(@Req() req: any) {
     return await this.reports.getFinanceSummary(req);

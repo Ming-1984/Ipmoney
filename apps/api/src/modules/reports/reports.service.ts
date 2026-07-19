@@ -10,6 +10,16 @@ import { FilesService } from '../files/files.service';
 
 const UPLOAD_DIR = resolveUploadDir();
 
+type ShowcaseSummary = {
+  overview: {
+    patentsTotal: number | null;
+    techManagersApprovedTotal: number | null;
+    ordersTotal: number | null;
+    completedOrdersTotal: number | null;
+    completedDealAmountFen: number | null;
+  };
+};
+
 @Injectable()
 export class ReportsService {
   constructor(
@@ -89,6 +99,43 @@ export class ReportsService {
       return `"${raw.replace(/"/g, '""')}"`;
     }
     return raw;
+  }
+
+  async getShowcaseSummary(req: any): Promise<ShowcaseSummary> {
+    this.ensureAuth(req);
+    const perms: Set<string> | undefined = req?.auth?.permissions;
+    const can = (permission: string) => Boolean(perms && (perms.has('*') || perms.has(permission)));
+
+    const [patentsTotal, techManagersApprovedTotal, ordersTotal, completedOrdersTotal, completedDealAmountAgg] =
+      await Promise.all([
+        can('listing.read') ? this.prisma.patent.count() : Promise.resolve(null),
+        can('verification.read')
+          ? this.prisma.userVerification.count({
+              where: {
+                verificationType: 'TECH_MANAGER',
+                verificationStatus: 'APPROVED',
+              },
+            })
+          : Promise.resolve(null),
+        can('order.read') ? this.prisma.order.count() : Promise.resolve(null),
+        can('order.read') ? this.prisma.order.count({ where: { status: 'COMPLETED' } }) : Promise.resolve(null),
+        can('order.read')
+          ? this.prisma.order.aggregate({
+              where: { status: 'COMPLETED' },
+              _sum: { dealAmount: true },
+            })
+          : Promise.resolve(null),
+      ]);
+
+    return {
+      overview: {
+        patentsTotal,
+        techManagersApprovedTotal,
+        ordersTotal,
+        completedOrdersTotal,
+        completedDealAmountFen: completedDealAmountAgg?._sum?.dealAmount ?? null,
+      },
+    };
   }
 
   async getFinanceSummary(req: any) {
