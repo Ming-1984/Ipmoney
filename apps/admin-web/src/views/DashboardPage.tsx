@@ -210,8 +210,8 @@ function BarChart({
     const values = points.map((item) => Math.max(0, toNumber(item.value)));
     const max = Math.max(1, ...values);
     const width = 520;
-    const height = 250;
-    const padding = { top: 18, right: 18, bottom: 42, left: 54 };
+    const height = 220;
+    const padding = { top: 14, right: 18, bottom: 34, left: 54 };
     const innerWidth = width - padding.left - padding.right;
     const innerHeight = height - padding.top - padding.bottom;
     const slotWidth = innerWidth / Math.max(1, values.length);

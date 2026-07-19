@@ -382,6 +382,7 @@ body {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
+  align-items: start;
 }
 
 .ipm-showcase-distributions {
@@ -430,12 +431,12 @@ body {
 }
 
 .ipm-showcase-trend-panel {
-  min-height: 330px;
+  min-height: 0;
 }
 
 .ipm-showcase-chart-wrap {
-  height: 260px;
-  padding: 4px 14px 16px;
+  height: 220px;
+  padding: 4px 14px 8px;
 }
 
 .ipm-showcase-chart-empty {
