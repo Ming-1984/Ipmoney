@@ -46,6 +46,8 @@ type ConversationSummary = {
   listingTopics?: ListingTopic[];
   lastMessagePreview?: string | null;
   lastMessageAt: string;
+  createdAt: string;
+  updatedAt: string;
   unreadCount: number;
   counterpart: {
     id: string;
@@ -337,6 +339,8 @@ export class ConversationsService {
       listingTopics: this.normalizeListingTopics(it.listing?.listingTopicsJson),
       lastMessagePreview: this.summarizeLastMessage(latestMessage),
       lastMessageAt: lastMessageAt.toISOString(),
+      createdAt: it.createdAt instanceof Date ? it.createdAt.toISOString() : new Date(it.createdAt || Date.now()).toISOString(),
+      updatedAt: it.updatedAt instanceof Date ? it.updatedAt.toISOString() : new Date(it.updatedAt || Date.now()).toISOString(),
       unreadCount: unreadCount ?? 0,
       counterpart: {
         id: it.buyer?.id || it.buyerUserId,
@@ -890,6 +894,8 @@ export class ConversationsService {
         listingTopics: contentType === 'LISTING' ? this.normalizeListingTopics(it.listing?.listingTopicsJson) : [],
         lastMessagePreview: this.summarizeLastMessage(latestMessage),
         lastMessageAt: lastMessageAt.toISOString(),
+        createdAt: it.createdAt instanceof Date ? it.createdAt.toISOString() : new Date(it.createdAt || Date.now()).toISOString(),
+        updatedAt: it.updatedAt instanceof Date ? it.updatedAt.toISOString() : new Date(it.updatedAt || Date.now()).toISOString(),
         unreadCount: unreadCounts[index] ?? 0,
         counterpart: {
           id: counterpartId,

@@ -10,9 +10,9 @@ describe('ReportsService showcase summary suite', () => {
 
   beforeEach(() => {
     prisma = {
-      patent: { count: vi.fn() },
+      patent: { count: vi.fn(), findMany: vi.fn() },
       userVerification: { count: vi.fn() },
-      order: { count: vi.fn(), aggregate: vi.fn() },
+      order: { count: vi.fn(), aggregate: vi.fn(), findMany: vi.fn() },
       listing: { count: vi.fn() },
       conversation: { count: vi.fn() },
       csCase: { count: vi.fn() },
@@ -43,9 +43,42 @@ describe('ReportsService showcase summary suite', () => {
     prisma.listing.count.mockResolvedValueOnce(9);
     prisma.conversation.count.mockResolvedValueOnce(5);
     prisma.csCase.count.mockResolvedValueOnce(3);
+    prisma.order.findMany.mockResolvedValueOnce([
+      {
+        createdAt: new Date('2026-03-10T08:00:00.000Z'),
+        status: 'COMPLETED',
+        dealAmount: 1200,
+      },
+      {
+        createdAt: new Date('2026-03-10T10:00:00.000Z'),
+        status: 'DEPOSIT_PAID',
+        dealAmount: 300,
+      },
+      {
+        createdAt: new Date('2026-03-11T09:00:00.000Z'),
+        status: 'COMPLETED',
+        dealAmount: 2400,
+      },
+      {
+        createdAt: new Date('2026-03-12T11:00:00.000Z'),
+        status: 'CANCELLED',
+        dealAmount: 500,
+      },
+    ]);
+    prisma.patent.findMany.mockResolvedValueOnce([
+      { patentType: 'INVENTION' },
+      { patentType: 'UTILITY_MODEL' },
+      { patentType: 'UTILITY_MODEL' },
+      { patentType: 'DESIGN' },
+    ]);
 
     const result = await service.getShowcaseSummary({
       auth: { userId: 'admin-1', permissions: new Set(['*']) },
+      query: {
+        start: '2026-03-10T00:00:00.000Z',
+        end: '2026-03-12T00:00:00.000Z',
+        days: '3',
+      },
     });
 
     expect(result).toEqual({
@@ -61,6 +94,41 @@ describe('ReportsService showcase summary suite', () => {
         pendingListings: 9,
         unassignedConversations: 5,
         openCases: 3,
+      },
+      trends: {
+        range: {
+          start: '2026-03-10T00:00:00.000Z',
+          end: '2026-03-12T00:00:00.000Z',
+          days: 3,
+          label: '近3天',
+        },
+        orders30d: [
+          { key: '2026-03-10', label: '3/10', value: 2 },
+          { key: '2026-03-11', label: '3/11', value: 1 },
+          { key: '2026-03-12', label: '3/12', value: 1 },
+        ],
+        completedOrders30d: [
+          { key: '2026-03-10', label: '3/10', value: 1 },
+          { key: '2026-03-11', label: '3/11', value: 1 },
+          { key: '2026-03-12', label: '3/12', value: 0 },
+        ],
+        dealAmount30d: [
+          { key: '2026-03-10', label: '3/10', value: 1200 },
+          { key: '2026-03-11', label: '3/11', value: 2400 },
+          { key: '2026-03-12', label: '3/12', value: 0 },
+        ],
+      },
+      distribution: {
+        patentTypes: [
+          { key: 'INVENTION', label: '发明', value: 1 },
+          { key: 'UTILITY_MODEL', label: '实用新型', value: 2 },
+          { key: 'DESIGN', label: '外观设计', value: 1 },
+        ],
+        orderStatuses: [
+          { key: 'DEPOSIT_PAID', label: '定金已付', value: 1 },
+          { key: 'COMPLETED', label: '已完成', value: 2 },
+          { key: 'CANCELLED', label: '已取消', value: 1 },
+        ],
       },
     });
 
@@ -98,6 +166,30 @@ describe('ReportsService showcase summary suite', () => {
       },
     });
     expect(prisma.csCase.count).toHaveBeenCalledWith({ where: { status: 'OPEN' } });
+    expect(prisma.order.findMany).toHaveBeenCalledWith({
+      where: {
+        createdAt: {
+          gte: new Date('2026-03-10T00:00:00.000Z'),
+          lte: new Date('2026-03-12T00:00:00.000Z'),
+        },
+      },
+      select: {
+        createdAt: true,
+        status: true,
+        dealAmount: true,
+      },
+    });
+    expect(prisma.patent.findMany).toHaveBeenCalledWith({
+      where: {
+        createdAt: {
+          gte: new Date('2026-03-10T00:00:00.000Z'),
+          lte: new Date('2026-03-12T00:00:00.000Z'),
+        },
+      },
+      select: {
+        patentType: true,
+      },
+    });
   });
 
   it('keeps conversation count scoped to the current operator without wildcard access', async () => {

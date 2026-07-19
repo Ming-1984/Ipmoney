@@ -22,7 +22,7 @@
 } from '@ant-design/icons';
 import { Avatar, Badge, Button, Layout, Menu, Spin, Typography, message } from 'antd';
 import type { MenuProps } from 'antd';
-import React, { Suspense, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import logoPng from '../assets/brand/logo.png';
@@ -30,6 +30,7 @@ import { ADMIN_BADGES_REFRESH_EVENT, apiGet } from '../lib/api';
 import { isSuperAdminSession, type AdminSessionInfo } from '../lib/adminSession';
 import { clearAdminToken, hasAdminToken } from '../lib/auth';
 import { displayUserName, normalizeUserFacingText } from '../lib/userFacingText';
+import { LiveNoticeProvider, useLiveNoticePush, type LiveNotice } from './liveNotices';
 
 const { Header, Sider, Content } = Layout;
 
@@ -90,13 +91,45 @@ function hasPermission(perms: Set<string>, permission?: string): boolean {
   return perms.has(permission);
 }
 
-export function AppLayout() {
+function formatBadgeNoticeCount(count: number): string {
+  const normalized = Math.max(0, Math.trunc(Number(count) || 0));
+  return normalized > 99 ? '99+' : normalized.toLocaleString('zh-CN');
+}
+
+function buildBadgeNotice(item: AppMenuItem, nextCount: number, previousCount: number, createdAt: string): LiveNotice {
+  const delta = Math.max(0, nextCount - previousCount);
+  const countLabel = formatBadgeNoticeCount(nextCount);
+  const summary =
+    previousCount > 0
+      ? `当前 ${countLabel} 项待处理，新增 ${formatBadgeNoticeCount(delta)} 项`
+      : `当前 ${countLabel} 项待处理`;
+
+  return {
+    id: `badge-${item.key}-${nextCount}-${createdAt}`,
+    kind: 'badge',
+    title: item.label,
+    summary,
+    href: item.to,
+    createdAt,
+    icon: item.icon ?? <BellOutlined />,
+  };
+}
+
+function AppLayoutShell() {
   const location = useLocation();
   const navigate = useNavigate();
+  const pushLiveNotices = useLiveNoticePush();
+  const badgeSeededRef = useRef(false);
+  const previousBadgesRef = useRef<Record<string, number>>({});
   const [collapsed, setCollapsed] = useState(false);
   const [loadingSession, setLoadingSession] = useState(true);
   const [session, setSession] = useState<SessionInfo | null>(null);
   const [badges, setBadges] = useState<Record<string, number>>({});
+  const permissionSet = useMemo(() => {
+    const next = new Set(session?.permissions || []);
+    if (isSuperAdminSession(session)) next.add('*');
+    return next;
+  }, [session]);
 
   const loadSession = async () => {
     if (!hasAdminToken()) {
@@ -127,6 +160,8 @@ export function AppLayout() {
   useEffect(() => {
     if (!session) {
       setBadges({});
+      badgeSeededRef.current = false;
+      previousBadgesRef.current = {};
       return;
     }
     let alive = true;
@@ -134,7 +169,22 @@ export function AppLayout() {
       try {
         const data = await apiGet<AdminBadgesResponse>('/admin/notifications/badges');
         if (!alive) return;
-        setBadges(data?.badges || {});
+        const nextBadges = data?.badges || {};
+        const previousBadges = badgeSeededRef.current ? previousBadgesRef.current : {};
+        const createdAt = data?.updatedAt || new Date().toISOString();
+        const nextNotices = menuConfig
+          .filter((item) => hasPermission(permissionSet, item.permission))
+          .map((item) => {
+            const nextCount = Math.max(0, Number(nextBadges[item.key] || 0));
+            const previousCount = Math.max(0, Number(previousBadges[item.key] || 0));
+            if (nextCount <= previousCount || nextCount <= 0) return null;
+            return buildBadgeNotice(item, nextCount, previousCount, createdAt);
+          })
+          .filter(Boolean) as LiveNotice[];
+        pushLiveNotices(nextNotices);
+        badgeSeededRef.current = true;
+        previousBadgesRef.current = nextBadges;
+        setBadges(nextBadges);
       } catch {
         if (alive) setBadges({});
       }
@@ -163,13 +213,8 @@ export function AppLayout() {
       window.removeEventListener('focus', refreshWhenFocused);
       document.removeEventListener('visibilitychange', refreshWhenVisible);
     };
-  }, [session, location.pathname]);
+  }, [location.pathname, permissionSet, pushLiveNotices, session]);
 
-  const permissionSet = useMemo(() => {
-    const next = new Set(session?.permissions || []);
-    if (isSuperAdminSession(session)) next.add('*');
-    return next;
-  }, [session]);
   const sessionDisplayName = useMemo(
     () => displayUserName(session, '平台成员'),
     [session?.displayName, session?.nickname],
@@ -317,5 +362,13 @@ export function AppLayout() {
         </Content>
       </Layout>
     </Layout>
+  );
+}
+
+export function AppLayout() {
+  return (
+    <LiveNoticeProvider>
+      <AppLayoutShell />
+    </LiveNoticeProvider>
   );
 }

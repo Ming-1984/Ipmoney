@@ -1,4 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -24,7 +25,52 @@ type ShowcaseSummary = {
     unassignedConversations: number | null;
     openCases: number | null;
   };
+  trends: {
+    range: {
+      start: string;
+      end: string;
+      days: number;
+      label: string;
+    };
+    orders30d: Array<{ key: string; label: string; value: number }>;
+    completedOrders30d: Array<{ key: string; label: string; value: number }>;
+    dealAmount30d: Array<{ key: string; label: string; value: number }>;
+  };
+  distribution: {
+    patentTypes: Array<{ key: string; label: string; value: number }>;
+    orderStatuses: Array<{ key: string; label: string; value: number }>;
+  };
 };
+
+const PATENT_TYPE_LABELS: Record<string, string> = {
+  INVENTION: '发明',
+  UTILITY_MODEL: '实用新型',
+  DESIGN: '外观设计',
+};
+
+const ORDER_STATUS_LABELS: Record<string, string> = {
+  DEPOSIT_PENDING: '待付定金',
+  DEPOSIT_PAID: '定金已付',
+  WAIT_FINAL_PAYMENT: '待付尾款',
+  FINAL_PAID_ESCROW: '尾款已托管',
+  READY_TO_SETTLE: '待结算',
+  COMPLETED: '已完成',
+  CANCELLED: '已取消',
+  REFUNDING: '退款中',
+  REFUNDED: '已退款',
+};
+
+const ORDER_STATUS_ORDER = [
+  'DEPOSIT_PENDING',
+  'DEPOSIT_PAID',
+  'WAIT_FINAL_PAYMENT',
+  'FINAL_PAID_ESCROW',
+  'READY_TO_SETTLE',
+  'COMPLETED',
+  'REFUNDING',
+  'REFUNDED',
+  'CANCELLED',
+] as const;
 
 @Injectable()
 export class ReportsService {
@@ -112,11 +158,57 @@ export class ReportsService {
     return raw;
   }
 
+  private formatDayKey(date: Date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private formatDayLabel(date: Date) {
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+  }
+
+  private buildDailyBuckets(start: Date, end: Date) {
+    const startDay = new Date(start);
+    startDay.setHours(0, 0, 0, 0);
+    const endDay = new Date(end);
+    endDay.setHours(0, 0, 0, 0);
+
+    const buckets: Array<{
+      key: string;
+      label: string;
+      orders: number;
+      completedOrders: number;
+      dealAmountFen: number;
+    }> = [];
+
+    const cursor = new Date(startDay);
+    while (cursor.getTime() <= endDay.getTime()) {
+      buckets.push({
+        key: this.formatDayKey(cursor),
+        label: this.formatDayLabel(cursor),
+        orders: 0,
+        completedOrders: 0,
+        dealAmountFen: 0,
+      });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return buckets;
+  }
+
+  private buildRangeLabel(days: number) {
+    return `近${days}天`;
+  }
+
   async getShowcaseSummary(req: any): Promise<ShowcaseSummary> {
     this.ensureAuth(req);
+    const days = this.parsePositiveIntegerDays(req?.query, 30);
+    const { start, end } = this.buildRange(req?.query, days);
     const fullAccess = Boolean(req?.auth?.permissions?.has('*'));
     const userId = String(req?.auth?.userId || '').trim();
-    const platformConversationScope = {
+    const platformConversationScope: Prisma.ConversationWhereInput = {
       OR: [
         { contentType: 'SUPPORT' },
         { contentType: 'DISPUTE' },
@@ -136,6 +228,8 @@ export class ReportsService {
       pendingListings,
       unassignedConversations,
       openCases,
+      orderRows,
+      patentRows,
     ] = await Promise.all([
       this.can(req, 'listing.read') ? this.prisma.patent.count() : Promise.resolve(null),
       this.can(req, 'verification.read')
@@ -182,7 +276,61 @@ export class ReportsService {
           })
         : Promise.resolve(null),
       this.can(req, 'case.manage') ? this.prisma.csCase.count({ where: { status: 'OPEN' } }) : Promise.resolve(null),
+      this.can(req, 'order.read')
+        ? this.prisma.order.findMany({
+            where: { createdAt: { gte: start, lte: end } },
+            select: { createdAt: true, status: true, dealAmount: true },
+          })
+        : Promise.resolve([]),
+      this.can(req, 'listing.read')
+        ? this.prisma.patent.findMany({
+            where: { createdAt: { gte: start, lte: end } },
+            select: { patentType: true },
+          })
+        : Promise.resolve([]),
     ]);
+
+    const bucketMap = new Map<string, { key: string; label: string; orders: number; completedOrders: number; dealAmountFen: number }>();
+    for (const bucket of this.buildDailyBuckets(start, end)) {
+      bucketMap.set(bucket.key, bucket);
+    }
+
+    for (const row of orderRows as Array<{ createdAt: Date; status: string; dealAmount?: number | null }>) {
+      const key = this.formatDayKey(new Date(row.createdAt));
+      const bucket = bucketMap.get(key);
+      if (!bucket) continue;
+      bucket.orders += 1;
+      if (String(row.status || '').toUpperCase() === 'COMPLETED') {
+        bucket.completedOrders += 1;
+        bucket.dealAmountFen += Number(row.dealAmount ?? 0);
+      }
+    }
+
+    const orderStatusCounts = new Map<string, number>();
+    for (const row of orderRows as Array<{ status: string }>) {
+      const key = String(row.status || '').trim().toUpperCase();
+      if (!key) continue;
+      orderStatusCounts.set(key, (orderStatusCounts.get(key) ?? 0) + 1);
+    }
+
+    const patentTypeCounts = new Map<string, number>();
+    for (const row of patentRows as Array<{ patentType: string }>) {
+      const key = String(row.patentType || '').trim().toUpperCase();
+      if (!key) continue;
+      patentTypeCounts.set(key, (patentTypeCounts.get(key) ?? 0) + 1);
+    }
+
+    const dailySeries = Array.from(bucketMap.values()).sort((a, b) => a.key.localeCompare(b.key));
+    const orders30d = dailySeries.map((item) => ({ key: item.key, label: item.label, value: item.orders }));
+    const completedOrders30d = dailySeries.map((item) => ({ key: item.key, label: item.label, value: item.completedOrders }));
+    const dealAmount30d = dailySeries.map((item) => ({ key: item.key, label: item.label, value: item.dealAmountFen }));
+
+    const patentTypes = Object.entries(PATENT_TYPE_LABELS)
+      .map(([key, label]) => ({ key, label, value: patentTypeCounts.get(key) ?? 0 }))
+      .filter((item) => item.value > 0);
+    const orderStatuses = ORDER_STATUS_ORDER.map((key) => ({ key, label: ORDER_STATUS_LABELS[key] || key, value: orderStatusCounts.get(key) ?? 0 })).filter(
+      (item) => item.value > 0,
+    );
 
     return {
       overview: {
@@ -197,6 +345,21 @@ export class ReportsService {
         pendingListings,
         unassignedConversations,
         openCases,
+      },
+      trends: {
+        range: {
+          start: start.toISOString(),
+          end: end.toISOString(),
+          days,
+          label: this.buildRangeLabel(days),
+        },
+        orders30d,
+        completedOrders30d,
+        dealAmount30d,
+      },
+      distribution: {
+        patentTypes,
+        orderStatuses,
       },
     };
   }
