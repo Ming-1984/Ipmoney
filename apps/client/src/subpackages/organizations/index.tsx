@@ -32,29 +32,29 @@ type OrgFilters = {
 };
 
 const TEXT = {
-  title: '服务资源',
-  subtitle: '展示已审核通过的知识产权相关主体基础资料',
+  title: '机构名录',
+  subtitle: '收录已审核通过的知识产权相关主体基础资料',
   searchTitle: '\u641c\u7d22',
-  searchPlaceholder: '搜索服务资源名称或关键词',
+  searchPlaceholder: '搜索机构名称或关键词',
   searchAction: '\u67e5\u8be2',
   sortLabel: '\u7efc\u5408\u6392\u5e8f',
   filterButton: '\u7b5b\u9009',
   typeCountPrefix: '\u7c7b\u578b ',
   clear: '\u6e05\u7a7a',
-  emptyMessage: '暂无服务资源数据。',
+  emptyMessage: '暂无机构资料。',
   refresh: '\u5237\u65b0',
   regionTitle: '\u5730\u533a',
   regionDescription: '\u7528\u4e8e\u5730\u533a\u5c55\u793a\u4e0e\u68c0\u7d22\u8fc7\u6ee4',
   unlimited: '\u4e0d\u9650',
   clearRegion: '\u6e05\u9664\u5730\u533a',
-  typeTitle: '资源类型',
-  typeHint: '不选择类型时默认展示全部服务资源。',
-  filterTitle: '筛选服务资源',
+  typeTitle: '机构类型',
+  typeHint: '不选择类型时默认查询全部机构资料。',
+  filterTitle: '筛选机构资料',
   company: '\u4f01\u4e1a',
   academy: '\u79d1\u7814\u9662\u6821',
   government: '\u653f\u5e9c\u673a\u6784',
   association: '\u534f\u4f1a\u5b66\u4f1a',
-  listings: '展示',
+  listings: '信息',
   patents: '\u4e13\u5229',
 } as const;
 
@@ -198,7 +198,7 @@ export default function OrganizationsPage() {
               const logo = item.logoUrl && !item.logoUrl.includes('example.com') ? item.logoUrl : '';
               const location = item.regionCode ? regionDisplayName(item.regionCode) : '';
               const orgType = asOrganizationVerificationType(item.verificationType);
-              const titleText = displayTitleOrFallback(item.displayName, '认证服务资源');
+              const titleText = displayTitleOrFallback(item.displayName, '认证机构资料');
               const introText = normalizeDisplayText(item.intro);
               return (
                 <View

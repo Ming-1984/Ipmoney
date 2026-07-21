@@ -834,7 +834,7 @@ export default function PublishPatentPage() {
 
     const ok = await confirm({
       title: '提交审核',
-      content: '提交后将进入“审核中”，审核通过后对外展示；合同线下签署，尾款按平台流程支付。',
+      content: '提交后将进入“审核中”，审核通过后提供公开查询；合同线下签署，尾款按平台流程支付。',
       confirmText: '提交',
       cancelText: '检查',
     });
@@ -952,7 +952,7 @@ export default function PublishPatentPage() {
             <Text className="form-hint">
               {'\u8d44\u6599\u5df2\u63d0\u4ea4\uff0c\u5ba1\u6838\u901a\u8fc7\u540e\u5c06\u81ea\u52a8\u4e0a\u67b6\uff0c\u8bf7\u7559\u610f\u6d88\u606f\u901a\u77e5\u3002'}
             </Text>
-            <Text className="form-hint">资料已生成展示草稿，审核通过后将对外展示。</Text>
+            <Text className="form-hint">资料已生成公开草稿，审核通过后将提供查询。</Text>
           </Surface>
         ) : null}
 

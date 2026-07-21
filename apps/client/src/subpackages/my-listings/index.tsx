@@ -254,7 +254,7 @@ export default function MyListingsPage() {
     async (listing: Listing) => {
       const ok = await confirm({
         title: '确认取消展示',
-        content: '取消展示后该专利将不再对外展示，确认继续吗？',
+        content: '取消公开后该专利将不再提供公开查询，确认继续吗？',
         confirmText: '确认取消',
         cancelText: '取消',
       });
@@ -292,7 +292,7 @@ export default function MyListingsPage() {
       <View className="container my-listings-page">
         <PageHeader title={pageTitle} subtitle={pageSubtitle} />
         <Spacer />
-        <PermissionCard title="需要登录" message="登录后才能查看展示信息。" actionText="去登录" onAction={goLogin} />
+        <PermissionCard title="需要登录" message="登录后才能查看专利信息。" actionText="去登录" onAction={goLogin} />
       </View>
     );
   }
@@ -310,7 +310,7 @@ export default function MyListingsPage() {
       <View className="container my-listings-page">
         <PageHeader title={pageTitle} subtitle={pageSubtitle} />
         <Spacer />
-        <AuditPendingCard title="资料审核中" message="审核通过后才能提交与管理展示信息。" actionText="查看进度" onAction={goOnboarding} />
+        <AuditPendingCard title="资料审核中" message="审核通过后才能提交与管理专利信息。" actionText="查看进度" onAction={goOnboarding} />
       </View>
     );
   }

@@ -40,6 +40,7 @@ function getPageUrl(page: any): string {
 export default function LoginPage() {
   const env = useMemo(() => Taro.getEnv(), []);
   const canWechatLogin = env === Taro.ENV_TYPE.WEAPP;
+  const showDemoLogin = DEMO_LOGIN_ENABLED && !canWechatLogin;
   const [busy, setBusy] = useState(false);
   const [agree, setAgree] = useState(false);
   const pageVisibleRef = useRef(true);
@@ -218,7 +219,7 @@ export default function LoginPage() {
   );
 
   const demoLogin = useCallback(async () => {
-    if (!DEMO_LOGIN_ENABLED || busy) return;
+    if (!showDemoLogin || busy) return;
     if (!(await ensureAgreement())) return;
     const seq = ++actionSeqRef.current;
     setBusy(true);
@@ -235,7 +236,7 @@ export default function LoginPage() {
         setBusy(false);
       }
     }
-  }, [afterLogin, busy, ensureAgreement]);
+  }, [afterLogin, busy, ensureAgreement, showDemoLogin]);
 
   const sendSms = useCallback(async () => {
     if (busy) return;
@@ -305,11 +306,11 @@ export default function LoginPage() {
       </View>
 
       <View className="login-card">
-        {DEMO_LOGIN_ENABLED ? (
+        {showDemoLogin ? (
           <View className="login-dev-panel">
             <View className="login-panel">
-              <Text className="login-panel-title">开发一键登录</Text>
-              <Text className="login-panel-subtitle">仅开发/测试环境可见</Text>
+              <Text className="login-panel-title">测试入口</Text>
+              <Text className="login-panel-subtitle">测试环境可见</Text>
               <Spacer size={10} />
               <Button className="login-primary-btn" loading={busy} disabled={busy} onClick={() => void demoLogin()}>
                 体验登录
@@ -398,7 +399,7 @@ export default function LoginPage() {
                   }}
                   onGetPhoneNumber={onQuickWechatPhoneLogin}
                 >
-                  微信快捷登录
+                  手机号快捷登录
                 </TaroButton>
               ) : (
                 <View
@@ -408,7 +409,7 @@ export default function LoginPage() {
                     void ensureAgreement();
                   }}
                 >
-                  微信快捷登录
+                  手机号快捷登录
                 </View>
               )}
             </>

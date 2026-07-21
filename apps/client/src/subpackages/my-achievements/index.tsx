@@ -28,7 +28,7 @@ type FilterOption<T extends string> = {
 };
 
 const PAGE_TITLE = '我的专利成果';
-const PAGE_SUBTITLE = '提交后查看、编辑、取消展示自己的成果展示信息';
+const PAGE_SUBTITLE = '提交后查看、编辑、取消公开自己的成果信息';
 
 async function openPage(url: string) {
   await safeOpenPage(url);

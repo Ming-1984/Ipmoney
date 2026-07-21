@@ -1,3 +1,3 @@
 export default definePageConfig({
-  navigationBarTitleText: '服务资源',
+  navigationBarTitleText: '机构名录',
 });

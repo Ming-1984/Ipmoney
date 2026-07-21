@@ -112,6 +112,7 @@ export default function MePage() {
   const loadMeRef = useRef<((options?: { silent?: boolean }) => Promise<void>) | null>(null);
   const env = useMemo(() => Taro.getEnv(), []);
   const canWechatLogin = env === Taro.ENV_TYPE.WEAPP;
+  const showDemoLogin = DEMO_LOGIN_ENABLED && !canWechatLogin;
   const [auth, setAuth] = useState<AuthState>(() => readAuthState());
   const syncAuthState = useCallback(() => {
     const next = readAuthState();
@@ -409,7 +410,7 @@ export default function MePage() {
   );
 
   const demoLogin = useCallback(async () => {
-    if (!DEMO_LOGIN_ENABLED || busy) return;
+    if (!showDemoLogin || busy) return;
     if (!(await ensureAgreement())) return;
     const seq = ++loginActionSeqRef.current;
     setBusy(true);
@@ -426,7 +427,7 @@ export default function MePage() {
         setBusy(false);
       }
     }
-  }, [afterLogin, busy, ensureAgreement]);
+  }, [afterLogin, busy, ensureAgreement, showDemoLogin]);
 
   const sendSms = useCallback(async () => {
     if (busy) return;
@@ -616,7 +617,7 @@ export default function MePage() {
           </View>
 
           <View className="me-login-card">
-            {DEMO_LOGIN_ENABLED ? (
+            {showDemoLogin ? (
               <View className="me-login-dev-panel">
                 <Button
                   className="me-login-btn me-login-btn-demo"
@@ -625,7 +626,7 @@ export default function MePage() {
                   disabled={busy}
                   onClick={() => void demoLogin()}
                 >
-                  开发一键登录
+                  体验登录
                 </Button>
               </View>
             ) : null}
@@ -708,7 +709,7 @@ export default function MePage() {
                     }}
                     onGetPhoneNumber={onQuickWechatPhoneLogin}
                   >
-                    微信快捷登录
+                    手机号快捷登录
                   </TaroButton>
                 ) : (
                   <View
@@ -718,7 +719,7 @@ export default function MePage() {
                       void ensureAgreement();
                     }}
                   >
-                    微信快捷登录
+                    手机号快捷登录
                   </View>
                 )}
               </>

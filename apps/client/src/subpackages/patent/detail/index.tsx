@@ -295,7 +295,7 @@ const tradeSnapshot = data?.tradeSnapshot ?? null;
 
   const startConsult = useCallback(async () => {
     if (!listingId) {
-      toast('暂无可咨询的展示信息', { icon: 'fail' });
+      toast('暂无可咨询的专利信息', { icon: 'fail' });
       return;
     }
     if (!ensureApproved()) return;
@@ -356,7 +356,7 @@ const tradeSnapshot = data?.tradeSnapshot ?? null;
 
   const toggleFavorite = useCallback(async () => {
     if (!listingId) {
-      toast('暂无可收藏的展示信息', { icon: 'fail' });
+      toast('暂无可收藏的专利信息', { icon: 'fail' });
       return;
     }
     if (!ensureApproved()) return;
@@ -658,7 +658,7 @@ const tradeSnapshot = data?.tradeSnapshot ?? null;
               <CommentsSection contentId={listingId} title="互动留言" />
             ) : (
               <Surface className="detail-section-card">
-                <Text className="muted">暂无关联展示信息，无法展示评论。</Text>
+                <Text className="muted">暂无关联专利信息，无法展示评论。</Text>
               </Surface>
             )}
           </View>

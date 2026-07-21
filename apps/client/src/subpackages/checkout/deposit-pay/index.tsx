@@ -370,7 +370,7 @@ export default function DepositPayPage() {
             <Text className="pay-note">
               订金支付后平台将启动合同/材料核验与权属变更流程。退款与争议处理以平台规则与人工审核为准。
             </Text>
-            {isOwnListing ? <Text className="pay-note">当前账号是该专利的提交方，不能对自己的展示信息发起订金支付。</Text> : null}
+            {isOwnListing ? <Text className="pay-note">当前账号是该专利的提交方，不能对自己的专利信息发起订金支付。</Text> : null}
             {tradeLocked ? (
               <Text className="pay-note">{target?.tradeAvailability === 'SOLD' ? '该专利已成交，不能再次下单支付订金。' : '该专利已有用户支付订金，暂时锁定。'}</Text>
             ) : null}

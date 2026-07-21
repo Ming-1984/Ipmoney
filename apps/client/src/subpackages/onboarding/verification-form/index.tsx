@@ -49,7 +49,7 @@ function displayNameLabel(type: VerificationType | null): string {
   if (type === 'ACADEMY') return '院校/机构名称';
   if (type === 'GOVERNMENT') return '机构名称';
   if (type === 'ASSOCIATION') return '协会/学会名称';
-  if (type === 'TECH_MANAGER') return '展示名称';
+  if (type === 'TECH_MANAGER') return '公开名称';
   if (type === 'PERSON') return '姓名/称呼';
   return '主体名称';
 }
@@ -367,10 +367,10 @@ export default function VerificationFormPage() {
 
   const regionLabel = regionDisplayName(regionCode, regionName, '');
   const introTip = isOrgType(type)
-    ? '企业、院校、机构审核通过后会在对应主体页面对外展示，请确保信息真实、完整、可校验。'
+    ? '企业、院校、机构审核通过后会在对应主体页面提供公开查询，请确保信息真实、完整、可校验。'
     : isTechManager(type)
-      ? '技术经理人审核通过后会展示在相关服务列表，请确保信息真实、完整、可校验。'
-      : '个人信息仅用于审核与交易安全，不会公开展示。';
+      ? '技术经理人审核通过后会出现在相关服务列表，请确保信息真实、完整、可校验。'
+      : '个人信息仅用于审核与交易安全，不会公开。';
 
   return (
     <View className="container verification-page">
@@ -385,7 +385,7 @@ export default function VerificationFormPage() {
 
       <View className="verification-form">
         <Surface className="verification-card">
-          <SectionHeader title="主体信息" subtitle="用于审核与主体展示" density="compact" />
+          <SectionHeader title="主体信息" subtitle="用于审核与主体资料" density="compact" />
 
           <View className="form-field">
             <Text className="form-label">{displayNameLabel(type)}</Text>
@@ -429,7 +429,7 @@ export default function VerificationFormPage() {
         {isOrgType(type) || isTechManager(type) ? (
           <Surface className="verification-card">
             <View className="row-between">
-              <SectionHeader title="展示信息" subtitle="审核通过后对外展示" density="compact" />
+              <SectionHeader title="公开信息" subtitle="审核通过后提供查询" density="compact" />
               {isOrgType(type) ? (
                 <Text className={`tag ${logoFile ? 'tag-success' : 'tag-warning'}`}>{logoFile ? '已上传' : '可选'}</Text>
               ) : null}
@@ -535,7 +535,7 @@ export default function VerificationFormPage() {
                 </View>
 
                 <View className="form-field">
-                  <Text className="form-label">展示等级（可选）</Text>
+                  <Text className="form-label">服务等级（可选）</Text>
                   <FormInput value={levelLabel} onChange={setLevelLabel} placeholder="例如：资深顾问、高级经理人" clearable />
                 </View>
 

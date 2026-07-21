@@ -550,7 +550,7 @@ export default function HomePage() {
       { key: 'design-patent', label: '外观专利', icon: homeIconDesignPatent, onClick: goDesignPatents },
       { key: 'invention-patent', label: '发明专利', icon: homeIconInventionPatent, onClick: goInventionPatents },
       { key: 'utility-patent', label: '实用新型', icon: homeIconUtilityPatent, onClick: goUtilityPatents },
-      { key: 'organization', label: '服务资源', icon: homeIconOrganization, onClick: goOrganizations },
+      { key: 'organization', label: '机构名录', icon: homeIconOrganization, onClick: goOrganizations },
       { key: 'inventor', label: '发明人榜', icon: homeIconInventors, onClick: goInventors },
       { key: 'patent-map', label: '专利地图', icon: iconMapGreen, onClick: goPatentMap },
       { key: 'tech-manager', label: '技术经理', icon: homeIconTechManager, onClick: goTechManagers },
@@ -686,7 +686,7 @@ export default function HomePage() {
         <View className="home-section-header">
           <View className="home-section-title-wrap">
             <View className="home-section-accent" />
-            <Text className="home-section-title">高价值低金额</Text>
+            <Text className="home-section-title">精选专利推荐</Text>
           </View>
           <Text className="home-section-more" onClick={goRecommendMore}>
             更多

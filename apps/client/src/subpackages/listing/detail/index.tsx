@@ -625,7 +625,7 @@ export default function ListingDetailPage() {
           </Surface>
 
           <View className="detail-section" id="listing-info">
-            <SectionHeader title="展示信息" density="compact" />
+            <SectionHeader title="专利信息" density="compact" />
             <View className="detail-field-list">
               {[
                 { label: '交易方式', value: tradeModeLabel(data.tradeMode) },

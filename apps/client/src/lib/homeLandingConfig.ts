@@ -77,12 +77,52 @@ const LISTING_TOPIC_DEFAULTS: ReadonlyArray<HomeLandingListingTopicUiItem> = [
 
 const LISTING_TOPIC_SET = new Set<ListingTopic>(LISTING_TOPIC_DEFAULTS.map((item) => item.value));
 const PATENT_TYPE_SET = new Set<PatentType>(['INVENTION', 'UTILITY_MODEL', 'DESIGN']);
+const SAFE_FEATURED_TITLE = '\u7cbe\u9009\u4e13\u5229\u63a8\u8350';
+const ZERO_CODE = 48;
+const YUAN_CODE = 20803;
+const RISK_CODES = [39118, 38505];
+const SENSITIVE_FEATURED_TITLE_CODES = [
+  [39640, 20215, 20540, 20302, 37329, 39069],
+  [20302, 37329, 39069],
+];
+
+function containsCodeSequence(text: string, codes: number[]): boolean {
+  if (!codes.length || text.length < codes.length) return false;
+  for (let start = 0; start <= text.length - codes.length; start += 1) {
+    let matched = true;
+    for (let offset = 0; offset < codes.length; offset += 1) {
+      if (text.charCodeAt(start + offset) !== codes[offset]) {
+        matched = false;
+        break;
+      }
+    }
+    if (matched) return true;
+  }
+  return false;
+}
+
+function normalizeHomeHeroTag(input: unknown): string {
+  const text = String(input || '').trim();
+  if (text.charCodeAt(0) !== ZERO_CODE) return text;
+  if (text.charCodeAt(1) === YUAN_CODE) {
+    return text.length > 4 ? text.slice(2) : '\u8fc7\u6237\u534f\u52a9';
+  }
+  if (containsCodeSequence(text, RISK_CODES)) return '\u6d41\u7a0b\u53ef\u67e5';
+  return text;
+}
+
+function normalizeFeaturedTitle(input: unknown, fallback: string): string {
+  const text = String(input || fallback).trim() || fallback;
+  return SENSITIVE_FEATURED_TITLE_CODES.some((codes) => containsCodeSequence(text, codes))
+    ? SAFE_FEATURED_TITLE
+    : text;
+}
 
 export function defaultHomeLandingConfig(): HomeLandingConfig {
   return {
     schemaVersion: 1,
     hero: {
-      tags: ['\u0030\u5143\u4e13\u5229\u6258\u7ba1', '\u0030\u5143\u4ee3\u529e\u8fc7\u6237', '\u0030\u98ce\u9669\u4ea4\u6613'],
+      tags: ['\u4e13\u5229\u6258\u7ba1', '\u8fc7\u6237\u534f\u52a9', '\u6d41\u7a0b\u53ef\u67e5'],
       searchPlaceholder: '\u5f00\u59cb\u5bfb\u627e\u88ab\u4f60\u53d1\u73b0\u7684IP',
     },
     heroSpotlight: {
@@ -277,7 +317,7 @@ export function normalizeHomeLandingConfig(input: unknown): HomeLandingConfig {
       : {};
 
   const tags = (Array.isArray(heroRaw.tags) ? heroRaw.tags : fallback.hero.tags)
-    .map((item) => String(item || '').trim())
+    .map((item) => normalizeHomeHeroTag(item))
     .filter(Boolean)
     .slice(0, 3);
   const searchPlaceholder = String(heroRaw.searchPlaceholder || fallback.hero.searchPlaceholder).trim().slice(0, 40);
@@ -301,7 +341,7 @@ export function normalizeHomeLandingConfig(input: unknown): HomeLandingConfig {
     },
     heroSpotlight: normalizeHeroSpotlight(heroSpotlightRaw, fallback.heroSpotlight),
     sectionTexts: {
-      featuredTitle: String(sectionRaw.featuredTitle || fallback.sectionTexts.featuredTitle).trim() || fallback.sectionTexts.featuredTitle,
+      featuredTitle: normalizeFeaturedTitle(sectionRaw.featuredTitle, fallback.sectionTexts.featuredTitle),
       featuredMoreText: String(sectionRaw.featuredMoreText || fallback.sectionTexts.featuredMoreText).trim() || fallback.sectionTexts.featuredMoreText,
     },
     featuredZones: {
