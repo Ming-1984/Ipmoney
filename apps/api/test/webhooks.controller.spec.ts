@@ -9,6 +9,7 @@ describe('WebhooksController delegation suite', () => {
   beforeEach(() => {
     webhooks = {
       handleWechatPayNotify: vi.fn().mockResolvedValue(undefined),
+      verifyWecomCallbackUrl: vi.fn().mockReturnValue('plain-echo'),
     };
     controller = new WebhooksController(webhooks);
   });
@@ -20,5 +21,17 @@ describe('WebhooksController delegation suite', () => {
 
     await expect(controller.wechatpayNotify(req, body)).resolves.toEqual({ code: 'SUCCESS', message: 'success' });
     expect(webhooks.handleWechatPayNotify).toHaveBeenCalledWith(req, body, rawBody);
+  });
+
+  it('returns plaintext for WeCom URL verification', () => {
+    const query = {
+      msg_signature: 'signature',
+      timestamp: '1720000000',
+      nonce: 'nonce',
+      echostr: 'encrypted',
+    };
+
+    expect(controller.verifyWecomCallbackUrl(query)).toBe('plain-echo');
+    expect(webhooks.verifyWecomCallbackUrl).toHaveBeenCalledWith(query);
   });
 });

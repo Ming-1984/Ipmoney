@@ -6,6 +6,7 @@ import { PrismaModule } from './common/prisma/prisma.module';
 import { AuditLogModule } from './common/audit-log.module';
 import { ContentEventModule } from './common/content-event.module';
 import { RedisProbeService } from './common/redis-probe.service';
+import { DomainVerificationController } from './domain-verification.controller';
 import { HealthController } from './health.controller';
 import { AuthModule } from './modules/auth/auth.module';
 import { ConfigModule } from './modules/config/config.module';
@@ -72,7 +73,7 @@ import { RateLimitGuard } from './common/guards/rate-limit.guard';
     BulkImportModule,
     AdminNotificationsModule,
   ],
-  controllers: [HealthController],
+  controllers: [HealthController, DomainVerificationController],
   providers: [RedisProbeService, { provide: APP_GUARD, useClass: RateLimitGuard }],
 })
 export class AppModule {}

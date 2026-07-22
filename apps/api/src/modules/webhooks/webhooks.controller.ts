@@ -1,10 +1,16 @@
-import { Body, Controller, HttpCode, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Header, HttpCode, Post, Query, Req } from '@nestjs/common';
 
 import { WebhooksService } from './webhooks.service';
 
 @Controller('/webhooks')
 export class WebhooksController {
   constructor(private readonly webhooks: WebhooksService) {}
+
+  @Get('/wecom/callback')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  verifyWecomCallbackUrl(@Query() query: Record<string, unknown>) {
+    return this.webhooks.verifyWecomCallbackUrl(query);
+  }
 
   @Post('/wechatpay/notify')
   @HttpCode(200)

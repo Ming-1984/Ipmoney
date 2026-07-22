@@ -100,6 +100,22 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '501':
           $ref: '#/components/responses/NotImplemented'
+  /WW_verify_YpAqDE4xoAPsmGSK.txt:
+    get:
+      tags:
+        - System
+      summary: WeCom domain ownership verification file
+      operationId: getWecomDomainVerificationFile
+      security: []
+      responses:
+        '200':
+          description: Plain-text WeCom domain verification content.
+          content:
+            text/plain:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
   /auth/wechat/mp-login:
     post:
       tags:
@@ -2245,6 +2261,43 @@ paths:
                     type: string
                   message:
                     type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /webhooks/wecom/callback:
+    get:
+      tags:
+        - System
+      summary: WeCom callback URL verification
+      operationId: verifyWecomCallbackUrl
+      security: []
+      parameters:
+        - name: msg_signature
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: timestamp
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: nonce
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: echostr
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Plain-text decrypted echo string required by WeCom.
+          content:
+            text/plain:
+              schema:
+                type: string
         '400':
           $ref: '#/components/responses/BadRequest'
   /me/conversations:
@@ -6775,6 +6828,119 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+  /admin/orders/assigned:
+    get:
+      tags:
+        - Admin
+        - Orders
+      summary: List orders assigned to current operator
+      operationId: adminListAssignedOrders
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Q'
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/OrderStatus'
+        - name: createdFrom
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: createdTo
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedOrder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admin/orders/assigned/{orderId}:
+    get:
+      tags:
+        - Admin
+        - Orders
+      summary: Get assigned order detail
+      operationId: adminGetAssignedOrderById
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/orders/assigned/{orderId}/milestones/contract-signed:
+    post:
+      tags:
+        - Admin
+        - Orders
+      summary: Confirm contract signed for assigned order
+      operationId: adminConfirmAssignedOrderContractSigned
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - dealAmountFen
+              properties:
+                dealAmountFen:
+                  $ref: '#/components/schemas/MoneyFen'
+                evidenceFileId:
+                  $ref: '#/components/schemas/Uuid'
+                signedAt:
+                  type: string
+                  format: date-time
+                remark:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /admin/orders/{orderId}:
     get:
       tags:
@@ -7919,6 +8085,109 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RbacUser'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/dashboard/showcase-summary:
+    get:
+      tags:
+        - Admin
+      summary: Get admin dashboard showcase summary
+      operationId: adminGetDashboardShowcaseSummary
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+        - name: start
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: end
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardShowcaseSummary'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admin/ops-notification-jobs:
+    get:
+      tags:
+        - Admin
+      summary: List operation notification jobs
+      operationId: adminListOpsNotificationJobs
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/OpsNotificationStatus'
+        - name: eventType
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/OpsNotificationEventType'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedOpsNotificationJob'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admin/ops-notification-jobs/{id}:
+    get:
+      tags:
+        - Admin
+      summary: Get operation notification job detail
+      operationId: adminGetOpsNotificationJobById
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpsNotificationJob'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -15310,6 +15579,184 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PublicHomeAnnouncementItem'
+    DashboardMetricPoint:
+      type: object
+      required:
+        - key
+        - label
+        - value
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        value:
+          type: integer
+    DashboardShowcaseSummary:
+      type: object
+      required:
+        - overview
+        - operations
+        - trends
+        - distribution
+      properties:
+        overview:
+          type: object
+          properties:
+            patentsTotal:
+              type: integer
+              nullable: true
+            techManagersApprovedTotal:
+              type: integer
+              nullable: true
+            ordersTotal:
+              type: integer
+              nullable: true
+            completedOrdersTotal:
+              type: integer
+              nullable: true
+            completedDealAmountFen:
+              type: integer
+              nullable: true
+        operations:
+          type: object
+          properties:
+            pendingVerifications:
+              type: integer
+              nullable: true
+            pendingListings:
+              type: integer
+              nullable: true
+            unassignedConversations:
+              type: integer
+              nullable: true
+            openCases:
+              type: integer
+              nullable: true
+        trends:
+          type: object
+          properties:
+            range:
+              type: object
+              properties:
+                start:
+                  type: string
+                  format: date-time
+                end:
+                  type: string
+                  format: date-time
+                days:
+                  type: integer
+                label:
+                  type: string
+            orders30d:
+              type: array
+              items:
+                $ref: '#/components/schemas/DashboardMetricPoint'
+            completedOrders30d:
+              type: array
+              items:
+                $ref: '#/components/schemas/DashboardMetricPoint'
+            dealAmount30d:
+              type: array
+              items:
+                $ref: '#/components/schemas/DashboardMetricPoint'
+        distribution:
+          type: object
+          properties:
+            patentTypes:
+              type: array
+              items:
+                $ref: '#/components/schemas/DashboardMetricPoint'
+            orderStatuses:
+              type: array
+              items:
+                $ref: '#/components/schemas/DashboardMetricPoint'
+    OpsNotificationStatus:
+      type: string
+      enum:
+        - PENDING
+        - SENDING
+        - SENT
+        - FAILED
+    OpsNotificationEventType:
+      type: string
+      enum:
+        - LISTING_CONSULTATION_CREATED
+        - ORDER_DEPOSIT_PAID
+    OpsNotificationJob:
+      type: object
+      required:
+        - id
+        - eventType
+        - eventKey
+        - channel
+        - status
+        - attempts
+        - nextAttemptAt
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        eventType:
+          $ref: '#/components/schemas/OpsNotificationEventType'
+        eventKey:
+          type: string
+        channel:
+          type: string
+          enum:
+            - WECOM_APP
+        status:
+          $ref: '#/components/schemas/OpsNotificationStatus'
+        recipients:
+          type: object
+          additionalProperties: true
+          nullable: true
+        payload:
+          type: object
+          additionalProperties: true
+          nullable: true
+        attempts:
+          type: integer
+          minimum: 0
+        nextAttemptAt:
+          type: string
+          format: date-time
+        sentAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastError:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PagedOpsNotificationJob:
+      type: object
+      required:
+        - items
+        - page
+        - pageSize
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OpsNotificationJob'
+        page:
+          type: integer
+          minimum: 1
+        pageSize:
+          type: integer
+          minimum: 1
+        total:
+          type: integer
+          minimum: 0
     FinanceReportRange:
       type: object
       required:

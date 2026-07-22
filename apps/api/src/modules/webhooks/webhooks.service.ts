@@ -8,6 +8,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { WechatPayClient, WechatPayError } from '../../common/wechat-pay.client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { OpsNotificationsService } from '../ops-notifications/ops-notifications.service';
+import { WecomCallbackError, WecomCallbackVerifier, type WecomCallbackVerifyQuery } from './wecom-callback-crypto';
 
 const SYSTEM_ACTOR_USER_ID = '00000000-0000-0000-0000-000000000001';
 const LISTING_LOCKING_ORDER_STATUSES = [
@@ -34,6 +35,7 @@ type WebhookEvent = {
 @Injectable()
 export class WebhooksService {
   private readonly wechatPay = new WechatPayClient();
+  private readonly wecomCallbackVerifier = new WecomCallbackVerifier();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -298,6 +300,21 @@ export class WebhooksService {
     if (typeof rawBody === 'string') return rawBody;
     if (Buffer.isBuffer(rawBody)) return rawBody.toString('utf8');
     return '';
+  }
+
+  verifyWecomCallbackUrl(query: WecomCallbackVerifyQuery) {
+    try {
+      return this.wecomCallbackVerifier.verifyUrl(query);
+    } catch (error) {
+      if (error instanceof WecomCallbackError) {
+        throw new BadRequestException({
+          code: error.code,
+          message: error.message,
+          details: error.details,
+        });
+      }
+      throw error;
+    }
   }
 
   private async prepareNotifyPayload(req: any, body: any, rawBody: string | Buffer | undefined) {

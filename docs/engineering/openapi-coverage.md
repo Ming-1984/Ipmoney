@@ -4,24 +4,28 @@
 
 ## Summary
 
-- OpenAPI operations: 268
+- OpenAPI operations: 276
 - Frontend-used operations (client): 96
-- Frontend-used operations (admin): 147
+- Frontend-used operations (admin): 149
 - Fixture scenarios: 7
 
 ## Key Gaps
 
 - Frontend-used but missing from OpenAPI: 0
-- OpenAPI-defined but unused by frontend: 33
+- OpenAPI-defined but unused by frontend: 38
+  - GET /WW_verify_YpAqDE4xoAPsmGSK.txt
   - GET /admin/achievements/:param/audit-logs
   - GET /admin/ai/parse-results
   - GET /admin/ai/parse-results/:param
+  - GET /admin/config/banner
   - GET /admin/listings/:param/audit-logs
   - GET /admin/listings/:param/materials
   - GET /admin/listings/jobs/batch/:param
   - GET /admin/listings/jobs/batch/:param/error-file
   - GET /admin/listings/jobs/import/:param
   - GET /admin/listings/jobs/import/:param/error-file
+  - GET /admin/ops-notification-jobs
+  - GET /admin/ops-notification-jobs/:param
   - GET /admin/orders/:param/invoice
   - GET /admin/orders/:param/settlement
   - GET /admin/patent-maintenance/orders/:param
@@ -45,8 +49,9 @@
   - POST /admin/patent-maintenance/orders/:param/reconcile
   - POST /ai/agent/query
   - POST /ai/parse-results/:param/feedback
+  - PUT /admin/config/banner
   - PUT /admin/listings/:param/featured
-- Frontend-used but missing in happy fixtures: 233
+- Frontend-used but missing in happy fixtures: 234
   - DELETE /achievements/:param/favorites
   - DELETE /admin/config/home-announcements/items/:param
   - DELETE /admin/config/home-announcements/templates/:param
@@ -67,7 +72,6 @@
   - GET /admin/cases/:param
   - GET /admin/comments
   - GET /admin/config/alerts
-  - GET /admin/config/banner
   - GET /admin/config/customer-service
   - GET /admin/config/home-announcements
   - GET /admin/config/home-landing
@@ -77,6 +81,7 @@
   - GET /admin/config/taxonomy
   - GET /admin/config/trade-rules
   - GET /admin/conversations/platform
+  - GET /admin/dashboard/showcase-summary
   - GET /admin/imports/people-achievements/history
   - GET /admin/industry-tags
   - GET /admin/invoices
@@ -89,15 +94,15 @@
   - GET /admin/notifications/badges
   - GET /admin/orders
   - GET /admin/orders/:param
+  - GET /admin/orders/assigned
+  - GET /admin/orders/assigned/:param
   - GET /admin/patent-claims
   - GET /admin/patent-maintenance/orders
   - GET /admin/patent-maintenance/orders/:param/events
   - GET /admin/patent-maintenance/schedules
   - GET /admin/patent-maintenance/tasks
   - GET /admin/patents
-  - GET /admin/patents/:param
-  - GET /admin/patents/jobs/import
-  - ... (183 more)
+  - ... (184 more)
 
 ## Coverage Details (by operation)
 
@@ -126,7 +131,7 @@
 | adminGetCaseById | GET | /admin/cases/:param |  | Y |  |  |  |  |  |  |  |
 | adminListComments | GET | /admin/comments |  | Y |  |  |  |  |  |  |  |
 | adminGetAlertConfig | GET | /admin/config/alerts |  | Y |  |  |  |  |  |  |  |
-| adminGetBannerConfig | GET | /admin/config/banner |  | Y |  |  |  |  |  |  |  |
+| adminGetBannerConfig | GET | /admin/config/banner |  |  |  |  |  |  |  |  |  |
 | adminGetCustomerServiceConfig | GET | /admin/config/customer-service |  | Y |  |  |  |  |  |  |  |
 | adminGetHomeAnnouncementsConfig | GET | /admin/config/home-announcements |  | Y |  |  |  |  |  |  |  |
 | adminGetHomeLandingConfig | GET | /admin/config/home-landing |  | Y |  |  |  |  |  |  |  |
@@ -136,6 +141,7 @@
 | adminGetTaxonomyConfig | GET | /admin/config/taxonomy |  | Y |  |  |  |  |  |  |  |
 | adminGetTradeRulesConfig | GET | /admin/config/trade-rules |  | Y |  |  |  |  |  |  |  |
 | adminListPlatformConversations | GET | /admin/conversations/platform |  | Y |  |  |  |  |  |  |  |
+| adminGetDashboardShowcaseSummary | GET | /admin/dashboard/showcase-summary |  | Y |  |  |  |  |  |  |  |
 | adminListPeopleAchievementsImportHistory | GET | /admin/imports/people-achievements/history |  | Y |  |  |  |  |  |  |  |
 | adminListIndustryTags | GET | /admin/industry-tags |  | Y |  |  |  |  |  |  |  |
 | adminListInvoices | GET | /admin/invoices |  | Y |  |  |  |  |  |  |  |
@@ -152,10 +158,14 @@
 | adminGetListingImportJobErrorFile | GET | /admin/listings/jobs/import/:param/error-file |  |  |  |  |  |  |  |  |  |
 | adminListListingImportJobRows | GET | /admin/listings/jobs/import/:param/rows |  | Y |  |  |  |  |  |  |  |
 | adminGetNotificationBadges | GET | /admin/notifications/badges |  | Y |  |  |  |  |  |  |  |
+| adminListOpsNotificationJobs | GET | /admin/ops-notification-jobs |  |  |  |  |  |  |  |  |  |
+| adminGetOpsNotificationJobById | GET | /admin/ops-notification-jobs/:param |  |  |  |  |  |  |  |  |  |
 | adminListOrders | GET | /admin/orders |  | Y |  |  |  |  |  |  |  |
 | adminGetOrderById | GET | /admin/orders/:param |  | Y |  |  |  |  |  |  |  |
 | adminGetOrderInvoice | GET | /admin/orders/:param/invoice |  |  |  |  |  |  |  |  |  |
 | adminGetOrderSettlement | GET | /admin/orders/:param/settlement |  |  |  |  |  |  |  |  |  |
+| adminListAssignedOrders | GET | /admin/orders/assigned |  | Y |  |  |  |  |  |  |  |
+| adminGetAssignedOrderById | GET | /admin/orders/assigned/:param |  | Y |  |  |  |  |  |  |  |
 | adminListPatentClaims | GET | /admin/patent-claims |  | Y |  |  |  |  |  |  |  |
 | adminListPatentMaintenanceOrders | GET | /admin/patent-maintenance/orders |  | Y |  |  |  |  |  |  |  |
 | adminGetPatentMaintenanceOrder | GET | /admin/patent-maintenance/orders/:param |  |  |  |  |  |  |  |  |  |
@@ -217,7 +227,7 @@
 | getPublicBannerConfig | GET | /public/config/banner | Y |  |  |  |  |  |  |  |  |
 | getPublicCustomerServiceConfig | GET | /public/config/customer-service | Y |  |  |  |  |  |  |  |  |
 | getPublicHomeAnnouncementsFeed | GET | /public/config/home-announcements | Y |  |  |  |  |  |  |  |  |
-| getPublicHomeLandingConfig | GET | /public/config/home-landing | Y |  |  |  |  |  |  |  |  |
+| getPublicHomeLandingConfig | GET | /public/config/home-landing | Y |  | Y |  |  |  |  |  |  |
 | getPublicTradeRulesConfig | GET | /public/config/trade-rules | Y |  |  |  |  |  |  |  |  |
 | listPublicIndustryTags | GET | /public/industry-tags | Y |  |  |  |  |  |  |  |  |
 | getPublicListingById | GET | /public/listings/:param | Y |  |  |  |  |  |  |  |  |
@@ -232,6 +242,8 @@
 | searchPatentMapOverview | GET | /search/patent-map/overview | Y | Y |  |  |  |  |  |  |  |
 | searchPatentMapRegionDetail | GET | /search/patent-map/regions/:param | Y | Y |  |  |  |  |  |  |  |
 | searchTechManagers | GET | /search/tech-managers | Y |  |  |  |  |  |  |  |  |
+| verifyWecomCallbackUrl | GET | /webhooks/wecom/callback |  |  |  |  |  |  |  |  |  |
+| getWecomDomainVerificationFile | GET | /WW_verify_YpAqDE4xoAPsmGSK.txt |  |  |  |  |  |  |  |  |  |
 | updateMyAchievement | PATCH | /achievements/:param | Y |  |  |  |  |  |  |  |  |
 | adminUpdateAchievement | PATCH | /admin/achievements/:param |  | Y |  |  |  |  |  |  |  |
 | adminUpdateAiParseResult | PATCH | /admin/ai/parse-results/:param |  |  |  |  |  |  |  |  |  |
@@ -294,6 +306,7 @@
 | adminConfirmTransferCompleted | POST | /admin/orders/:param/milestones/transfer-completed |  | Y |  |  |  |  |  |  |  |
 | adminManualConfirmPayment | POST | /admin/orders/:param/payments/manual |  | Y |  |  |  |  |  |  |  |
 | adminConfirmManualPayout | POST | /admin/orders/:param/payouts/manual |  | Y |  |  |  |  |  |  |  |
+| adminConfirmAssignedOrderContractSigned | POST | /admin/orders/assigned/:param/milestones/contract-signed |  | Y |  |  |  |  |  |  |  |
 | adminApprovePatentClaim | POST | /admin/patent-claims/:param/approve |  | Y |  |  |  |  |  |  |  |
 | adminRejectPatentClaim | POST | /admin/patent-claims/:param/reject |  | Y |  |  |  |  |  |  |  |
 | adminCreatePatentMaintenanceOrder | POST | /admin/patent-maintenance/orders |  | Y |  |  |  |  |  |  |  |
@@ -358,7 +371,7 @@
 | wechatContentSecurityNotify | POST | /webhooks/wechat/content-security |  |  |  |  |  |  |  |  |  |
 | wechatPayNotify | POST | /webhooks/wechatpay/notify |  |  |  |  |  |  |  |  |  |
 | adminUpdateAlertConfig | PUT | /admin/config/alerts |  | Y |  |  |  |  |  |  |  |
-| adminUpdateBannerConfig | PUT | /admin/config/banner |  | Y |  |  |  |  |  |  |  |
+| adminUpdateBannerConfig | PUT | /admin/config/banner |  |  |  |  |  |  |  |  |  |
 | adminUpdateCustomerServiceConfig | PUT | /admin/config/customer-service |  | Y |  |  |  |  |  |  |  |
 | adminUpdateHomeAnnouncementItem | PUT | /admin/config/home-announcements/items/:param |  | Y |  |  |  |  |  |  |  |
 | adminUpdateHomeAnnouncementTemplate | PUT | /admin/config/home-announcements/templates/:param |  | Y |  |  |  |  |  |  |  |

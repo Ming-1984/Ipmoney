@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/WW_verify_YpAqDE4xoAPsmGSK.txt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** WeCom domain ownership verification file */
+        get: operations["getWecomDomainVerificationFile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/wechat/mp-login": {
         parameters: {
             query?: never;
@@ -1212,6 +1229,23 @@ export interface paths {
         put?: never;
         /** WeChat content security callback */
         post: operations["wechatContentSecurityNotify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks/wecom/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** WeCom callback URL verification */
+        get: operations["verifyWecomCallbackUrl"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3275,6 +3309,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/orders/assigned": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List orders assigned to current operator */
+        get: operations["adminListAssignedOrders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/orders/assigned/{orderId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get assigned order detail */
+        get: operations["adminGetAssignedOrderById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/orders/assigned/{orderId}/milestones/contract-signed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm contract signed for assigned order */
+        post: operations["adminConfirmAssignedOrderContractSigned"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/orders/{orderId}": {
         parameters: {
             query?: never;
@@ -3777,6 +3862,57 @@ export interface paths {
         head?: never;
         /** Update RBAC user roles */
         patch: operations["adminUpdateRbacUserRoles"];
+        trace?: never;
+    };
+    "/admin/dashboard/showcase-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get admin dashboard showcase summary */
+        get: operations["adminGetDashboardShowcaseSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/ops-notification-jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List operation notification jobs */
+        get: operations["adminListOpsNotificationJobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/ops-notification-jobs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get operation notification job detail */
+        get: operations["adminGetOpsNotificationJobById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/admin/reports/finance/summary": {
@@ -6447,6 +6583,77 @@ export interface components {
             generatedAt: string;
             items: components["schemas"]["PublicHomeAnnouncementItem"][];
         };
+        DashboardMetricPoint: {
+            key: string;
+            label: string;
+            value: number;
+        };
+        DashboardShowcaseSummary: {
+            overview: {
+                patentsTotal?: number | null;
+                techManagersApprovedTotal?: number | null;
+                ordersTotal?: number | null;
+                completedOrdersTotal?: number | null;
+                completedDealAmountFen?: number | null;
+            };
+            operations: {
+                pendingVerifications?: number | null;
+                pendingListings?: number | null;
+                unassignedConversations?: number | null;
+                openCases?: number | null;
+            };
+            trends: {
+                range?: {
+                    /** Format: date-time */
+                    start?: string;
+                    /** Format: date-time */
+                    end?: string;
+                    days?: number;
+                    label?: string;
+                };
+                orders30d?: components["schemas"]["DashboardMetricPoint"][];
+                completedOrders30d?: components["schemas"]["DashboardMetricPoint"][];
+                dealAmount30d?: components["schemas"]["DashboardMetricPoint"][];
+            };
+            distribution: {
+                patentTypes?: components["schemas"]["DashboardMetricPoint"][];
+                orderStatuses?: components["schemas"]["DashboardMetricPoint"][];
+            };
+        };
+        /** @enum {string} */
+        OpsNotificationStatus: "PENDING" | "SENDING" | "SENT" | "FAILED";
+        /** @enum {string} */
+        OpsNotificationEventType: "LISTING_CONSULTATION_CREATED" | "ORDER_DEPOSIT_PAID";
+        OpsNotificationJob: {
+            id: components["schemas"]["Uuid"];
+            eventType: components["schemas"]["OpsNotificationEventType"];
+            eventKey: string;
+            /** @enum {string} */
+            channel: "WECOM_APP";
+            status: components["schemas"]["OpsNotificationStatus"];
+            recipients?: {
+                [key: string]: unknown;
+            } | null;
+            payload?: {
+                [key: string]: unknown;
+            } | null;
+            attempts: number;
+            /** Format: date-time */
+            nextAttemptAt: string;
+            /** Format: date-time */
+            sentAt?: string | null;
+            lastError?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PagedOpsNotificationJob: {
+            items: components["schemas"]["OpsNotificationJob"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
         FinanceReportRange: {
             /** Format: date-time */
             start: string;
@@ -6824,6 +7031,27 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             501: components["responses"]["NotImplemented"];
+        };
+    };
+    getWecomDomainVerificationFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Plain-text WeCom domain verification content. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            404: components["responses"]["NotFound"];
         };
     };
     authWechatMpLogin: {
@@ -9030,6 +9258,32 @@ export interface operations {
                         code: string;
                         message: string;
                     };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
+    verifyWecomCallbackUrl: {
+        parameters: {
+            query: {
+                msg_signature: string;
+                timestamp: string;
+                nonce: string;
+                echostr: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Plain-text decrypted echo string required by WeCom. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -13225,6 +13479,99 @@ export interface operations {
             403: components["responses"]["Forbidden"];
         };
     };
+    adminListAssignedOrders: {
+        parameters: {
+            query?: {
+                /** @description 閸忔娊鏁拠宥忕礄閺嶅洭顣?閹芥顩?閺夊啫鍩勬禍?閸欐垶妲戞禍?閺堢儤鐎崥宥囆炵粵澶涚礆 */
+                q?: components["parameters"]["Q"];
+                status?: components["schemas"]["OrderStatus"];
+                createdFrom?: string;
+                createdTo?: string;
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedOrder"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminGetAssignedOrderById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: components["parameters"]["OrderId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Order"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminConfirmAssignedOrderContractSigned: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: components["parameters"]["OrderId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    dealAmountFen: components["schemas"]["MoneyFen"];
+                    evidenceFileId?: components["schemas"]["Uuid"];
+                    /** Format: date-time */
+                    signedAt?: string;
+                    remark?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Order"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
     adminGetOrderById: {
         parameters: {
             query?: never;
@@ -14287,6 +14634,87 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RbacUser"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminGetDashboardShowcaseSummary: {
+        parameters: {
+            query?: {
+                days?: number;
+                start?: string;
+                end?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardShowcaseSummary"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminListOpsNotificationJobs: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["OpsNotificationStatus"];
+                eventType?: components["schemas"]["OpsNotificationEventType"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedOpsNotificationJob"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminGetOpsNotificationJobById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpsNotificationJob"];
                 };
             };
             400: components["responses"]["BadRequest"];
