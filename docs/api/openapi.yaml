@@ -935,6 +935,23 @@ paths:
                 $ref: '#/components/schemas/HomeLandingConfig'
         '400':
           $ref: '#/components/responses/BadRequest'
+  /public/home-stats:
+    get:
+      tags:
+        - Public
+      summary: Get homepage platform stats (public)
+      operationId: getPublicHomeStats
+      security: []
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicHomeStats'
+        '400':
+          $ref: '#/components/responses/BadRequest'
   /public/listings/{listingId}:
     get:
       tags:
@@ -15579,6 +15596,26 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PublicHomeAnnouncementItem'
+    PublicHomeStats:
+      type: object
+      required:
+        - patentsTotal
+        - techManagersTotal
+        - registeredUsersTotal
+        - completedDealsTotal
+        - updatedAt
+      properties:
+        patentsTotal:
+          type: integer
+        techManagersTotal:
+          type: integer
+        registeredUsersTotal:
+          type: integer
+        completedDealsTotal:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
     DashboardMetricPoint:
       type: object
       required:

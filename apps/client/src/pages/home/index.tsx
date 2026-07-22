@@ -38,6 +38,7 @@ import {
   resolveHomeLandingZoneImage,
 } from '../../lib/homeLandingFeatured';
 import { fetchHomeAnnouncements, type PublicHomeAnnouncementItem } from '../../lib/homeAnnouncements';
+import { fetchHomeStats, type PublicHomeStats } from '../../lib/homeStats';
 import { EmptyCard, ErrorCard } from '../../ui/StateCards';
 import { PullToRefresh, toast } from '../../ui/nutui';
 import { ListingCard } from '../../ui/ListingCard';
@@ -52,6 +53,18 @@ type QuickEntry = {
   label: string;
   icon: string;
   onClick: () => void;
+};
+
+type HomePlatformStat = {
+  key: string;
+  value: string;
+  label: string;
+};
+
+type HomePlatformStatDef = {
+  key: string;
+  label: string;
+  readValue: (stats: PublicHomeStats | null) => number | undefined;
 };
 
 type PatentZoneEntry = {
@@ -70,12 +83,22 @@ const HOME_RECOMMEND_PAGE_SIZE = 10;
 type HomeRecommendMode = 'RECOMMEND' | 'NEWEST';
 const HOME_SPOTLIGHT_CTA_TEXT = '点击查看';
 const HOME_SPOTLIGHT_INLINE_ACTION_PATTERN = /(点击查看|立即查看|去查看|查看详情|点击了解|立即了解|去了解)/;
+const HOME_PLATFORM_STAT_DEFS: HomePlatformStatDef[] = [
+  { key: 'patents', label: '总专利数量', readValue: (stats) => stats?.patentsTotal },
+  { key: 'tech-managers', label: '技术经理人', readValue: (stats) => stats?.techManagersTotal },
+  { key: 'users', label: '已注册用户', readValue: (stats) => stats?.registeredUsersTotal },
+  { key: 'deals', label: '已完成服务', readValue: (stats) => stats?.completedDealsTotal },
+];
 
 function hasInlineSpotlightActionCopy(...values: Array<string | undefined>): boolean {
   return values.some((value) => {
     const text = normalizeDisplayText(value);
     return Boolean(text) && HOME_SPOTLIGHT_INLINE_ACTION_PATTERN.test(text);
   });
+}
+
+function formatHomeStatValue(value: number | undefined): string {
+  return typeof value === 'number' && Number.isFinite(value) ? String(value) : '--';
 }
 
 const HomeHeroSpotlight = React.memo(function HomeHeroSpotlight({ config }: { config: HomeLandingConfig['heroSpotlight'] }) {
@@ -147,6 +170,7 @@ export default function HomePage() {
   const [announcements, setAnnouncements] = useState<PublicHomeAnnouncementItem[]>([]);
   const [activeAnnouncementIndex, setActiveAnnouncementIndex] = useState(0);
   const [homeLandingConfig, setHomeLandingConfig] = useState<HomeLandingConfig>(() => normalizeHomeLandingConfig(null));
+  const [homeStats, setHomeStats] = useState<PublicHomeStats | null>(null);
   const itemCountRef = useRef(items.length);
   const authStateRef = useRef(isAuthed);
   const recommendModeRef = useRef(recommendMode);
@@ -209,6 +233,15 @@ export default function HomePage() {
       setHomeLandingConfig(config);
     } catch {
       setHomeLandingConfig((prev) => normalizeHomeLandingConfig(prev));
+    }
+  }, []);
+
+  const loadHomeStats = useCallback(async () => {
+    try {
+      const next = await fetchHomeStats();
+      setHomeStats(next);
+    } catch {
+      setHomeStats(null);
     }
   }, []);
 
@@ -337,6 +370,10 @@ export default function HomePage() {
   }, [loadHomeLanding]);
 
   useEffect(() => {
+    void loadHomeStats();
+  }, [loadHomeStats]);
+
+  useEffect(() => {
     if (announcements.length <= 1) return undefined;
     const timer = setInterval(() => {
       setActiveAnnouncementIndex((prev) => (prev + 1) % announcements.length);
@@ -457,9 +494,6 @@ export default function HomePage() {
   }, []);
   const goTechManagers = useCallback(() => openConsultTab('TECH'), [openConsultTab]);
   const goOrganizations = useCallback(() => openConsultTab('ORG'), [openConsultTab]);
-  const goPatentExplore = useCallback(() => {
-    Taro.navigateTo({ url: '/subpackages/patent-square/index' });
-  }, []);
   const goDesignPatents = useCallback(() => {
     Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
       tab: 'LISTING',
@@ -584,6 +618,16 @@ export default function HomePage() {
     [homeLandingConfig],
   );
 
+  const platformStats: HomePlatformStat[] = useMemo(
+    () =>
+      HOME_PLATFORM_STAT_DEFS.map((stat) => ({
+        key: stat.key,
+        label: stat.label,
+        value: formatHomeStatValue(stat.readValue(homeStats)),
+      })),
+    [homeStats],
+  );
+
   return (
     <View className="home-page">
       <View className="home-hero" style={heroStyle}>
@@ -624,15 +668,21 @@ export default function HomePage() {
         </View>
       </View>
 
+      <View className="home-platform-stats">
+        {platformStats.map((stat) => (
+          <View key={stat.key} className="home-platform-stat">
+            <Text className="home-platform-stat-value">{stat.value}</Text>
+            <Text className="home-platform-stat-label">{stat.label}</Text>
+          </View>
+        ))}
+      </View>
+
       <View className="home-section">
         <View className="home-section-header">
           <View className="home-section-title-wrap">
             <View className="home-section-accent" />
             <Text className="home-section-title">{homeLandingConfig.sectionTexts.featuredTitle}</Text>
           </View>
-          <Text className="home-section-more" onClick={goPatentExplore}>
-            {homeLandingConfig.sectionTexts.featuredMoreText}
-          </Text>
         </View>
         <View className="home-zone-grid">
           {patentZoneEntries.map((entry) => (

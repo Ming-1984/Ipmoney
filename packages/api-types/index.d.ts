@@ -531,6 +531,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/home-stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get homepage platform stats (public) */
+        get: operations["getPublicHomeStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/listings/{listingId}": {
         parameters: {
             query?: never;
@@ -6583,6 +6600,14 @@ export interface components {
             generatedAt: string;
             items: components["schemas"]["PublicHomeAnnouncementItem"][];
         };
+        PublicHomeStats: {
+            patentsTotal: number;
+            techManagersTotal: number;
+            registeredUsersTotal: number;
+            completedDealsTotal: number;
+            /** Format: date-time */
+            updatedAt: string;
+        };
         DashboardMetricPoint: {
             key: string;
             label: string;
@@ -7842,6 +7867,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HomeLandingConfig"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
+    getPublicHomeStats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicHomeStats"];
                 };
             };
             400: components["responses"]["BadRequest"];

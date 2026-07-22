@@ -37,6 +37,7 @@ import { PatentMapModule } from './modules/patent-map/patent-map.module';
 import { BulkImportModule } from './modules/bulk-import/bulk-import.module';
 import { AdminNotificationsModule } from './modules/admin-notifications/admin-notifications.module';
 import { RateLimitGuard } from './common/guards/rate-limit.guard';
+import { PublicStatsModule } from './modules/public-stats/public-stats.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { RateLimitGuard } from './common/guards/rate-limit.guard';
     PatentMapModule,
     BulkImportModule,
     AdminNotificationsModule,
+    PublicStatsModule,
   ],
   controllers: [HealthController, DomainVerificationController],
   providers: [RedisProbeService, { provide: APP_GUARD, useClass: RateLimitGuard }],

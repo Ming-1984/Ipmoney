@@ -93,5 +93,15 @@
         ]
       }
     }
+  },
+  "GET /public/home-stats": {
+    "status": 200,
+    "body": {
+      "patentsTotal": 13366,
+      "techManagersTotal": 193,
+      "registeredUsersTotal": 228,
+      "completedDealsTotal": 0,
+      "updatedAt": "2026-07-22T06:00:00.000Z"
+    }
   }
 }
