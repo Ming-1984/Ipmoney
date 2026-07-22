@@ -110,8 +110,8 @@ function featuredLabel(item: PatentMapRegionDetailItem) {
 }
 
 const DATA_SCOPE_OPTIONS: Array<{ value: PatentMapDataScope; label: string }> = [
-  { value: 'ACTIVE_APPROVED', label: '在售挂牌' },
-  { value: 'ALL', label: '全部交易数据' },
+  { value: 'ACTIVE_APPROVED', label: '公开展示' },
+  { value: 'ALL', label: '全部数据' },
 ];
 
 export default function PatentMapPage() {
