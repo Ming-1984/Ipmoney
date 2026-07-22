@@ -24,10 +24,19 @@ type OrderDepositPaidNotificationInput = {
   paidAt: Date;
 };
 
+type OrderDepositPendingNotificationInput = {
+  orderId: string;
+  listingTitle?: string | null;
+  depositAmountFen: number;
+  buyerUserId: string;
+  sellerUserId?: string | null;
+  pendingAt: Date;
+};
+
 type NotificationMode = 'mock' | 'live';
 type OpsNotificationChannel = 'WECOM_APP';
 type OpsNotificationStatus = 'PENDING' | 'SENDING' | 'SENT' | 'FAILED';
-type OpsNotificationEventType = 'LISTING_CONSULTATION_CREATED' | 'ORDER_DEPOSIT_PAID';
+type OpsNotificationEventType = 'LISTING_CONSULTATION_CREATED' | 'ORDER_DEPOSIT_PENDING' | 'ORDER_DEPOSIT_PAID';
 
 type EnqueueNotificationInput = {
   eventType: OpsNotificationEventType;
@@ -54,7 +63,11 @@ type OpsNotificationJobClient = {
 };
 
 const OPS_NOTIFICATION_STATUSES: OpsNotificationStatus[] = ['PENDING', 'SENDING', 'SENT', 'FAILED'];
-const OPS_NOTIFICATION_EVENT_TYPES: OpsNotificationEventType[] = ['LISTING_CONSULTATION_CREATED', 'ORDER_DEPOSIT_PAID'];
+const OPS_NOTIFICATION_EVENT_TYPES: OpsNotificationEventType[] = [
+  'LISTING_CONSULTATION_CREATED',
+  'ORDER_DEPOSIT_PENDING',
+  'ORDER_DEPOSIT_PAID',
+];
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function trim(value: unknown): string {
@@ -160,6 +173,20 @@ export class OpsNotificationsService implements OnModuleInit {
       `>卖方：${shortId(input.sellerUserId)}`,
       `>时间：${this.formatDateTime(input.paidAt)}`,
       '请及时跟进后续服务。',
+    ];
+    return lines.join('\n');
+  }
+
+  private buildOrderDepositPendingMarkdown(input: OrderDepositPendingNotificationInput): string {
+    const lines = [
+      '【IPMoney】有一笔订单待付订金',
+      `>订单：<font color="comment">${shortId(input.orderId)}</font>`,
+      `>标的：${trim(input.listingTitle) || '-'}`,
+      `>订金：${this.formatAmountFen(input.depositAmountFen)}`,
+      `>买方：${shortId(input.buyerUserId)}`,
+      `>卖方：${shortId(input.sellerUserId)}`,
+      `>时间：${this.formatDateTime(input.pendingAt)}`,
+      '请及时跟进付款或人工确认。',
     ];
     return lines.join('\n');
   }
@@ -523,10 +550,39 @@ export class OpsNotificationsService implements OnModuleInit {
     });
   }
 
+  async enqueueOrderDepositPending(input: OrderDepositPendingNotificationInput, client: OpsNotificationJobClient = this.prisma as unknown as OpsNotificationJobClient) {
+    if (!this.isEnabled()) return { count: 0 };
+    const recipients = this.resolveRecipients();
+    if (!this.wecom.hasRecipients(recipients)) {
+      this.logger.warn(`ORDER_DEPOSIT_PENDING skipped because no recipients are configured for order ${shortId(input.orderId)}`);
+      return { count: 0 };
+    }
+
+    return await this.enqueueJob(client, {
+      eventType: 'ORDER_DEPOSIT_PENDING',
+      eventKey: `ORDER_DEPOSIT_PENDING:${input.orderId}`,
+      channel: 'WECOM_APP',
+      recipients,
+      content: this.buildOrderDepositPendingMarkdown(input),
+      payload: {
+        orderId: input.orderId,
+        buyerUserId: input.buyerUserId,
+        sellerUserId: input.sellerUserId,
+      },
+    });
+  }
+
   notifyListingConsultationCreated(input: ListingConsultationNotificationInput) {
     if (!this.isEnabled()) return;
     this.dispatchInBackground('LISTING_CONSULTATION_CREATED', async () => {
       await this.enqueueListingConsultationCreated(input);
+    });
+  }
+
+  notifyOrderDepositPending(input: OrderDepositPendingNotificationInput) {
+    if (!this.isEnabled()) return;
+    this.dispatchInBackground('ORDER_DEPOSIT_PENDING', async () => {
+      await this.enqueueOrderDepositPending(input);
     });
   }
 

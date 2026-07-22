@@ -74,6 +74,34 @@ describe('OpsNotificationsService suite', () => {
     });
   });
 
+  it('enqueues deposit pending notification with a distinct event key', async () => {
+    const { prisma, service } = createService();
+    prisma.opsNotificationJob.createMany.mockResolvedValueOnce({ count: 1 });
+
+    await service.enqueueOrderDepositPending({
+      orderId: '11111111-1111-4111-8111-111111111111',
+      listingTitle: '测试标的',
+      depositAmountFen: 20000,
+      buyerUserId: '22222222-2222-4222-8222-222222222222',
+      sellerUserId: '33333333-3333-4333-8333-333333333333',
+      pendingAt: new Date('2026-07-22T08:00:00.000Z'),
+    });
+
+    expect(prisma.opsNotificationJob.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          eventType: 'ORDER_DEPOSIT_PENDING',
+          eventKey: 'ORDER_DEPOSIT_PENDING:11111111-1111-4111-8111-111111111111',
+          status: 'PENDING',
+          payloadJson: expect.objectContaining({
+            content: expect.stringContaining('有一笔订单待付订金'),
+          }),
+        }),
+      ],
+      skipDuplicates: true,
+    });
+  });
+
   it('processes pending jobs and marks successful send as SENT', async () => {
     const { prisma, service, wecom } = createService();
     const job = {

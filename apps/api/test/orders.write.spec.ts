@@ -88,7 +88,10 @@ describe('OrdersService write-first suite', () => {
       }),
     };
     notifications = { create: vi.fn().mockResolvedValue(undefined) };
-    opsNotifications = { enqueueOrderDepositPaid: vi.fn().mockResolvedValue({ count: 1 }) };
+    opsNotifications = {
+      enqueueOrderDepositPaid: vi.fn().mockResolvedValue({ count: 1 }),
+      enqueueOrderDepositPending: vi.fn().mockResolvedValue({ count: 1 }),
+    };
 
     service = new OrdersService(prisma, audit, config, notifications, opsNotifications);
   });
@@ -189,6 +192,14 @@ describe('OrdersService write-first suite', () => {
       expect.objectContaining({ action: 'ORDER_CREATE', targetType: 'ORDER', targetId: ORDER_ID }),
     );
     expect(notifications.create).toHaveBeenCalledTimes(2);
+    expect(opsNotifications.enqueueOrderDepositPending).toHaveBeenCalledWith({
+      orderId: ORDER_ID,
+      listingTitle: 'Patent Listing',
+      depositAmountFen: 2000,
+      buyerUserId: USER_ID,
+      sellerUserId: SELLER_ID,
+      pendingAt: new Date('2026-03-12T00:00:00.000Z'),
+    }, prisma);
     expect(result).toMatchObject({ id: ORDER_ID, listingId: LISTING_ID, buyerUserId: USER_ID, status: 'DEPOSIT_PENDING' });
   });
 

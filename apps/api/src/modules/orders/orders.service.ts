@@ -608,9 +608,9 @@ export class OrdersService {
     return conversation?.agents?.[0]?.operatorUserId ?? null;
   }
 
-  private async bindListingConversationToOrder(listingId: string, buyerUserId: string, orderId: string) {
-    if (typeof (this.prisma as any).conversation?.updateMany !== 'function') return;
-    await (this.prisma as any).conversation.updateMany({
+  private async bindListingConversationToOrder(listingId: string, buyerUserId: string, orderId: string, client: any = this.prisma) {
+    if (typeof client?.conversation?.updateMany !== 'function') return;
+    await client.conversation.updateMany({
       where: {
         contentType: 'LISTING',
         listingId,
@@ -868,16 +868,34 @@ export class OrdersService {
       this.ensureListingNotLocked(await this.findListingLockingOrder(listingId));
 
       const assignedCsUserId = await this.resolveAssignedCsUserIdFromListingConversation(listingId, req.auth.userId);
-      const order = await this.prisma.order.create({
-        data: {
-          listingId,
-          buyerUserId: req.auth.userId,
-          assignedCsUserId: assignedCsUserId ?? undefined,
-          status: 'DEPOSIT_PENDING',
-          depositAmount,
-        },
-      });
-      await this.bindListingConversationToOrder(listingId, req.auth.userId, order.id);
+      const run = async (client: any) => {
+        const order = await client.order.create({
+          data: {
+            listingId,
+            buyerUserId: req.auth.userId,
+            assignedCsUserId: assignedCsUserId ?? undefined,
+            status: 'DEPOSIT_PENDING',
+            depositAmount,
+          },
+        });
+        await this.opsNotifications.enqueueOrderDepositPending(
+          {
+            orderId: order.id,
+            listingTitle: listing.title,
+            depositAmountFen: order.depositAmount,
+            buyerUserId: order.buyerUserId,
+            sellerUserId: listing.sellerUserId,
+            pendingAt: order.createdAt instanceof Date ? order.createdAt : new Date(),
+          },
+          client,
+        );
+        await this.bindListingConversationToOrder(listingId, req.auth.userId, order.id, client);
+        return order;
+      };
+      const order =
+        typeof (this.prisma as any).$transaction === 'function'
+          ? await (this.prisma as any).$transaction((client: any) => run(client))
+          : await run(this.prisma);
       await this.audit.log({
         actorUserId: req.auth.userId,
         action: 'ORDER_CREATE',
