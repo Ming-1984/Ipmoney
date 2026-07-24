@@ -74,7 +74,7 @@ type ListingAdminDto = {
   priceType: 'FIXED' | 'NEGOTIABLE';
   priceAmountFen?: number | null;
   tradeMode: 'ASSIGNMENT' | 'LICENSE';
-  licenseMode?: 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | null;
+  licenseMode?: 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | 'OPEN_LICENSE' | null;
   createdAt: string;
   updatedAt: string;
   sellerUserId?: string | null;
@@ -200,7 +200,7 @@ type ListingImportDefaults = {
   consultationRouting?: 'PLATFORM' | 'OWNER';
   source?: ContentSource;
   tradeMode?: 'ASSIGNMENT' | 'LICENSE';
-  licenseMode?: 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE';
+  licenseMode?: 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | 'OPEN_LICENSE';
   priceType?: 'FIXED' | 'NEGOTIABLE';
   priceAmountFen?: number;
   depositAmountFen?: number;
@@ -408,11 +408,13 @@ export class ListingsService {
     return undefined;
   }
 
-  private normalizeLicenseMode(value: unknown): 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | undefined {
-    const mode = String(value || '').trim().toUpperCase();
+  private normalizeLicenseMode(value: unknown): 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | 'OPEN_LICENSE' | undefined {
+    const text = String(value || '').trim();
+    const mode = text.toUpperCase();
     if (!mode) return undefined;
-    if (mode === 'EXCLUSIVE' || mode === 'SOLE' || mode === 'NON_EXCLUSIVE') {
-      return mode as 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE';
+    if (text.includes('开放')) return 'OPEN_LICENSE';
+    if (mode === 'EXCLUSIVE' || mode === 'SOLE' || mode === 'NON_EXCLUSIVE' || mode === 'OPEN_LICENSE') {
+      return mode as 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | 'OPEN_LICENSE';
     }
     return undefined;
   }
@@ -425,7 +427,7 @@ export class ListingsService {
     return normalized;
   }
 
-  private parseNullableLicenseModeStrict(value: unknown, fieldName: string): 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | null {
+  private parseNullableLicenseModeStrict(value: unknown, fieldName: string): 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | 'OPEN_LICENSE' | null {
     if (value === null) return null;
     if (typeof value === 'string' && value.trim() === '') {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
@@ -550,7 +552,7 @@ export class ListingsService {
     return normalized;
   }
 
-  private parseLicenseModeStrict(value: unknown, fieldName: string): 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' {
+  private parseLicenseModeStrict(value: unknown, fieldName: string): 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | 'OPEN_LICENSE' {
     const normalized = this.normalizeLicenseMode(value);
     if (!normalized) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
@@ -673,7 +675,7 @@ export class ListingsService {
 
   private assertListingTopicSemantics(input: {
     tradeMode: 'ASSIGNMENT' | 'LICENSE';
-    licenseMode?: 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | null;
+    licenseMode?: 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | 'OPEN_LICENSE' | null;
     listingTopics: ListingTopic[];
   }) {
     if (input.tradeMode !== 'LICENSE' && input.listingTopics.includes('OPEN_LICENSE')) {

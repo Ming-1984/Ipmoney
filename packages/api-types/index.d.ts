@@ -4335,7 +4335,7 @@ export interface components {
         /** @enum {string} */
         TradeMode: "ASSIGNMENT" | "LICENSE";
         /** @enum {string} */
-        LicenseMode: "EXCLUSIVE" | "SOLE" | "NON_EXCLUSIVE";
+        LicenseMode: "EXCLUSIVE" | "SOLE" | "NON_EXCLUSIVE" | "OPEN_LICENSE";
         /** @enum {string} */
         PriceType: "FIXED" | "NEGOTIABLE";
         /** @enum {string} */

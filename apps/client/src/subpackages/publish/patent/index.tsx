@@ -82,6 +82,7 @@ const LICENSE_MODE_OPTIONS: Array<{ value: LicenseMode; label: string }> = [
   { value: 'EXCLUSIVE', label: '独占许可' },
   { value: 'SOLE', label: '排他许可' },
   { value: 'NON_EXCLUSIVE', label: '普通许可' },
+  { value: 'OPEN_LICENSE', label: '开放许可' },
 ];
 
 const PRICE_TYPE_OPTIONS: Array<{ value: PriceType; label: string }> = [

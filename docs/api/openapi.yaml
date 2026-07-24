@@ -9895,6 +9895,7 @@ components:
         - EXCLUSIVE
         - SOLE
         - NON_EXCLUSIVE
+        - OPEN_LICENSE
     PriceType:
       type: string
       enum:

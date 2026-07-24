@@ -113,6 +113,7 @@ enum LicenseMode {
   EXCLUSIVE
   SOLE
   NON_EXCLUSIVE
+  OPEN_LICENSE
 }
 
 enum PriceType {

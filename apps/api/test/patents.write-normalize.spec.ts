@@ -491,6 +491,51 @@ describe('PatentsService write and normalize suite', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('createImportJob accepts open license defaults', async () => {
+    prisma.file.findUnique.mockResolvedValueOnce({ id: VALID_ID });
+    prisma.patentImportJob.create.mockImplementationOnce(async ({ data }: any) => ({
+      id: VALID_ID,
+      ...data,
+      totalCount: 0,
+      validCount: 0,
+      invalidCount: 0,
+      successCount: 0,
+      failedCount: 0,
+      skippedCount: 0,
+      failRate: 0,
+      createdAt: new Date('2026-03-13T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-13T00:00:00.000Z'),
+    }));
+
+    const result = await service.createImportJob(
+      { auth: { isAdmin: true, userId: VALID_ID }, headers: { 'idempotency-key': 'patent-import-open-license' } },
+      {
+        fileId: VALID_ID,
+        defaults: {
+          listing: {
+            consultationRouting: 'OWNER',
+            tradeMode: 'LICENSE',
+            licenseMode: 'OPEN_LICENSE',
+          },
+        },
+      },
+    );
+
+    expect(prisma.patentImportJob.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          defaultsJson: expect.objectContaining({
+            listing: expect.objectContaining({
+              tradeMode: 'LICENSE',
+              licenseMode: 'OPEN_LICENSE',
+            }),
+          }),
+        }),
+      }),
+    );
+    expect(result.defaults?.listing?.licenseMode).toBe('OPEN_LICENSE');
+  });
+
   it('createImportJob rejects PLATFORM defaults when sellerUserId is missing', async () => {
     prisma.file.findUnique.mockResolvedValueOnce({ id: VALID_ID });
 

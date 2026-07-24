@@ -78,9 +78,14 @@ const LISTING_TOPIC_DEFAULTS: ReadonlyArray<HomeLandingListingTopicUiItem> = [
 const LISTING_TOPIC_SET = new Set<ListingTopic>(LISTING_TOPIC_DEFAULTS.map((item) => item.value));
 const PATENT_TYPE_SET = new Set<PatentType>(['INVENTION', 'UTILITY_MODEL', 'DESIGN']);
 const SAFE_FEATURED_TITLE = '\u7cbe\u9009\u4e13\u5229\u63a8\u8350';
+const SAFE_HERO_SPOTLIGHT_TITLE = '\u4e13\u5229\u4fe1\u606f';
 const ZERO_CODE = 48;
 const YUAN_CODE = 20803;
 const RISK_CODES = [39118, 38505];
+const LEGACY_HERO_SPOTLIGHT_TITLES = new Set([
+  '\u4e0a\u67b6\u4e13\u5229',
+  '\u70b9\u51fb\u67e5\u770b\u4e0a\u67b6\u4e13\u5229',
+]);
 const SENSITIVE_FEATURED_TITLE_CODES = [
   [39640, 20215, 20540, 20302, 37329, 39069],
   [20302, 37329, 39069],
@@ -116,6 +121,11 @@ function normalizeFeaturedTitle(input: unknown, fallback: string): string {
   return SENSITIVE_FEATURED_TITLE_CODES.some((codes) => containsCodeSequence(text, codes))
     ? SAFE_FEATURED_TITLE
     : text;
+}
+
+function normalizeHeroSpotlightTitle(input: unknown): string {
+  const text = String(input || '').trim();
+  return LEGACY_HERO_SPOTLIGHT_TITLES.has(text) ? SAFE_HERO_SPOTLIGHT_TITLE : text.slice(0, 24);
 }
 
 export function defaultHomeLandingConfig(): HomeLandingConfig {
@@ -284,7 +294,7 @@ function normalizeHeroSpotlight(input: unknown, fallback: HomeLandingHeroSpotlig
   return {
     enabled: source.enabled !== false,
     imageUrl: String(source.imageUrl || fallback.imageUrl).trim().slice(0, 1000) || fallback.imageUrl,
-    title: String(source.title || '').trim().slice(0, 24),
+    title: normalizeHeroSpotlightTitle(source.title),
     subtitle: String(source.subtitle || '').trim().slice(0, 40),
     actionPayload: {
       ...(tabRaw === 'LISTING' || tabRaw === 'ACHIEVEMENT' ? { tab: tabRaw } : {}),

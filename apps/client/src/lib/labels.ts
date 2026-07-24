@@ -78,6 +78,7 @@ export function licenseModeLabel(t?: LicenseMode | null, options?: { empty?: str
   if (t === 'EXCLUSIVE') return '独占许可';
   if (t === 'SOLE') return '排他许可';
   if (t === 'NON_EXCLUSIVE') return '普通许可';
+  if (t === 'OPEN_LICENSE') return '开放许可';
   return '许可方式待确认';
 }
 

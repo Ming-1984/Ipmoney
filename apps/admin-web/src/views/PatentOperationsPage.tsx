@@ -13,7 +13,7 @@ import { RequestErrorAlert } from '../ui/RequestState';
 
 type ConsultationRouting = 'PLATFORM' | 'OWNER';
 type ListingTradeMode = 'ASSIGNMENT' | 'LICENSE';
-type LicenseMode = 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE';
+type LicenseMode = 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | 'OPEN_LICENSE';
 type PriceType = 'FIXED' | 'NEGOTIABLE';
 type ListingTopic = components['schemas']['ListingTopic'];
 type DuplicatePolicy = 'SKIP' | 'OVERWRITE';
@@ -224,6 +224,7 @@ const licenseModeOptions = [
   { value: 'EXCLUSIVE', label: '独占许可' },
   { value: 'SOLE', label: '排他许可' },
   { value: 'NON_EXCLUSIVE', label: '普通许可' },
+  { value: 'OPEN_LICENSE', label: '开放许可' },
 ];
 
 const priceTypeOptions = [

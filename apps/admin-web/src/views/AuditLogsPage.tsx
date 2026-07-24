@@ -243,6 +243,7 @@ const ENUM_VALUE_LABELS: Record<string, string> = {
   MONTH_3_6: '3-6 个月',
   NEGOTIABLE: '面议',
   NON_EXCLUSIVE: '普通许可',
+  OPEN_LICENSE: '开放许可',
   NONE: '无',
   OFFLINE: '已下线',
   OFF_SHELF: '已下架',

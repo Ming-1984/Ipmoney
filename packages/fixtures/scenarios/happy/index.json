@@ -10,7 +10,7 @@
       "heroSpotlight": {
         "enabled": true,
         "imageUrl": "https://ipmoney.cn/static/images/assets/home/promo-certificate.png",
-        "title": "点击查看上架专利",
+        "title": "专利信息",
         "subtitle": "",
         "actionPayload": {
           "tab": "LISTING",

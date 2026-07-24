@@ -107,7 +107,7 @@ type PatentImportDuplicatePolicy = 'SKIP' | 'OVERWRITE';
 type PatentImportRowStatus = 'PENDING' | 'VALID' | 'INVALID' | 'SUCCEEDED' | 'FAILED' | 'SKIPPED';
 type ConsultationRouting = 'PLATFORM' | 'OWNER';
 type ListingTradeMode = 'ASSIGNMENT' | 'LICENSE';
-type LicenseMode = 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE';
+type LicenseMode = 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | 'OPEN_LICENSE';
 type PriceType = 'FIXED' | 'NEGOTIABLE';
 type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'FIVE_STAR' | 'OPEN_LICENSE';
 type AuditStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -480,8 +480,10 @@ export class PatentsService {
   }
 
   private normalizeLicenseMode(value: unknown): LicenseMode | undefined {
-    const raw = String(value || '').trim().toUpperCase();
-    if (raw === 'EXCLUSIVE' || raw === 'SOLE' || raw === 'NON_EXCLUSIVE') return raw as LicenseMode;
+    const text = String(value || '').trim();
+    const raw = text.toUpperCase();
+    if (text.includes('开放')) return 'OPEN_LICENSE';
+    if (raw === 'EXCLUSIVE' || raw === 'SOLE' || raw === 'NON_EXCLUSIVE' || raw === 'OPEN_LICENSE') return raw as LicenseMode;
     return undefined;
   }
 

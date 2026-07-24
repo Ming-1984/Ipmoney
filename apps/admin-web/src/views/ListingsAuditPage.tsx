@@ -87,7 +87,7 @@ type Listing = {
   auditStatus: AuditStatus;
   status: ListingStatus;
   tradeMode: 'ASSIGNMENT' | 'LICENSE';
-  licenseMode?: 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | null;
+  licenseMode?: 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | 'OPEN_LICENSE' | null;
   priceType?: 'FIXED' | 'NEGOTIABLE';
   priceAmountFen?: number | null;
   depositAmountFen?: number | null;
@@ -263,6 +263,7 @@ function licenseModeLabel(value?: Listing['licenseMode']): string {
   if (value === 'EXCLUSIVE') return '独占许可';
   if (value === 'SOLE') return '排他许可';
   if (value === 'NON_EXCLUSIVE') return '普通许可';
+  if (value === 'OPEN_LICENSE') return '开放许可';
   return '-';
 }
 
