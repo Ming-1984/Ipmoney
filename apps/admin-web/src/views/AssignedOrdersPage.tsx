@@ -16,13 +16,14 @@ import {
   message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { EyeOutlined, FileDoneOutlined, ReloadOutlined } from '@ant-design/icons';
+import { EyeOutlined, FileDoneOutlined, ReloadOutlined, UploadOutlined } from '@ant-design/icons';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { apiGet, apiPost } from '../lib/api';
+import { apiGet, apiPost, type FileObject } from '../lib/api';
 import { fenToYuan, formatTimeSmart, yuanToFen } from '../lib/format';
 import { orderStatusLabel } from '../lib/labels';
 import { normalizeUserFacingText } from '../lib/userFacingText';
+import { ContractFileUploadField } from '../ui/ContractFileUploadField';
 import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
 
 type OrderStatus =
@@ -37,6 +38,7 @@ type OrderStatus =
   | 'REFUNDED';
 
 type MilestoneStatus = 'PENDING' | 'DONE' | 'SKIPPED' | 'IN_PROGRESS' | 'FAILED';
+type ContractStatus = 'WAIT_UPLOAD' | 'WAIT_CONFIRM' | 'AVAILABLE';
 
 type AssignedOrder = {
   id: string;
@@ -53,6 +55,10 @@ type AssignedOrder = {
   updatedAt?: string;
   listingTitle?: string | null;
   applicationNoDisplay?: string | null;
+  contractStatus?: ContractStatus | null;
+  contractFileUrl?: string | null;
+  contractUploadedAt?: string | null;
+  contractSignedAt?: string | null;
 };
 
 type AssignedOrderDetail = AssignedOrder & {
@@ -91,13 +97,24 @@ const TEXT = {
   updatedAt: '更新时间',
   actions: '操作',
   detail: '详情',
+  contractStatus: '合同',
+  contractUpload: '上传合同',
+  contractReplace: '替换合同',
   contractConfirm: '确认合同',
+  contractWaitUpload: '待上传',
+  contractWaitConfirm: '待签署确认',
+  contractAvailable: '可查看',
+  contractUploadModalTitle: '上传合同',
+  contractUploadOk: '保存合同',
+  contractUploadFirst: '请先上传合同 PDF',
+  contractUploadSuccess: '合同上传成功',
   contractModalTitle: '确认合同并填写成交金额',
   contractOk: '确认合同',
   amountRequired: '成交金额必须大于 0',
   dealAmountYuan: '成交金额（元）',
   dealAmountRule: '请输入成交金额',
   amountPlaceholder: '例如 288000',
+  contractFile: '合同文件',
   remark: '备注/依据',
   remarkPlaceholder: '可填写合同编号、签署时间、归档位置等信息。',
   currentDepositPrefix: '当前订单订金：',
@@ -160,6 +177,16 @@ function statusTag(status?: OrderStatus | null) {
   return <Tag color={color}>{orderStatusLabel(status)}</Tag>;
 }
 
+function hasUploadedContract(order?: Pick<AssignedOrder, 'contractStatus' | 'contractFileUrl'> | null): boolean {
+  return Boolean(order?.contractFileUrl || order?.contractStatus === 'WAIT_CONFIRM' || order?.contractStatus === 'AVAILABLE');
+}
+
+function contractStatusTag(order?: Pick<AssignedOrder, 'contractStatus' | 'contractFileUrl'> | null) {
+  if (order?.contractStatus === 'AVAILABLE') return <Tag color="green">{TEXT.contractAvailable}</Tag>;
+  if (hasUploadedContract(order)) return <Tag color="blue">{TEXT.contractWaitConfirm}</Tag>;
+  return <Tag>{TEXT.contractWaitUpload}</Tag>;
+}
+
 function milestoneNameLabel(name?: string | null): string {
   if (name === 'CONTRACT_SIGNED') return TEXT.contractSigned;
   if (name === 'TRANSFER_SUBMITTED') return TEXT.transferSubmitted;
@@ -200,9 +227,14 @@ export function AssignedOrdersPage() {
   const [contractSubmitting, setContractSubmitting] = useState(false);
   const [contractTarget, setContractTarget] = useState<AssignedOrder | null>(null);
   const [contractForm] = Form.useForm<ContractFormValues>();
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [uploadSubmitting, setUploadSubmitting] = useState(false);
+  const [uploadTarget, setUploadTarget] = useState<AssignedOrder | null>(null);
+  const [uploadFile, setUploadFile] = useState<FileObject | null>(null);
   const loadSeqRef = useRef(0);
   const detailSeqRef = useRef(0);
   const contractSeqRef = useRef(0);
+  const uploadSeqRef = useRef(0);
 
   const load = useCallback(
     async (opts?: { page?: number; pageSize?: number; status?: '' | OrderStatus }) => {
@@ -357,6 +389,12 @@ export function AssignedOrdersPage() {
         render: (value?: number | null) => formatMoney(value),
       },
       {
+        title: TEXT.contractStatus,
+        key: 'contractStatus',
+        width: 130,
+        render: (_, row) => contractStatusTag(row),
+      },
+      {
         title: TEXT.finalAmount,
         dataIndex: 'finalAmountFen',
         width: 120,
@@ -371,7 +409,7 @@ export function AssignedOrdersPage() {
       {
         title: TEXT.actions,
         key: 'actions',
-        width: 220,
+        width: 320,
         fixed: 'right',
         render: (_, row) => (
           <Space wrap>
@@ -379,9 +417,20 @@ export function AssignedOrdersPage() {
               {TEXT.detail}
             </Button>
             <Button
+              icon={<UploadOutlined />}
+              disabled={row.status !== 'DEPOSIT_PAID'}
+              onClick={() => {
+                setUploadTarget(row);
+                setUploadFile(null);
+                setUploadModalOpen(true);
+              }}
+            >
+              {hasUploadedContract(row) ? TEXT.contractReplace : TEXT.contractUpload}
+            </Button>
+            <Button
               type="primary"
               icon={<FileDoneOutlined />}
-              disabled={row.status !== 'DEPOSIT_PAID'}
+              disabled={row.status !== 'DEPOSIT_PAID' || !hasUploadedContract(row)}
               onClick={() => openContractModal(row)}
             >
               {TEXT.contractConfirm}
@@ -481,15 +530,28 @@ export function AssignedOrdersPage() {
             <Descriptions.Item label={TEXT.deposit}>{formatMoney(detail?.depositAmountFen)}</Descriptions.Item>
             <Descriptions.Item label={TEXT.dealAmount}>{formatMoney(detail?.dealAmountFen)}</Descriptions.Item>
             <Descriptions.Item label={TEXT.finalAmount}>{formatMoney(detail?.finalAmountFen)}</Descriptions.Item>
+            <Descriptions.Item label={TEXT.contractStatus}>{contractStatusTag(detail)}</Descriptions.Item>
             <Descriptions.Item label={TEXT.createdAt}>{formatTimeSmart(detail?.createdAt)}</Descriptions.Item>
             <Descriptions.Item label={TEXT.updatedAt}>{formatTimeSmart(detail?.updatedAt)}</Descriptions.Item>
           </Descriptions>
 
           <Space style={{ marginTop: 16 }} wrap>
             <Button
+              icon={<UploadOutlined />}
+              disabled={detail?.status !== 'DEPOSIT_PAID'}
+              onClick={() => {
+                if (!detail) return;
+                setUploadTarget(detail);
+                setUploadFile(null);
+                setUploadModalOpen(true);
+              }}
+            >
+              {hasUploadedContract(detail) ? TEXT.contractReplace : TEXT.contractUpload}
+            </Button>
+            <Button
               type="primary"
               icon={<FileDoneOutlined />}
-              disabled={detail?.status !== 'DEPOSIT_PAID'}
+              disabled={detail?.status !== 'DEPOSIT_PAID' || !hasUploadedContract(detail)}
               onClick={() => detail && openContractModal(detail)}
             >
               {TEXT.contractConfirm}
@@ -520,6 +582,62 @@ export function AssignedOrdersPage() {
           )}
         </Card>
       </Drawer>
+
+      <Modal
+        open={uploadModalOpen}
+        title={TEXT.contractUploadModalTitle}
+        okText={TEXT.contractUploadOk}
+        okButtonProps={{ loading: uploadSubmitting }}
+        onCancel={() => {
+          setUploadModalOpen(false);
+          setUploadTarget(null);
+          setUploadFile(null);
+        }}
+        onOk={async () => {
+          if (!uploadTarget) {
+            setUploadModalOpen(false);
+            return;
+          }
+          if (!uploadFile?.id) {
+            message.warning(TEXT.contractUploadFirst);
+            return;
+          }
+          const targetOrderId = uploadTarget.id;
+          const requestSeq = ++uploadSeqRef.current;
+          setUploadSubmitting(true);
+          try {
+            await apiPost(
+              `/admin/orders/assigned/${targetOrderId}/contract/upload`,
+              { contractFileId: uploadFile.id },
+              { idempotencyKey: `assigned-contract-upload-${targetOrderId}-${uploadFile.id}` },
+            );
+            if (requestSeq !== uploadSeqRef.current) return;
+            message.success(TEXT.contractUploadSuccess);
+            setUploadModalOpen(false);
+            setUploadTarget(null);
+            setUploadFile(null);
+            await load();
+            if (detailOpen && detail?.id === targetOrderId) {
+              await loadDetail(targetOrderId);
+            }
+          } catch (e: any) {
+            if (requestSeq !== uploadSeqRef.current) return;
+            message.error(e?.message || TEXT.actionFailed);
+          } finally {
+            if (requestSeq === uploadSeqRef.current) setUploadSubmitting(false);
+          }
+        }}
+      >
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <ContractFileUploadField value={uploadFile} onChange={setUploadFile} disabled={uploadSubmitting} />
+          {uploadTarget ? (
+            <Typography.Text type="secondary">
+              {TEXT.currentDepositPrefix}
+              {formatMoney(uploadTarget.depositAmountFen)}
+            </Typography.Text>
+          ) : null}
+        </Space>
+      </Modal>
 
       <Modal
         open={contractModalOpen}

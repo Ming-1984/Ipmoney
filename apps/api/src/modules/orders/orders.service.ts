@@ -25,7 +25,7 @@ import { isDemoPaymentEnabled } from '../../common/demo';
 import { NotificationsService } from '../notifications/notifications.service';
 import { OpsNotificationsService } from '../ops-notifications/ops-notifications.service';
 import { WechatPayClient, WechatPayError } from '../../common/wechat-pay.client';
-import { normalizeDisplayText } from '../content-utils';
+import { normalizeDisplayText, resolvePublicFileUrl } from '../content-utils';
 
 const DEFAULT_CS_USER_ID = '00000000-0000-0000-0000-000000000002';
 const DEFAULT_CS_NICKNAME = '平台客服';
@@ -72,6 +72,8 @@ type OrderStatus =
   | 'REFUNDING'
   | 'REFUNDED';
 
+type ContractStatus = 'WAIT_UPLOAD' | 'WAIT_CONFIRM' | 'AVAILABLE';
+
 type OrderListRole = 'BUYER' | 'SELLER';
 
 type OrderDto = {
@@ -92,6 +94,10 @@ type OrderDto = {
   invoiceNo?: string | null;
   invoiceFileId?: string | null;
   invoiceIssuedAt?: string | null;
+  contractStatus?: ContractStatus | null;
+  contractFileUrl?: string | null;
+  contractUploadedAt?: string | null;
+  contractSignedAt?: string | null;
 };
 
 type PagedOrder = {
@@ -691,6 +697,11 @@ export class OrdersService {
       normalizeDisplayText(listing?.seller?.verifications?.[0]?.displayName) ??
       normalizeDisplayText(listing?.seller?.nickname) ??
       null;
+    const contract = order?.contract ?? null;
+    const contractFileUrl =
+      resolvePublicFileUrl(contract?.contractFile, { baseUrl: process.env.BASE_URL }) ??
+      resolvePublicFileUrl({ url: contract?.fileUrl ?? null }, { baseUrl: process.env.BASE_URL }) ??
+      null;
     return {
       id: order.id,
       listingId: order.listingId,
@@ -709,6 +720,10 @@ export class OrdersService {
       invoiceNo: order.invoiceNo ?? null,
       invoiceFileId: order.invoiceFileId ?? null,
       invoiceIssuedAt: toIso(order.invoiceIssuedAt) ?? null,
+      contractStatus: (contract?.status ?? null) as ContractStatus | null,
+      contractFileUrl,
+      contractUploadedAt: toIso(contract?.uploadedAt) ?? null,
+      contractSignedAt: toIso(contract?.signedAt) ?? null,
     };
   }
 
@@ -729,6 +744,10 @@ export class OrdersService {
       updatedAt: dto.updatedAt,
       listingTitle: dto.listingTitle,
       applicationNoDisplay: dto.applicationNoDisplay,
+      contractStatus: dto.contractStatus,
+      contractFileUrl: dto.contractFileUrl,
+      contractUploadedAt: dto.contractUploadedAt,
+      contractSignedAt: dto.contractSignedAt,
     };
   }
 
@@ -748,6 +767,10 @@ export class OrdersService {
       updatedAt: dto.updatedAt,
       listingTitle: dto.listingTitle,
       applicationNoDisplay: dto.applicationNoDisplay,
+      contractStatus: dto.contractStatus,
+      contractFileUrl: dto.contractFileUrl,
+      contractUploadedAt: dto.contractUploadedAt,
+      contractSignedAt: dto.contractSignedAt,
     };
   }
 
@@ -800,6 +823,7 @@ export class OrdersService {
           },
         },
       },
+      contract: { include: { contractFile: true } },
     };
   }
 
@@ -997,6 +1021,7 @@ export class OrdersService {
               },
             },
           },
+          contract: { include: { contractFile: true } },
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
@@ -1362,6 +1387,7 @@ export class OrdersService {
             },
           },
         },
+        contract: { include: { contractFile: true } },
       },
     });
     if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
@@ -2169,6 +2195,7 @@ export class OrdersService {
             },
           },
         },
+        contract: { include: { contractFile: true } },
       },
     });
     if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
@@ -2205,6 +2232,79 @@ export class OrdersService {
     };
   }
 
+  async adminUploadContract(req: any, orderId: string, body: any, options: ContractSignedOptions = {}) {
+    this.ensureAdmin(req);
+    const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
+    const rawContractFileId = body?.contractFileId ? String(body.contractFileId).trim() : '';
+    if (!rawContractFileId) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'contractFileId is required' });
+    }
+    const contractFileId = this.parseUuidStrict(rawContractFileId, 'contractFileId');
+    const assignedUserId = String(options.assignedUserId || '').trim();
+
+    const [order, contractFile] = await Promise.all([
+      assignedUserId
+        ? this.prisma.order.findFirst({
+            where: { id: normalizedOrderId, assignedCsUserId: assignedUserId },
+            include: this.adminOrderContextInclude(),
+          })
+        : this.prisma.order.findUnique({
+            where: { id: normalizedOrderId },
+            include: this.adminOrderContextInclude(),
+          }),
+      this.prisma.file.findUnique({ where: { id: contractFileId } }),
+    ]);
+    if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
+    if (order.status !== 'DEPOSIT_PAID') {
+      throw new ConflictException({ code: 'CONFLICT', message: 'contract upload not allowed in current status' });
+    }
+    if (!contractFile) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: '合同文件不存在' });
+    }
+    if (String(contractFile.mimeType || '') !== 'application/pdf') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: '仅支持上传 PDF 合同' });
+    }
+
+    const now = new Date();
+    const fileUrl = resolvePublicFileUrl(contractFile, { baseUrl: process.env.BASE_URL }) ?? contractFile.url;
+    const contract = await this.prisma.contract.upsert({
+      where: { orderId: normalizedOrderId },
+      create: {
+        orderId: normalizedOrderId,
+        status: 'WAIT_CONFIRM',
+        contractFileId,
+        fileUrl,
+        uploadedAt: now,
+        signedAt: null,
+        watermarkOwner: null,
+      },
+      update: {
+        status: 'WAIT_CONFIRM',
+        contractFileId,
+        fileUrl,
+        uploadedAt: now,
+        signedAt: null,
+        watermarkOwner: null,
+      },
+      include: { contractFile: true },
+    });
+
+    await this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'ORDER_CONTRACT_UPLOAD',
+      targetType: 'ORDER',
+      targetId: normalizedOrderId,
+      afterJson: {
+        status: contract.status,
+        contractFileId,
+        fileUrl,
+        uploadedAt: now.toISOString(),
+      },
+    });
+
+    return this.toOrderDto({ ...order, contract }, order.listing, order.listing?.patent);
+  }
+
   async adminContractSigned(req: any, orderId: string, body: any, options: ContractSignedOptions = {}) {
     this.ensureAdmin(req);
     const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
@@ -2218,10 +2318,6 @@ export class OrdersService {
     }
     const remark = body?.remark ? String(body.remark).trim() : undefined;
     const signedAt = this.parseOptionalDateTime(body?.signedAt, 'signedAt');
-    const hasEvidenceFileId = this.hasOwn(body, 'evidenceFileId');
-    const evidenceFileId = hasEvidenceFileId
-      ? this.parseNullableNonEmptyStringStrict(body?.evidenceFileId, 'evidenceFileId')
-      : undefined;
     const assignedUserId = String(options.assignedUserId || '').trim();
     const existing = assignedUserId
       ? await this.prisma.order.findFirst({ where: { id: normalizedOrderId, assignedCsUserId: assignedUserId } })
@@ -2232,6 +2328,11 @@ export class OrdersService {
     if (existing.status !== 'DEPOSIT_PAID') {
       throw new ConflictException({ code: 'CONFLICT', message: 'contract signed not allowed in current status' });
     }
+    const existingContract = await this.prisma.contract.findUnique({ where: { orderId: normalizedOrderId } });
+    if (!existingContract?.contractFileId) {
+      throw new ConflictException({ code: 'CONFLICT', message: '请先上传合同' });
+    }
+    const confirmedAt = signedAt ?? new Date();
     const finalAmountFen = this.computeFinalAmount(dealAmountFen || 0, existing.depositAmount);
     const rules = await this.config.getTradeRules();
     const settlementAmounts = this.computeSettlementAmounts(
@@ -2249,6 +2350,10 @@ export class OrdersService {
     });
     const csCase = await this.ensureCaseForOrder(order);
     await this.markCaseMilestone(csCase.id, 'CONTRACT_SIGNED');
+    await this.prisma.contract.update({
+      where: { orderId: normalizedOrderId },
+      data: { status: 'AVAILABLE', signedAt: confirmedAt },
+    });
     await this.audit.log({
       actorUserId: req.auth.userId,
       action: 'ORDER_CONTRACT_SIGNED_CONFIRM',
@@ -2258,8 +2363,8 @@ export class OrdersService {
         status: order.status,
         dealAmount: order.dealAmount,
         finalAmount: order.finalAmount,
-        signedAt: signedAt?.toISOString(),
-        evidenceFileId,
+        signedAt: confirmedAt.toISOString(),
+        contractFileId: existingContract.contractFileId,
         remark,
       },
     });
@@ -2287,6 +2392,15 @@ export class OrdersService {
     const userId = String(req?.auth?.userId || '').trim();
     if (!userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
     const dto = await this.adminContractSigned(req, orderId, body, { assignedUserId: userId });
+    return this.toAssignedOrderDtoFromOrderDto(dto);
+  }
+
+  async assignedUploadContract(req: any, orderId: string, body: any): Promise<AssignedOrderDto> {
+    this.ensureAdmin(req);
+    requirePermission(req, 'order.assigned.contract.confirm');
+    const userId = String(req?.auth?.userId || '').trim();
+    if (!userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
+    const dto = await this.adminUploadContract(req, orderId, body, { assignedUserId: userId });
     return this.toAssignedOrderDtoFromOrderDto(dto);
   }
 

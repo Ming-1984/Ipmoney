@@ -121,6 +121,7 @@ const ACTION_LABELS: Record<string, string> = {
   MAINTENANCE_SCHEDULE_UPDATE: '更新年费计划',
   MAINTENANCE_TASK_CREATE: '创建年费任务',
   MAINTENANCE_TASK_UPDATE: '更新年费任务',
+  ORDER_CONTRACT_UPLOAD: '上传合同文件',
   ORDER_CONTRACT_SIGNED_CONFIRM: '确认合同已签署',
   ORDER_CREATE: '创建订单',
   ORDER_REFUNDED: '订单已退款',

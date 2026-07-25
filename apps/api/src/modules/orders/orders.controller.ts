@@ -137,6 +137,13 @@ export class OrdersController {
   }
 
   @UseGuards(BearerAuthGuard)
+  @Post('/admin/orders/assigned/:orderId/contract/upload')
+  async assignedUploadContract(@Req() req: any, @Param('orderId') orderId: string, @Body() body: any) {
+    requirePermission(req, 'order.assigned.contract.confirm');
+    return await this.orders.assignedUploadContract(req, orderId, body || {});
+  }
+
+  @UseGuards(BearerAuthGuard)
   @Post('/admin/orders/:orderId/payments/manual')
   async adminManualPayment(@Req() req: any, @Param('orderId') orderId: string, @Body() body: any) {
     requirePermission(req, 'payment.manual.confirm');
@@ -148,6 +155,13 @@ export class OrdersController {
   async adminContractSigned(@Req() req: any, @Param('orderId') orderId: string, @Body() body: any) {
     requirePermission(req, 'milestone.contractSigned.confirm');
     return await this.orders.adminContractSigned(req, orderId, body || {});
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Post('/admin/orders/:orderId/contract/upload')
+  async adminUploadContract(@Req() req: any, @Param('orderId') orderId: string, @Body() body: any) {
+    requirePermission(req, 'milestone.contractSigned.confirm');
+    return await this.orders.adminUploadContract(req, orderId, body || {});
   }
 
   @UseGuards(BearerAuthGuard)

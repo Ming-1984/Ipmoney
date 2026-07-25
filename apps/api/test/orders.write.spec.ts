@@ -67,6 +67,7 @@ describe('OrdersService write-first suite', () => {
       refundRequest: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), findUnique: vi.fn(), findMany: vi.fn() },
       settlement: { upsert: vi.fn() },
       file: { findUnique: vi.fn() },
+      contract: { findUnique: vi.fn(), upsert: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
       idempotencyKey: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
       user: { findFirst: vi.fn(), upsert: vi.fn(), findUnique: vi.fn() },
       csCase: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
@@ -1008,6 +1009,7 @@ describe('OrdersService write-first suite', () => {
   it('moves order to WAIT_FINAL_PAYMENT on adminContractSigned and marks milestone', async () => {
     const ensureCaseSpy = vi.spyOn(service as any, 'ensureCaseForOrder').mockResolvedValue({ id: 'case-1' });
     const markCaseSpy = vi.spyOn(service as any, 'markCaseMilestone').mockResolvedValue(undefined);
+    prisma.contract.findUnique.mockResolvedValueOnce({ orderId: ORDER_ID, contractFileId: FILE_ID, status: 'WAIT_CONFIRM' });
     prisma.order.findUnique
       .mockResolvedValueOnce(makeOrder({ status: 'DEPOSIT_PAID', depositAmount: 2000 }))
       .mockResolvedValueOnce(
@@ -1034,9 +1036,102 @@ describe('OrdersService write-first suite', () => {
         status: 'WAIT_FINAL_PAYMENT',
       },
     });
+    expect(prisma.contract.update).toHaveBeenCalledWith({
+      where: { orderId: ORDER_ID },
+      data: { status: 'AVAILABLE', signedAt: expect.any(Date) },
+    });
     expect(ensureCaseSpy).toHaveBeenCalledTimes(1);
     expect(markCaseSpy).toHaveBeenCalledWith('case-1', 'CONTRACT_SIGNED');
     expect(result).toMatchObject({ id: ORDER_ID, status: 'WAIT_FINAL_PAYMENT', finalAmountFen: 8000, dealAmountFen: 10000 });
+  });
+
+  it('uploads PDF contract before contract confirmation without advancing order status', async () => {
+    prisma.order.findUnique.mockResolvedValueOnce(
+      makeOrder({
+        status: 'DEPOSIT_PAID',
+        depositAmount: 2000,
+        listing: { sellerUserId: SELLER_ID, title: 'Patent Listing', patent: null },
+      }),
+    );
+    prisma.file.findUnique.mockResolvedValueOnce({
+      id: FILE_ID,
+      ownerId: ADMIN_ID,
+      mimeType: 'application/pdf',
+      fileName: 'contract.pdf',
+      url: 'https://api.example.test/files/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      sizeBytes: 2048,
+      createdAt: new Date('2026-03-12T07:00:00.000Z'),
+    });
+    prisma.contract.upsert.mockResolvedValueOnce({
+      orderId: ORDER_ID,
+      status: 'WAIT_CONFIRM',
+      contractFileId: FILE_ID,
+      fileUrl: 'https://api.example.test/files/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      uploadedAt: new Date('2026-03-12T08:00:00.000Z'),
+      signedAt: null,
+      watermarkOwner: null,
+      createdAt: new Date('2026-03-12T08:00:00.000Z'),
+      contractFile: { url: 'https://api.example.test/files/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
+    });
+
+    const result = await service.adminUploadContract(adminReq, ORDER_ID, { contractFileId: FILE_ID });
+
+    expect(prisma.file.findUnique).toHaveBeenCalledWith({ where: { id: FILE_ID } });
+    expect(prisma.contract.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { orderId: ORDER_ID },
+        create: expect.objectContaining({
+          orderId: ORDER_ID,
+          status: 'WAIT_CONFIRM',
+          contractFileId: FILE_ID,
+          signedAt: null,
+        }),
+        update: expect.objectContaining({
+          status: 'WAIT_CONFIRM',
+          contractFileId: FILE_ID,
+          signedAt: null,
+        }),
+      }),
+    );
+    expect(prisma.order.update).not.toHaveBeenCalled();
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'ORDER_CONTRACT_UPLOAD',
+        afterJson: expect.objectContaining({ contractFileId: FILE_ID, status: 'WAIT_CONFIRM' }),
+      }),
+    );
+    expect(result).toMatchObject({ id: ORDER_ID, status: 'DEPOSIT_PAID', contractStatus: 'WAIT_CONFIRM' });
+  });
+
+  it('rejects missing or non-pdf contract file on adminUploadContract', async () => {
+    prisma.order.findUnique.mockResolvedValue(makeOrder({ status: 'DEPOSIT_PAID', depositAmount: 2000 }));
+
+    prisma.file.findUnique.mockResolvedValueOnce(null);
+    await expect(
+      service.adminUploadContract(adminReq, ORDER_ID, { contractFileId: FILE_ID }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.contract.upsert).not.toHaveBeenCalled();
+
+    prisma.file.findUnique.mockResolvedValueOnce({
+      id: FILE_ID,
+      ownerId: ADMIN_ID,
+      mimeType: 'image/png',
+      url: 'https://api.example.test/files/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    });
+    await expect(
+      service.adminUploadContract(adminReq, ORDER_ID, { contractFileId: FILE_ID }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.contract.upsert).not.toHaveBeenCalled();
+  });
+
+  it('rejects adminContractSigned before a contract is uploaded', async () => {
+    prisma.order.findUnique.mockResolvedValueOnce(makeOrder({ status: 'DEPOSIT_PAID', depositAmount: 2000 }));
+    prisma.contract.findUnique.mockResolvedValueOnce(null);
+
+    await expect(
+      service.adminContractSigned(adminReq, ORDER_ID, { dealAmountFen: 10000 }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.order.update).not.toHaveBeenCalled();
   });
 
   it('rejects unsafe integer dealAmountFen on adminContractSigned', async () => {
@@ -1048,6 +1143,7 @@ describe('OrdersService write-first suite', () => {
   it('moves own assigned order to WAIT_FINAL_PAYMENT on assignedContractSigned', async () => {
     const ensureCaseSpy = vi.spyOn(service as any, 'ensureCaseForOrder').mockResolvedValue({ id: 'case-1' });
     const markCaseSpy = vi.spyOn(service as any, 'markCaseMilestone').mockResolvedValue(undefined);
+    prisma.contract.findUnique.mockResolvedValueOnce({ orderId: ORDER_ID, contractFileId: FILE_ID, status: 'WAIT_CONFIRM' });
     prisma.order.findFirst.mockResolvedValueOnce(
       makeOrder({ status: 'DEPOSIT_PAID', assignedCsUserId: 'cs-1', depositAmount: 2000 }),
     );

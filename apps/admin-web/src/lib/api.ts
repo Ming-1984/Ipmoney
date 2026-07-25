@@ -4,6 +4,7 @@ export type ApiErrorShape = { code?: string; message?: string };
 export type FileObject = {
   id: string;
   url: string;
+  fileName?: string | null;
   mimeType: string;
   sizeBytes: number;
   createdAt: string;
