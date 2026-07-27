@@ -27,6 +27,7 @@ import { getDetailCache, setDetailCache } from '../../lib/detailCache';
 import { displayTitleOrFallback, normalizeDisplayText } from '../../lib/displayText';
 import { ensureApproved } from '../../lib/guard';
 import { favorite, getFavoriteListingIds, syncFavorites, unfavorite } from '../../lib/favorites';
+import { mergeListingStatsPatches, onListingStatsChanged } from '../../lib/listingStatsSync';
 import {
   fetchHomeLandingConfig,
   normalizeHomeLandingConfig,
@@ -177,6 +178,7 @@ export default function HomePage() {
   const loadRequestSeqRef = useRef(0);
   const favoriteSyncSeqRef = useRef(0);
   const pageVisibleRef = useRef(true);
+  const homeDidShowOnceRef = useRef(false);
   const consultSeqRef = useRef(0);
 
   const statusBarHeight = useMemo(() => {
@@ -207,10 +209,6 @@ export default function HomePage() {
   useEffect(() => {
     recommendModeRef.current = recommendMode;
   }, [recommendMode]);
-
-  useDidShow(() => {
-    pageVisibleRef.current = true;
-  });
 
   useDidHide(() => {
     pageVisibleRef.current = false;
@@ -246,7 +244,7 @@ export default function HomePage() {
   }, []);
 
   const applyRecommendPage = useCallback((result: PagedListingSummary, append: boolean) => {
-    const nextItems = Array.isArray(result?.items) ? result.items : [];
+    const nextItems = mergeListingStatsPatches(Array.isArray(result?.items) ? result.items : []);
     setLastCount(nextItems.length);
     setPageInfo((result?.page as ListingPageInfo) || null);
     setItems((prev) => (append ? [...prev, ...nextItems] : nextItems));
@@ -361,6 +359,17 @@ export default function HomePage() {
     void load('load');
   }, [load]);
 
+  useDidShow(() => {
+    pageVisibleRef.current = true;
+    setItems((prev) => mergeListingStatsPatches(prev));
+    if (!homeDidShowOnceRef.current) {
+      homeDidShowOnceRef.current = true;
+      return;
+    }
+    setFavoriteIds(new Set(getFavoriteListingIds()));
+    void load('refresh');
+  });
+
   useEffect(() => {
     void loadAnnouncements();
   }, [loadAnnouncements]);
@@ -380,6 +389,22 @@ export default function HomePage() {
     }, 4500);
     return () => clearInterval(timer);
   }, [announcements.length]);
+
+  useEffect(
+    () =>
+      onListingStatsChanged((patch) => {
+        setItems((prev) => mergeListingStatsPatches(prev));
+        if (typeof patch.favorited === 'boolean') {
+          setFavoriteIds((prev) => {
+            const next = new Set(prev);
+            if (patch.favorited) next.add(patch.listingId);
+            else next.delete(patch.listingId);
+            return next;
+          });
+        }
+      }),
+    [],
+  );
 
   useEffect(() => {
     const syncSeq = ++favoriteSyncSeqRef.current;

@@ -52,6 +52,7 @@ describe('ListingsService write flow suite', () => {
   let audit: any;
   let notifications: any;
   let opsNotifications: any;
+  let events: any;
   let contentSecurity: any;
   let service: ListingsService;
 
@@ -86,7 +87,7 @@ describe('ListingsService write flow suite', () => {
     audit = { log: vi.fn().mockResolvedValue(undefined) };
     notifications = { create: vi.fn().mockResolvedValue(undefined) };
     opsNotifications = { enqueueListingConsultationCreated: vi.fn().mockResolvedValue({ count: 1 }) };
-    const events = { recordView: vi.fn().mockResolvedValue(undefined), recordConsult: vi.fn().mockResolvedValue(true) };
+    events = { recordView: vi.fn().mockResolvedValue(undefined), recordConsult: vi.fn().mockResolvedValue(true) };
     const config = { getRecommendation: vi.fn().mockResolvedValue({ enabled: false }) };
     contentSecurity = {
       assertSafeTexts: vi.fn().mockResolvedValue(undefined),
@@ -991,6 +992,34 @@ describe('ListingsService write flow suite', () => {
       verificationStatus: 'APPROVED',
       orgCategory: 'OTHER',
     });
+  });
+
+  it('getPublicById includes the current recorded view in returned stats', async () => {
+    events.recordView.mockResolvedValueOnce(true);
+    prisma.listing.findFirst.mockResolvedValueOnce({
+      ...buildListing({
+        source: 'USER',
+        auditStatus: 'APPROVED',
+        status: 'ACTIVE',
+      }),
+      patent: {
+        parties: [],
+        classifications: [],
+      },
+      seller: {
+        id: 'seller-public-views',
+        nickname: 'Fallback Nick',
+        avatarUrl: null,
+        verifications: [],
+      },
+      stats: { viewCount: 7, favoriteCount: 2, consultCount: 1, commentCount: 0 },
+      media: [],
+    });
+
+    const result = await service.getPublicById({}, LISTING_ID);
+
+    expect(events.recordView).toHaveBeenCalledWith({}, 'LISTING', LISTING_ID);
+    expect(result.stats).toMatchObject({ viewCount: 8, favoriteCount: 2, consultCount: 1 });
   });
 
   it('getPublicById leaves seller nickname empty when no formal displayName exists', async () => {

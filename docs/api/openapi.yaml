@@ -12167,6 +12167,15 @@ components:
           $ref: '#/components/schemas/Uuid'
         patentId:
           $ref: '#/components/schemas/Uuid'
+        patentTitle:
+          type: string
+          nullable: true
+        patentApplicationNoDisplay:
+          type: string
+          nullable: true
+        patentApplicationNoNorm:
+          type: string
+          nullable: true
         applicantUserId:
           $ref: '#/components/schemas/Uuid'
         status:

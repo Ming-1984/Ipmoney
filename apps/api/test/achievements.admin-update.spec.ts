@@ -10,6 +10,7 @@ const COVER_ID = '33333333-3333-3333-3333-333333333333';
 
 describe('AchievementsService admin update suite', () => {
   let prisma: any;
+  let events: any;
   let service: AchievementsService;
 
   beforeEach(() => {
@@ -41,7 +42,7 @@ describe('AchievementsService admin update suite', () => {
       },
     };
     const audit = { log: vi.fn().mockResolvedValue(undefined) };
-    const events = { recordView: vi.fn().mockResolvedValue(undefined) };
+    events = { recordView: vi.fn().mockResolvedValue(undefined) };
     const contentSecurity = {
       assertSafeTexts: vi.fn().mockResolvedValue(undefined),
       ensureReferencedFilesReady: vi.fn().mockResolvedValue(undefined),
@@ -227,6 +228,49 @@ describe('AchievementsService admin update suite', () => {
     expect(result.publisher?.displayName).toBe('天津工业生物技术研究所');
     expect(result.publisher?.verificationType).toBeNull();
     expect(result.publisher?.verificationStatus).toBeNull();
+  });
+
+  it('getPublicById includes the current recorded view in returned stats', async () => {
+    events.recordView.mockResolvedValueOnce(true);
+    prisma.achievement.findFirst.mockResolvedValueOnce({
+      id: ACHIEVEMENT_ID,
+      publisherUserId: PUBLISHER_ID,
+      title: 'Achievement A',
+      summary: null,
+      description: null,
+      maturity: null,
+      regionCode: null,
+      coverFileId: null,
+      industryTagsJson: null,
+      keywordsJson: null,
+      cooperationModesJson: null,
+      source: 'USER',
+      auditStatus: 'APPROVED',
+      status: 'ACTIVE',
+      externalId: null,
+      sourceRawCategory: null,
+      sourceRawStatus: null,
+      sourceBatch: null,
+      sourceRawRegion: null,
+      sourceOrgName: null,
+      stats: { viewCount: 4, favoriteCount: 2, consultCount: 1, commentCount: 0 },
+      coverFile: null,
+      media: [],
+      createdAt: new Date('2026-06-15T00:00:00.000Z'),
+    });
+    prisma.user.findMany.mockResolvedValueOnce([
+      {
+        id: PUBLISHER_ID,
+        nickname: 'Publisher A',
+        regionCode: '440600',
+        verifications: [],
+      },
+    ]);
+
+    const result = await service.getPublicById({}, ACHIEVEMENT_ID);
+
+    expect(events.recordView).toHaveBeenCalledWith({}, 'ACHIEVEMENT', ACHIEVEMENT_ID);
+    expect(result.stats).toMatchObject({ viewCount: 5, favoriteCount: 2, consultCount: 1 });
   });
 
   it('uses sourceOrgName fallback when verification displayName is a corrupted placeholder', async () => {

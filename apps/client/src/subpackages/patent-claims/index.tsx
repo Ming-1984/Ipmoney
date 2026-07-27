@@ -29,6 +29,7 @@ type PatentClaimStatus = components['schemas']['PatentClaimStatus'];
 type PagedPatentClaimRequest = components['schemas']['PagedPatentClaimRequest'];
 type FileObject = components['schemas']['FileObject'];
 type PatentClaimCreateRequest = components['schemas']['PatentClaimCreateRequest'];
+type ClaimPatentLookup = Partial<Pick<Patent, 'title' | 'applicationNoDisplay' | 'applicationNoNorm'>>;
 
 type UploadedEvidence = Pick<FileObject, 'id'> &
   Partial<Omit<FileObject, 'id'>> & {
@@ -60,6 +61,15 @@ function claimStatusClass(status?: PatentClaimStatus): string {
   if (status === 'APPROVED') return 'is-approved';
   if (status === 'REJECTED') return 'is-rejected';
   return 'is-pending';
+}
+
+function claimPatentDisplayText(item: PatentClaimRequest, lookup?: ClaimPatentLookup): string {
+  const applicationNo =
+    item.patentApplicationNoDisplay || item.patentApplicationNoNorm || lookup?.applicationNoDisplay || lookup?.applicationNoNorm;
+  return displayTitleWithSecondary(item.patentTitle || lookup?.title, lookup ? '专利信息待确认' : '专利信息加载中', {
+    secondary: applicationNo,
+    secondaryPrefix: '专利申请号 ',
+  });
 }
 
 function sourcePrimaryLabel(value?: Patent['sourcePrimary']): string {
@@ -120,6 +130,7 @@ export default function PatentClaimsPage() {
   const [patentLoading, setPatentLoading] = useState(claimMode);
   const [patentError, setPatentError] = useState<string | null>(null);
   const [patent, setPatent] = useState<Patent | null>(null);
+  const [claimPatentLookup, setClaimPatentLookup] = useState<Record<string, ClaimPatentLookup>>({});
 
   const fetcher = useCallback(
     async ({ page, pageSize }: { page: number; pageSize: number }) =>
@@ -214,6 +225,49 @@ export default function PatentClaimsPage() {
     () => items.find((item) => item.status === 'APPROVED' && (!claimMode || item.patentId === patentId)),
     [claimMode, items, patentId],
   );
+
+  useEffect(() => {
+    if (claimMode || !items.length) return undefined;
+    const patentIds = Array.from(
+      new Set(
+        items
+          .filter((item) => !normalizeDisplayText(item.patentTitle))
+          .map((item) => String(item.patentId || '').trim())
+          .filter((id) => id && !claimPatentLookup[id]),
+      ),
+    ).slice(0, 20);
+    if (!patentIds.length) return undefined;
+
+    let alive = true;
+    void Promise.all(
+      patentIds.map(async (id) => {
+        try {
+          const detail = await apiGet<Patent>(`/patents/${id}`);
+          return [
+            id,
+            {
+              title: detail.title,
+              applicationNoDisplay: detail.applicationNoDisplay,
+              applicationNoNorm: detail.applicationNoNorm,
+            },
+          ] as const;
+        } catch {
+          return [id, {}] as const;
+        }
+      }),
+    ).then((entries) => {
+      if (!alive) return;
+      setClaimPatentLookup((prev) => {
+        const next = { ...prev };
+        for (const [id, value] of entries) next[id] = value;
+        return next;
+      });
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [claimMode, claimPatentLookup, items]);
 
   const disabledReason = useMemo(() => {
     if (!claimMode) return '';
@@ -471,7 +525,7 @@ export default function PatentClaimsPage() {
                         </View>
                         <View className="claim-record-row">
                           <Text className="claim-record-label">关联专利</Text>
-                          <Text className="claim-record-value">可在下方查看专利详情</Text>
+                          <Text className="claim-record-value">{claimPatentDisplayText(item, claimPatentLookup[item.patentId])}</Text>
                         </View>
                         <View className="claim-record-row">
                           <Text className="claim-record-label">提交时间</Text>

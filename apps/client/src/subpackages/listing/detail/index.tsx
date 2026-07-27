@@ -16,6 +16,7 @@ import { formatTimeSmart } from '../../../lib/format';
 import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
 import { featuredLevelLabel, patentTypeLabel, priceTypeLabel, tradeModeLabel, verificationTypeLabel } from '../../../lib/labels';
+import { notifyListingStatsChanged } from '../../../lib/listingStatsSync';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { parseUuidParam } from '../../../lib/params';
@@ -218,7 +219,9 @@ export default function ListingDetailPage() {
       const d = await apiGet<ListingPublic>(`/public/listings/${targetListingId}`);
       if (listingIdRef.current !== targetListingId) return;
       setData(d);
+      setFavoriteCountOffset(0);
       setDetailCache('listing-public', targetListingId, d);
+      notifyListingStatsChanged({ listingId: targetListingId, stats: d.stats });
     } catch (e: any) {
       if (listingIdRef.current !== targetListingId) return;
       if (!cached) {
@@ -407,27 +410,69 @@ export default function ListingDetailPage() {
   const toggleFavorite = useCallback(async () => {
     if (!listingId) return;
     if (!ensureApproved()) return;
+    const currentFavoriteCount = Math.max(0, (data?.stats?.favoriteCount ?? 0) + favoriteCountOffset);
     try {
       if (favoritedState) {
+        const nextFavoriteCount = Math.max(0, currentFavoriteCount - 1);
         await unfavorite(listingId);
         setFavoritedState(false);
-        setFavoriteCountOffset((count) => Math.max(count - 1, -(data?.stats?.favoriteCount ?? 0)));
+        setFavoriteCountOffset(0);
+        setData((prev) => {
+          if (!prev) return prev;
+          const next = {
+            ...prev,
+            stats: {
+              viewCount: prev.stats?.viewCount ?? 0,
+              favoriteCount: nextFavoriteCount,
+              consultCount: prev.stats?.consultCount ?? 0,
+              commentCount: prev.stats?.commentCount ?? 0,
+            },
+          };
+          setDetailCache('listing-public', listingId, next);
+          return next;
+        });
+        notifyListingStatsChanged({
+          listingId,
+          favorited: false,
+          stats: { favoriteCount: nextFavoriteCount },
+        });
         toast('已取消收藏', { icon: 'success' });
         return;
       }
+      const nextFavoriteCount = currentFavoriteCount + 1;
       await favorite(listingId);
       setFavoritedState(true);
-      setFavoriteCountOffset((count) => count + 1);
+      setFavoriteCountOffset(0);
+      setData((prev) => {
+        if (!prev) return prev;
+        const next = {
+          ...prev,
+          stats: {
+            viewCount: prev.stats?.viewCount ?? 0,
+            favoriteCount: nextFavoriteCount,
+            consultCount: prev.stats?.consultCount ?? 0,
+            commentCount: prev.stats?.commentCount ?? 0,
+          },
+        };
+        setDetailCache('listing-public', listingId, next);
+        return next;
+      });
+      notifyListingStatsChanged({
+        listingId,
+        favorited: true,
+        stats: { favoriteCount: nextFavoriteCount },
+      });
       toast('已收藏', { icon: 'success' });
     } catch (e: any) {
       toast(e?.message || '操作失败');
     }
-  }, [data?.stats?.favoriteCount, favoritedState, listingId]);
+  }, [data?.stats?.favoriteCount, favoriteCountOffset, favoritedState, listingId]);
 
   const isOwnListing = Boolean(data?.seller?.id && currentUserId && data.seller.id === currentUserId);
   const tradeLocked = Boolean(data?.tradeLocked || data?.tradeAvailability === 'LOCKED' || data?.tradeAvailability === 'SOLD');
   const hasValidDepositAmount = Boolean(data && Number.isFinite(data.depositAmountFen) && data.depositAmountFen > 0);
-  const favoriteCountText = String(Math.max(0, (data?.stats?.favoriteCount ?? 0) + favoriteCountOffset));
+  const favoriteCount = Math.max(0, (data?.stats?.favoriteCount ?? 0) + favoriteCountOffset);
+  const favoriteCountText = String(favoriteCount);
   const tradeButtonText = isOwnListing
     ? '我的专利'
     : data?.tradeAvailability === 'SOLD'
@@ -552,7 +597,7 @@ export default function ListingDetailPage() {
                 <Text>浏览 {data.stats?.viewCount ?? 0}</Text>
               </View>
               <View className="detail-compact-meta-item">
-                <Text>收藏 {data.stats?.favoriteCount ?? 0}</Text>
+                <Text>收藏 {favoriteCount}</Text>
               </View>
               <View className="detail-compact-meta-item">
                 <Text>咨询 {data.stats?.consultCount ?? 0}</Text>

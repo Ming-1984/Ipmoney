@@ -179,6 +179,9 @@ type PagedPatentImportJobRows = {
 type PatentClaimRequestDto = {
   id: string;
   patentId: string;
+  patentTitle?: string | null;
+  patentApplicationNoDisplay?: string | null;
+  patentApplicationNoNorm?: string | null;
   applicantUserId: string;
   applicantDisplayName?: string | null;
   status: PatentClaimStatus;
@@ -196,6 +199,11 @@ type PagedPatentClaimRequests = {
   items: PatentClaimRequestDto[];
   page: { page: number; pageSize: number; total: number };
 };
+const PATENT_CLAIM_PATENT_SELECT = {
+  title: true,
+  applicationNoDisplay: true,
+  applicationNoNorm: true,
+} as const;
 type PatentListingGenerateResultDto = {
   totalCount: number;
   successCount: number;
@@ -1521,6 +1529,9 @@ export class PatentsService {
     return {
       id: it.id,
       patentId: it.patentId,
+      patentTitle: it.patent?.title ?? null,
+      patentApplicationNoDisplay: it.patent?.applicationNoDisplay ?? null,
+      patentApplicationNoNorm: it.patent?.applicationNoNorm ?? null,
       applicantUserId: it.applicantUserId,
       applicantDisplayName,
       status: it.status,
@@ -2230,6 +2241,7 @@ export class PatentsService {
         evidenceFileIdsJson: evidenceFileIds as any,
       },
       include: {
+        patent: { select: PATENT_CLAIM_PATENT_SELECT },
         applicant: {
           select: {
             nickname: true,
@@ -2276,6 +2288,7 @@ export class PatentsService {
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: {
+          patent: { select: PATENT_CLAIM_PATENT_SELECT },
           applicant: {
             select: {
               nickname: true,
@@ -2332,6 +2345,7 @@ export class PatentsService {
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: {
+          patent: { select: PATENT_CLAIM_PATENT_SELECT },
           applicant: {
             select: {
               nickname: true,
@@ -2420,6 +2434,7 @@ export class PatentsService {
     const updated = await this.prisma.patentClaimRequest.findUnique({
       where: { id: claim.id },
       include: {
+        patent: { select: PATENT_CLAIM_PATENT_SELECT },
         applicant: {
           select: {
             nickname: true,
@@ -2472,6 +2487,7 @@ export class PatentsService {
     const updated = await this.prisma.patentClaimRequest.findUnique({
       where: { id: claim.id },
       include: {
+        patent: { select: PATENT_CLAIM_PATENT_SELECT },
         applicant: {
           select: {
             nickname: true,

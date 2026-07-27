@@ -981,9 +981,16 @@ export class AchievementsService {
       include: { stats: true, coverFile: true, media: { include: { file: true } } },
     });
     if (!it) throw new NotFoundException({ code: 'NOT_FOUND', message: 'achievement not found' });
-    void this.events.recordView(req, 'ACHIEVEMENT', achievementId).catch(() => {});
+    const viewRecorded = await this.events.recordView(req, 'ACHIEVEMENT', achievementId).catch(() => false);
     const publisherMap = await buildPublisherMap(this.prisma, [it.publisherUserId]);
-    return this.toDetailDto(it, publisherMap);
+    const detail = this.toDetailDto(it, publisherMap);
+    return {
+      ...detail,
+      stats: {
+        ...detail.stats,
+        viewCount: detail.stats.viewCount + (viewRecorded ? 1 : 0),
+      },
+    };
   }
 
   async getAdminById(achievementId: string) {

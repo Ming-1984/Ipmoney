@@ -4285,7 +4285,8 @@ export class ListingsService {
       },
     });
     if (!it) throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
-    void this.events.recordView(req, 'LISTING', listingId).catch(() => {});
+    const viewRecorded = await this.events.recordView(req, 'LISTING', listingId).catch(() => false);
+    const stats = mapStats(it.stats);
     const meta = this.extractPatentMeta(it.patent);
     const detailCoverFile = Array.isArray(it.media)
       ? it.media.find((mediaItem: any) => String(mediaItem?.type || '').toUpperCase() === 'IMAGE' && mediaItem?.file)
@@ -4344,7 +4345,10 @@ export class ListingsService {
       coverUrl: resolvePublicFileUrl(detailCoverFile),
       createdAt: it.createdAt.toISOString(),
       updatedAt: it.updatedAt.toISOString(),
-      stats: mapStats(it.stats),
+      stats: {
+        ...stats,
+        viewCount: stats.viewCount + (viewRecorded ? 1 : 0),
+      },
       seller: this.toPublicSellerSummary(it),
     };
   }

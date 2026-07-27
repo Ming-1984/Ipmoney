@@ -226,7 +226,7 @@ export default function AddressEditPage() {
   if (access.state !== 'ok') {
     return (
       <View className="container address-edit-page">
-        <PageHeader weapp back title={isEdit ? TEXT.editTitle : TEXT.createTitle} />
+        <PageHeader back title={isEdit ? TEXT.editTitle : TEXT.createTitle} />
         <Spacer />
         <AccessGate access={access} />
       </View>
@@ -236,7 +236,7 @@ export default function AddressEditPage() {
   if (loading) {
     return (
       <View className="container address-edit-page">
-        <PageHeader weapp back title={TEXT.editTitle} />
+        <PageHeader back title={TEXT.editTitle} />
         <Spacer />
         <LoadingCard text={TEXT.loadingText} />
       </View>
@@ -246,7 +246,7 @@ export default function AddressEditPage() {
   if (error) {
     return (
       <View className="container address-edit-page">
-        <PageHeader weapp back title={TEXT.editTitle} />
+        <PageHeader back title={TEXT.editTitle} />
         <Spacer />
         <ErrorCard message={error} onRetry={load} />
       </View>
@@ -255,7 +255,7 @@ export default function AddressEditPage() {
 
   return (
     <View className="container address-edit-page">
-      <PageHeader weapp back title={isEdit ? TEXT.editTitle : TEXT.createTitle} subtitle={TEXT.subtitle} />
+      <PageHeader back title={isEdit ? TEXT.editTitle : TEXT.createTitle} subtitle={TEXT.subtitle} />
       <Spacer />
 
       <Surface className="address-form-card">

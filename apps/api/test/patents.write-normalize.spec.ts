@@ -754,6 +754,11 @@ describe('PatentsService write and normalize suite', () => {
         reviewedAt: null,
         createdAt: new Date('2026-03-13T01:00:00.000Z'),
         updatedAt: new Date('2026-03-13T01:00:00.000Z'),
+        patent: {
+          title: '测试专利',
+          applicationNoDisplay: '202410123456.7',
+          applicationNoNorm: '2024101234567',
+        },
       },
     ]);
     prisma.patentClaimRequest.count = vi.fn().mockResolvedValueOnce(1);
@@ -775,6 +780,13 @@ describe('PatentsService write and normalize suite', () => {
       skip: 0,
       take: 20,
       include: {
+        patent: {
+          select: {
+            title: true,
+            applicationNoDisplay: true,
+            applicationNoNorm: true,
+          },
+        },
         applicant: {
           select: {
             nickname: true,
@@ -805,6 +817,12 @@ describe('PatentsService write and normalize suite', () => {
       },
     });
     expect(result.page).toEqual({ page: 1, pageSize: 20, total: 1 });
-    expect(result.items[0]).toMatchObject({ patentId, applicantUserId: VALID_ID, status: 'PENDING' });
+    expect(result.items[0]).toMatchObject({
+      patentId,
+      patentTitle: '测试专利',
+      patentApplicationNoDisplay: '202410123456.7',
+      applicantUserId: VALID_ID,
+      status: 'PENDING',
+    });
   });
 });

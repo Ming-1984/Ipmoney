@@ -3,12 +3,12 @@ import Taro, { useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
-import { apiGet, apiPatch } from '../../lib/api';
+import { apiDelete, apiGet, apiPatch } from '../../lib/api';
 import { getDetailCache, setDetailCache } from '../../lib/detailCache';
 import { usePageAccess } from '../../lib/guard';
 import { regionDisplayName } from '../../lib/regions';
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
-import { Button, toast } from '../../ui/nutui';
+import { Button, confirm, toast } from '../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard } from '../../ui/StateCards';
 import { AccessGate } from '../../ui/PageState';
 
@@ -23,6 +23,14 @@ type Address = {
 
 const ADDRESS_CACHE_SCOPE = 'me-addresses';
 const ADDRESS_CACHE_KEY = 'list';
+
+function AddressAddButton(props: { onClick: () => void }) {
+  return (
+    <View className="address-add-button" hoverClass="none" onClick={props.onClick}>
+      <Text className="address-add-button-text">新增地址</Text>
+    </View>
+  );
+}
 
 export default function AddressManagePage() {
   const access = usePageAccess('login-required');
@@ -100,6 +108,27 @@ export default function AddressManagePage() {
     [load],
   );
 
+  const removeAddress = useCallback(
+    async (addressId: string) => {
+      const ok = await confirm({
+        title: '删除地址？',
+        content: '删除后无法恢复。',
+        confirmText: '删除',
+        cancelText: '取消',
+      });
+      if (!ok) return;
+
+      try {
+        await apiDelete(`/me/addresses/${addressId}`);
+        toast('已删除', { icon: 'success' });
+        void load({ silent: true });
+      } catch (e: any) {
+        toast(e?.message || '删除失败', { icon: 'fail' });
+      }
+    },
+    [load],
+  );
+
   const list = useMemo(() => addresses || [], [addresses]);
 
   return (
@@ -117,9 +146,7 @@ export default function AddressManagePage() {
             <ErrorCard message={error} onRetry={load} />
           ) : list.length ? (
             <>
-              <Button className="address-add-button" onClick={addAddress}>
-                新增地址
-              </Button>
+              <AddressAddButton onClick={addAddress} />
               <Spacer size={12} />
               <View className="address-list">
                 {list.map((addr) => (
@@ -156,13 +183,25 @@ export default function AddressManagePage() {
                           设为默认
                         </Button>
                       ) : null}
+                      <Button
+                        className="address-action-button address-action-delete"
+                        size="small"
+                        variant="ghost"
+                        onClick={() => void removeAddress(addr.id)}
+                      >
+                        删除
+                      </Button>
                     </View>
                   </Surface>
                 ))}
               </View>
             </>
           ) : (
-            <EmptyCard message="暂无地址" actionText="新增地址" onAction={addAddress} />
+            <>
+              <EmptyCard message="暂无地址" />
+              <Spacer size={12} />
+              <AddressAddButton onClick={addAddress} />
+            </>
           )}
         </>
       )}

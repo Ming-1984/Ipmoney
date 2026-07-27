@@ -1,9 +1,9 @@
 ﻿import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { resolveRegionCodeForStorage } from '../../common/region-code';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const REGION_CODE_RE = /^[0-9]{6}$/;
 
 @Injectable()
 export class AddressesService {
@@ -23,6 +23,9 @@ export class AddressesService {
     if (value === null) return null;
     const raw = String(value ?? '').trim();
     if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    if (!REGION_CODE_RE.test(raw)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return raw;
@@ -75,7 +78,7 @@ export class AddressesService {
     const phone = this.parseRequiredStringStrict(body?.phone, 'phone');
     const addressLine = this.parseRequiredStringStrict(body?.addressLine, 'addressLine');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
-    const regionCode = hasRegionCode ? await resolveRegionCodeForStorage(this.prisma, body?.regionCode, 'regionCode') : null;
+    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : null;
 
     return await this.prisma.$transaction(async (tx) => {
       if (isDefault) {
@@ -105,9 +108,7 @@ export class AddressesService {
     const hasIsDefault = body?.isDefault !== undefined;
     const nextIsDefault = hasIsDefault ? Boolean(body?.isDefault) : existing.isDefault;
     const hasRegionCode = this.hasOwn(body, 'regionCode');
-    const regionCode = hasRegionCode
-      ? await resolveRegionCodeForStorage(this.prisma, body?.regionCode, 'regionCode')
-      : existing.regionCode;
+    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : existing.regionCode;
 
     return await this.prisma.$transaction(async (tx) => {
       if (hasIsDefault && nextIsDefault) {
@@ -137,5 +138,3 @@ export class AddressesService {
     return { ok: true };
   }
 }
-
-

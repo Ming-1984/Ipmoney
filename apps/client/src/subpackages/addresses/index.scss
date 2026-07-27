@@ -13,16 +13,38 @@
   padding-bottom: 0;
 }
 
-.address-add-button.nut-button {
+.address-add-button {
   width: 100%;
   height: 88rpx;
+  box-sizing: border-box;
   border-radius: 18rpx;
-  border-color: #ff6b35;
   background: #ff6b35;
+  background-image: none;
+  box-shadow: 0 8rpx 18rpx rgba(255, 107, 53, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.address-add-button:active {
+  background: #f35f28;
+}
+
+.address-add-button-text {
+  display: inline-flex;
+  height: 30rpx;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  padding: 0;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
   color: #ffffff;
   font-size: 30rpx;
   font-weight: 700;
-  box-shadow: 0 8rpx 18rpx rgba(255, 107, 53, 0.2);
+  line-height: 30rpx;
 }
 
 .address-list {
@@ -102,6 +124,12 @@
   font-weight: 600;
 }
 
+.address-actions .address-action-delete.nut-button {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.24);
+  background: #fff7f7;
+}
+
 .address-page .card-state {
   width: 100%;
 }
@@ -158,4 +186,15 @@
   font-size: 30rpx;
   font-weight: 700;
   box-shadow: 0 8rpx 18rpx rgba(255, 107, 53, 0.2);
+}
+
+.address-page .card-state-empty-plain .nut-button__wrap,
+.address-page .card-state-empty-plain .nut-button__text,
+.address-page .card-state-empty-plain .nut-button-children,
+.address-page .card-state-empty-plain .nut-button-wrap,
+.address-page .card-state-empty-plain .nut-button-text {
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #ffffff;
+  line-height: 1;
 }

@@ -252,6 +252,12 @@ function normalizeRegionPath(raw: unknown): string[] {
       .map((item) => item.trim())
       .filter(Boolean);
   }
+  if (/[\/\s]+/.test(text)) {
+    return text
+      .split(/[\/\s]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
   return [text];
 }
 
@@ -273,8 +279,41 @@ function findRegionCodeByName(name: string): string {
   return '';
 }
 
+function findRegionCodesByPathNames(pathNames: string[]): string[] {
+  const names = pathNames.map((name) => normalizeRegionName(name)).filter(Boolean);
+  if (!names.length) return [];
+
+  const nameMap = readRegionNameMap();
+  const parentMap = readRegionParentMap();
+  const entries = Object.entries(nameMap);
+  const findByName = (name: string) =>
+    entries.filter(([, itemName]) => normalizeRegionName(itemName) === name).map(([code]) => code);
+  let roots = findByName(names[0]).filter((code) => !parentMap[code] || code.endsWith('0000'));
+  if (!roots.length) roots = findByName(names[0]);
+
+  for (const root of roots) {
+    const codes = [root];
+    let matched = true;
+    for (const name of names.slice(1)) {
+      const parentCode = codes[codes.length - 1];
+      const childCode = findByName(name).find((code) => parentMap[code] === parentCode);
+      if (!childCode) {
+        matched = false;
+        break;
+      }
+      codes.push(childCode);
+    }
+    if (matched) return codes;
+  }
+
+  return [];
+}
+
 function completePathCodes(pathCodes: string[], pathNames: string[]): string[] {
   if (pathCodes.length >= pathNames.length || pathNames.length <= 1) return pathCodes;
+
+  const matchedByPath = findRegionCodesByPathNames(pathNames);
+  if (matchedByPath.length === pathNames.length) return matchedByPath;
 
   const completed = pathNames.map((name) => findRegionCodeByName(name));
   const selectedCode = pathCodes[pathCodes.length - 1] || '';
@@ -283,6 +322,33 @@ function completePathCodes(pathCodes: string[], pathNames: string[]): string[] {
   }
 
   return completed.every(Boolean) ? completed : pathCodes;
+}
+
+function pathCodesMatchPathNames(pathCodes: string[], pathNames: string[]): boolean {
+  if (!pathCodes.length || !pathNames.length) return true;
+  if (pathCodes.length !== pathNames.length) return false;
+
+  return pathCodes.every((code, index) => {
+    const expectedName = normalizeRegionName(pathNames[index] || '');
+    if (!expectedName) return true;
+    return normalizeRegionName(regionNameByCode(code) || '') === expectedName;
+  });
+}
+
+function preferPathNameCodes(pathCodes: string[], pathNames: string[]): string[] {
+  if (pathNames.length <= 1) return pathCodes;
+
+  const matchedByPath = findRegionCodesByPathNames(pathNames);
+  if (matchedByPath.length !== pathNames.length) return pathCodes;
+
+  if (pathCodes.length < matchedByPath.length) return matchedByPath;
+  if (!pathCodesMatchPathNames(pathCodes, pathNames)) return matchedByPath;
+
+  const selectedCode = pathCodes[pathCodes.length - 1] || '';
+  const matchedSelectedCode = matchedByPath[matchedByPath.length - 1] || '';
+  if (selectedCode && matchedSelectedCode && selectedCode !== matchedSelectedCode) return matchedByPath;
+
+  return pathCodes;
 }
 
 export type RegionPickerSelection = {
@@ -302,11 +368,12 @@ export function parseRegionPickerSelection(input: unknown): RegionPickerSelectio
 
   const rawPathNames = normalizeRegionPath(detail?.value);
   const rawPathCodesFromCode = normalizeRegionPath(detail?.code);
-  const rawPathCodesFromPostcode = normalizeRegionPath(detail?.postcode);
+  const rawPathCodesFromPostcode = normalizeRegionPath(detail?.postcode).filter((code) => Boolean(regionNameByCode(code)));
   let pathCodes = rawPathCodesFromCode.length ? rawPathCodesFromCode : rawPathCodesFromPostcode;
   let pathNames = rawPathNames;
 
   pathCodes = completePathCodes(pathCodes, pathNames);
+  pathCodes = preferPathNameCodes(pathCodes, pathNames);
 
   if (!pathCodes.length && rawPathNames.length && rawPathNames.every(looksLikeRegionCode)) {
     pathCodes = rawPathNames;

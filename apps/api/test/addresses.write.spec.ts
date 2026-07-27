@@ -75,6 +75,43 @@ describe('AddressesService write-first suite', () => {
     });
   });
 
+  it('keeps district regionCode on create without downgrading through region lookup', async () => {
+    prisma.region = {
+      findMany: vi.fn(),
+    };
+    prisma.address.create.mockResolvedValueOnce({
+      id: VALID_UUID,
+      userId: USER_ID,
+      name: 'Alice',
+      phone: '13800138000',
+      regionCode: '440105',
+      addressLine: 'Road 1',
+      isDefault: false,
+      createdAt: new Date('2026-03-12T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-12T00:00:00.000Z'),
+    });
+
+    const result = await service.create(authedReq, {
+      name: 'Alice',
+      phone: '13800138000',
+      regionCode: '440105',
+      addressLine: 'Road 1',
+    });
+
+    expect(prisma.region.findMany).not.toHaveBeenCalled();
+    expect(prisma.address.create).toHaveBeenCalledWith({
+      data: {
+        userId: USER_ID,
+        name: 'Alice',
+        phone: '13800138000',
+        regionCode: '440105',
+        addressLine: 'Road 1',
+        isDefault: false,
+      },
+    });
+    expect(result).toMatchObject({ regionCode: '440105' });
+  });
+
   it('rejects empty-string regionCode on create', async () => {
     await expect(
       service.create(authedReq, {

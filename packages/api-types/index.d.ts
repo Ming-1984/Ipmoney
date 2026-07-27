@@ -5206,6 +5206,9 @@ export interface components {
         PatentClaimRequest: {
             id: components["schemas"]["Uuid"];
             patentId: components["schemas"]["Uuid"];
+            patentTitle?: string | null;
+            patentApplicationNoDisplay?: string | null;
+            patentApplicationNoNorm?: string | null;
             applicantUserId: components["schemas"]["Uuid"];
             status: components["schemas"]["PatentClaimStatus"];
             claimReason?: string | null;
