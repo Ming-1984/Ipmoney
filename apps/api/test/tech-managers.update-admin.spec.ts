@@ -16,6 +16,9 @@ describe('TechManagersService update/public detail suite', () => {
       user: {
         update: vi.fn(),
       },
+      file: {
+        findUnique: vi.fn(),
+      },
       userVerification: {
         findFirst: vi.fn(),
         findMany: vi.fn(),
@@ -496,6 +499,57 @@ describe('TechManagersService update/public detail suite', () => {
     });
     expect(cleared.avatarUrl).toBeUndefined();
     expect(prisma.techManagerProfile.upsert).not.toHaveBeenCalled();
+  });
+
+  it('normalizes uploaded admin avatar file urls to public upload urls', async () => {
+    const fileId = '22222222-2222-4222-8222-222222222222';
+    prisma.userVerification.findFirst.mockResolvedValueOnce({
+      id: 'verification-1',
+      userId: VALID_ID,
+      displayName: 'Tech Manager A',
+      verificationType: 'TECH_MANAGER',
+      verificationStatus: 'APPROVED',
+      regionCode: '110000',
+      intro: 'old intro',
+      reviewedAt: new Date('2026-03-12T00:00:00.000Z'),
+      user: { avatarUrl: 'https://example.com/old.png' },
+    });
+    prisma.file.findUnique.mockResolvedValueOnce({
+      id: fileId,
+      url: `https://api.ipmoney.cn/files/${fileId}`,
+      fileName: `${fileId}.jpeg`,
+      mimeType: 'image/jpeg',
+      ownerId: 'admin-1',
+    });
+    prisma.user.update.mockResolvedValueOnce({});
+    prisma.techManagerProfile.findUnique.mockResolvedValueOnce({
+      userId: VALID_ID,
+      intro: 'old intro',
+      serviceTagsJson: [],
+      consultCount: 0,
+      dealCount: 0,
+      ratingScore: 0,
+      ratingCount: 0,
+      featuredRank: null,
+      featuredUntil: null,
+    });
+
+    const result = await service.updateAdmin(ADMIN_REQ, VALID_ID, {
+      avatarUrl: `https://api.ipmoney.cn/files/${fileId}`,
+    });
+
+    expect(prisma.file.findUnique).toHaveBeenCalledWith({ where: { id: fileId } });
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: VALID_ID },
+      data: { avatarUrl: `https://api.ipmoney.cn/uploads/${fileId}.jpeg` },
+    });
+    expect(result.avatarUrl).toBe(`https://api.ipmoney.cn/uploads/${fileId}.jpeg`);
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'TECH_MANAGER_UPDATE',
+        afterJson: { avatarUrl: `https://api.ipmoney.cn/uploads/${fileId}.jpeg` },
+      }),
+    );
   });
 
   it('supports clearing featuredUntil while keeping featuredRank only in admin storage', async () => {

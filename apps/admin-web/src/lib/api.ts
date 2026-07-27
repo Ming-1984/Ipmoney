@@ -31,7 +31,7 @@ export class ApiError extends Error {
   }
 }
 
-const API_BASE_URL = (() => {
+export const API_BASE_URL = (() => {
   const raw = String(import.meta.env.VITE_API_BASE_URL || '').trim();
   if (raw) return raw;
   // Keep a dev-friendly default, but fail fast in production builds to avoid shipping localhost.

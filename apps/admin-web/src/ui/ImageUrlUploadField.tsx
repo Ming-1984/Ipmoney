@@ -1,7 +1,7 @@
 import { Button, Input, Select, Space, Typography, Upload, message } from 'antd';
 import React, { useCallback, useMemo, useState } from 'react';
 
-import { apiUploadFile, type FileObject } from '../lib/api';
+import { API_BASE_URL, apiUploadFile, type FileObject } from '../lib/api';
 
 type BuiltinImageOption = {
   label: string;
@@ -27,6 +27,25 @@ type ImageUrlUploadFieldProps = {
 
 function isHttpUrl(value: string) {
   return /^https?:\/\//i.test(value);
+}
+
+function toPublicUploadedImageUrl(file: FileObject): string {
+  const fileName = String(file.fileName || '').trim();
+  const rawUrl = String(file.url || '').trim();
+  if (!fileName) return rawUrl;
+
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.pathname.startsWith('/files/')) {
+      return `${parsed.origin}/uploads/${encodeURIComponent(fileName)}`;
+    }
+    return rawUrl;
+  } catch {
+    if (rawUrl.startsWith('/files/')) {
+      return new URL(`/uploads/${encodeURIComponent(fileName)}`, API_BASE_URL).toString();
+    }
+    return rawUrl;
+  }
 }
 
 export function ImageUrlUploadField(props: ImageUrlUploadFieldProps) {
@@ -92,9 +111,10 @@ export function ImageUrlUploadField(props: ImageUrlUploadFieldProps) {
             setUploading(true);
             try {
               const uploaded = await apiUploadFile(file, uploadPurpose);
+              const uploadedDisplayUrl = toPublicUploadedImageUrl(uploaded);
               await onUploaded?.(uploaded);
-              setLastUploaded(uploaded);
-              onChange?.(uploaded.url);
+              setLastUploaded({ ...uploaded, url: uploadedDisplayUrl });
+              onChange?.(uploadedDisplayUrl);
               message.success('图片已上传，并自动填入当前卡片');
               options?.onSuccess?.(uploaded);
             } catch (e: any) {

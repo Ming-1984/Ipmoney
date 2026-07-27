@@ -12,7 +12,12 @@ import {
 
 import { AuditLogService } from '../../common/audit-log.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { normalizeDisplayText, resolvePublicFileUrl, sanitizeServiceTagNames } from '../content-utils';
+import {
+  extractFileIdFromFileUrl,
+  normalizeDisplayText,
+  resolvePublicFileUrl,
+  sanitizeServiceTagNames,
+} from '../content-utils';
 
 const VERIFICATION_STATUS = {
   APPROVED: 'APPROVED',
@@ -77,6 +82,27 @@ export class TechManagersService {
 
   private normalizeOptionalString(value: unknown): string | undefined {
     return normalizeDisplayText(value);
+  }
+
+  private async normalizeAdminAvatarUrlForStorage(value: unknown): Promise<string | null> {
+    const rawAvatarUrl = String(value ?? '').trim();
+    if (!rawAvatarUrl) return null;
+    if (rawAvatarUrl.length > 1000) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'avatarUrl is too long' });
+    }
+
+    const fileId = extractFileIdFromFileUrl(rawAvatarUrl);
+    if (!fileId) return rawAvatarUrl;
+
+    const file = await this.prisma.file.findUnique({ where: { id: fileId } });
+    if (!file) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'avatarUrl is invalid' });
+    }
+    if (!String(file.mimeType || '').toLowerCase().startsWith('image/')) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'avatarUrl must be an image' });
+    }
+
+    return resolvePublicFileUrl(file) ?? rawAvatarUrl;
   }
 
   private pickFirstNonEmptyString(...values: unknown[]): string | undefined {
@@ -1132,15 +1158,7 @@ export class TechManagersService {
     }
 
     if (hasAvatarUrl) {
-      if (body?.avatarUrl === null) {
-        avatarUrlUpdate = null;
-      } else {
-        const rawAvatarUrl = String(body?.avatarUrl ?? '').trim();
-        if (rawAvatarUrl.length > 1000) {
-          throw new BadRequestException({ code: 'BAD_REQUEST', message: 'avatarUrl is too long' });
-        }
-        avatarUrlUpdate = rawAvatarUrl || null;
-      }
+      avatarUrlUpdate = await this.normalizeAdminAvatarUrlForStorage(body?.avatarUrl);
       auditAfter.avatarUrl = avatarUrlUpdate;
     }
 
