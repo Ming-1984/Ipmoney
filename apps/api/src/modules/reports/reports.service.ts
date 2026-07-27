@@ -253,6 +253,7 @@ export class ReportsService {
     this.ensureAuth(req);
     const days = this.parsePositiveIntegerDays(req?.query, 30);
     const { start, end } = this.buildRange(req?.query, days);
+    const canDealRecordRead = this.can(req, 'dealRecord.read') || this.can(req, 'order.read');
     const platformConversationScope: Prisma.ConversationWhereInput = {
       OR: [
         { contentType: 'SUPPORT' },
@@ -267,13 +268,14 @@ export class ReportsService {
       patentsTotal,
       techManagersApprovedTotal,
       ordersTotal,
-      completedOrdersTotal,
+      completedDealsTotal,
       completedDealAmountAgg,
       pendingVerifications,
       pendingListings,
       unassignedConversations,
       openCases,
       orderRows,
+      dealRows,
       patentRows,
     ] = await Promise.all([
       this.can(req, 'listing.read') ? this.prisma.patent.count() : Promise.resolve(null),
@@ -286,11 +288,11 @@ export class ReportsService {
           })
         : Promise.resolve(null),
       this.can(req, 'order.read') ? this.prisma.order.count() : Promise.resolve(null),
-      this.can(req, 'order.read') ? this.prisma.order.count({ where: { status: 'COMPLETED' } }) : Promise.resolve(null),
-      this.can(req, 'order.read')
-        ? this.prisma.order.aggregate({
-            where: { status: 'COMPLETED' },
-            _sum: { dealAmount: true },
+      canDealRecordRead ? this.prisma.dealRecord.count({ where: { status: 'ACTIVE' } }) : Promise.resolve(null),
+      canDealRecordRead
+        ? this.prisma.dealRecord.aggregate({
+            where: { status: 'ACTIVE' },
+            _sum: { priceFen: true },
           })
         : Promise.resolve(null),
       this.can(req, 'verification.read')
@@ -322,6 +324,12 @@ export class ReportsService {
             select: { createdAt: true, status: true, dealAmount: true },
           })
         : Promise.resolve([]),
+      canDealRecordRead
+        ? this.prisma.dealRecord.findMany({
+            where: { status: 'ACTIVE', dealAt: { gte: start, lte: end } },
+            select: { dealAt: true, priceFen: true },
+          })
+        : Promise.resolve([]),
       this.can(req, 'listing.read')
         ? this.prisma.patent.findMany({
             where: { createdAt: { gte: start, lte: end } },
@@ -341,10 +349,15 @@ export class ReportsService {
       const bucket = bucketMap.get(key);
       if (!bucket) continue;
       bucket.orders += 1;
-      if (String(row.status || '').toUpperCase() === 'COMPLETED') {
-        bucket.completedOrders += 1;
-        bucket.dealAmountFen += Number(row.dealAmount ?? 0);
-      }
+    }
+
+    for (const row of dealRows as Array<{ dealAt: Date; priceFen?: number | null }>) {
+      const key =
+        days >= 365 ? this.formatMonthKey(new Date(row.dealAt)) : this.formatDayKey(new Date(row.dealAt));
+      const bucket = bucketMap.get(key);
+      if (!bucket) continue;
+      bucket.completedOrders += 1;
+      bucket.dealAmountFen += Number(row.priceFen ?? 0);
     }
 
     const orderStatusCounts = new Map<string, number>();
@@ -378,8 +391,8 @@ export class ReportsService {
         patentsTotal,
         techManagersApprovedTotal,
         ordersTotal,
-        completedOrdersTotal,
-        completedDealAmountFen: completedDealAmountAgg?._sum?.dealAmount ?? null,
+        completedOrdersTotal: completedDealsTotal,
+        completedDealAmountFen: completedDealAmountAgg?._sum?.priceFen ?? null,
       },
       operations: {
         pendingVerifications,

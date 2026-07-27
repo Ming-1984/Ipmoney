@@ -69,6 +69,7 @@ const menuConfig: AppMenuItem[] = [
   { key: 'maintenance', icon: <ScheduleOutlined />, label: '年费托管', to: '/maintenance', permission: 'maintenance.manage', group: 'commerce' },
   { key: 'refunds', icon: <RollbackOutlined />, label: '退款管理', to: '/refunds', permission: 'refund.read', group: 'commerce' },
   { key: 'settlements', icon: <WalletOutlined />, label: '放款/结算', to: '/settlements', permission: 'settlement.read', group: 'commerce' },
+  { key: 'deal-records', icon: <ReconciliationOutlined />, label: '成交记录', to: '/deal-records', permission: 'dealRecord.read', group: 'commerce' },
   { key: 'invoices', icon: <ReconciliationOutlined />, label: '发票管理', to: '/invoices', permission: 'invoice.manage', group: 'commerce' },
   { key: 'reports', icon: <FileTextOutlined />, label: '报表导出', to: '/reports', permission: 'report.read', group: 'commerce' },
   { key: 'home-landing-config', icon: <SettingOutlined />, label: '首页展示内容', to: '/config/home-landing', permission: 'config.manage', group: 'workbench' },

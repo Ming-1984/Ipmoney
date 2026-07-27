@@ -55,6 +55,10 @@ const SettlementsPage = lazy(async () => {
   const mod = await import('./views/SettlementsPage');
   return { default: mod.SettlementsPage };
 });
+const DealRecordsPage = lazy(async () => {
+  const mod = await import('./views/DealRecordsPage');
+  return { default: mod.DealRecordsPage };
+});
 const InvoicesPage = lazy(async () => {
   const mod = await import('./views/InvoicesPage');
   return { default: mod.InvoicesPage };
@@ -150,6 +154,7 @@ export const router = createBrowserRouter([
       { path: 'cases', element: <CasesPage /> },
       { path: 'refunds', element: <RefundsPage /> },
       { path: 'settlements', element: <SettlementsPage /> },
+      { path: 'deal-records', element: <DealRecordsPage /> },
       { path: 'invoices', element: <InvoicesPage /> },
       { path: 'reports', element: <ReportsPage /> },
       { path: 'comments', element: <CommentsPage /> },

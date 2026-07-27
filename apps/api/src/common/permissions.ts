@@ -28,6 +28,9 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRoleName, string[]> = {
     'listing.import',
     'patent.import',
     'patent.claim.review',
+    'dealRecord.read',
+    'dealRecord.import',
+    'dealRecord.manage',
     'conversation.platform.manage',
     'order.read',
     'case.manage',
@@ -54,6 +57,7 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRoleName, string[]> = {
   finance: [
     'verification.read',
     'order.read',
+    'dealRecord.read',
     'refund.read',
     'refund.approve',
     'refund.reject',

@@ -180,7 +180,6 @@ enum ListingMediaType {
   FILE
 }
 
-
 enum ListingAuditAction {
   APPROVE
   REJECT
@@ -475,27 +474,63 @@ enum PatentClaimStatus {
   REJECTED
 }
 
+enum DealRecordSource {
+  ONLINE_ORDER
+  ADMIN_IMPORT
+}
+
+enum DealRecordStatus {
+  ACTIVE
+  VOIDED
+}
+
+enum DealTradeType {
+  LICENSE
+  TRANSFER
+  UNKNOWN
+}
+
+enum DealRecordImportDuplicatePolicy {
+  SKIP
+  UPSERT
+}
+
+enum DealRecordImportJobStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  PARTIAL_FAILED
+}
+
+enum DealRecordImportRowStatus {
+  VALID
+  INVALID
+  SUCCEEDED
+  FAILED
+  SKIPPED
+}
+
 model User {
-  id         String   @id @default(uuid()) @db.Uuid
-  phone      String?  @unique
-  nickname   String?
-  avatarUrl  String?  @map("avatar_url")
-  wechatOpenid String? @unique @map("wechat_openid")
-  role       UserRole
-  regionCode String?  @map("region_code")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(uuid()) @db.Uuid
+  phone        String?  @unique
+  nickname     String?
+  avatarUrl    String?  @map("avatar_url")
+  wechatOpenid String?  @unique @map("wechat_openid")
+  role         UserRole
+  regionCode   String?  @map("region_code")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   region Region? @relation(fields: [regionCode], references: [code])
 
-  verifications         UserVerification[] @relation("UserVerification_User")
-  reviewedVerifications UserVerification[] @relation("UserVerification_Reviewer")
+  verifications         UserVerification[]  @relation("UserVerification_User")
+  reviewedVerifications UserVerification[]  @relation("UserVerification_Reviewer")
   techManagerProfile    TechManagerProfile?
 
-  listings       Listing[] @relation("Listing_Seller")
+  listings       Listing[]     @relation("Listing_Seller")
   achievements   Achievement[] @relation("Achievement_Publisher")
-  orders         Order[]   @relation("Order_Buyer")
-  assignedOrders Order[]   @relation("Order_AssignedCs")
+  orders         Order[]       @relation("Order_Buyer")
+  assignedOrders Order[]       @relation("Order_AssignedCs")
 
   listingAuditLogs     ListingAuditLog[]     @relation("ListingAuditLog_Reviewer")
   listingFavorites     ListingFavorite[]
@@ -513,50 +548,54 @@ model User {
   addresses                Address[]
   comments                 Comment[]
 
-  csCases              CsCase[]       @relation("CsCase_Cs")
-  caseNotes            CsCaseNote[]   @relation("CsCaseNote_Author")
-  systemConfigsUpdated SystemConfig[] @relation("SystemConfig_UpdatedBy")
-  auditLogs            AuditLog[]     @relation("AuditLog_Actor")
-  idempotencyKeys      IdempotencyKey[]
-  rbacRoles            RbacUserRole[]
-  aiParseFeedbacks     AiParseFeedback[] @relation("AiParseFeedback_Actor")
-  assignedMaintenanceTasks PatentMaintenanceTask[] @relation("PatentMaintenanceTask_Assignee")
-  maintenanceOrdersAsApplicant PatentMaintenanceOrder[] @relation("PatentMaintenanceOrder_Applicant")
-  assignedMaintenanceOrders PatentMaintenanceOrder[] @relation("PatentMaintenanceOrder_Assignee")
-  maintenanceOrderEvents  PatentMaintenanceOrderEvent[] @relation("PatentMaintenanceOrderEvent_Actor")
-  patentsOwned         Patent[]          @relation("Patent_Owner")
-  patentImportJobs     PatentImportJob[] @relation("PatentImportJob_Operator")
-  patentClaimRequests  PatentClaimRequest[] @relation("PatentClaimRequest_Applicant")
-  reviewedPatentClaimRequests PatentClaimRequest[] @relation("PatentClaimRequest_Reviewer")
-  conversationAgentAssignments ConversationAgent[] @relation("ConversationAgent_Operator")
-  conversationAgentAssignedBy  ConversationAgent[] @relation("ConversationAgent_AssignedBy")
-  techManagerBadgesAssigned TechManagerBadge[] @relation("TechManagerBadge_AssignedBy")
+  csCases                      CsCase[]                      @relation("CsCase_Cs")
+  caseNotes                    CsCaseNote[]                  @relation("CsCaseNote_Author")
+  systemConfigsUpdated         SystemConfig[]                @relation("SystemConfig_UpdatedBy")
+  auditLogs                    AuditLog[]                    @relation("AuditLog_Actor")
+  idempotencyKeys              IdempotencyKey[]
+  rbacRoles                    RbacUserRole[]
+  aiParseFeedbacks             AiParseFeedback[]             @relation("AiParseFeedback_Actor")
+  assignedMaintenanceTasks     PatentMaintenanceTask[]       @relation("PatentMaintenanceTask_Assignee")
+  maintenanceOrdersAsApplicant PatentMaintenanceOrder[]      @relation("PatentMaintenanceOrder_Applicant")
+  assignedMaintenanceOrders    PatentMaintenanceOrder[]      @relation("PatentMaintenanceOrder_Assignee")
+  maintenanceOrderEvents       PatentMaintenanceOrderEvent[] @relation("PatentMaintenanceOrderEvent_Actor")
+  patentsOwned                 Patent[]                      @relation("Patent_Owner")
+  patentImportJobs             PatentImportJob[]             @relation("PatentImportJob_Operator")
+  patentClaimRequests          PatentClaimRequest[]          @relation("PatentClaimRequest_Applicant")
+  reviewedPatentClaimRequests  PatentClaimRequest[]          @relation("PatentClaimRequest_Reviewer")
+  conversationAgentAssignments ConversationAgent[]           @relation("ConversationAgent_Operator")
+  conversationAgentAssignedBy  ConversationAgent[]           @relation("ConversationAgent_AssignedBy")
+  techManagerBadgesAssigned    TechManagerBadge[]            @relation("TechManagerBadge_AssignedBy")
+  dealRecordsCreated           DealRecord[]                  @relation("DealRecord_CreatedBy")
+  dealRecordsUpdated           DealRecord[]                  @relation("DealRecord_UpdatedBy")
+  dealRecordsVoided            DealRecord[]                  @relation("DealRecord_VoidedBy")
+  dealRecordImportJobs         DealRecordImportJob[]         @relation("DealRecordImportJob_Operator")
 
   @@map("users")
 }
 
 model TechManagerProfile {
-  userId         String   @id @map("user_id") @db.Uuid
-  intro          String?
-  position       String?  @map("position")
-  organization   String?  @map("organization")
-  experienceLabel String? @map("experience_label")
-  levelLabel     String?  @map("level_label")
-  serviceDirectionsJson Json? @map("service_directions_json")
-  workHighlights String?  @map("work_highlights")
-  contactName    String?  @map("contact_name")
-  contactPhone   String?  @map("contact_phone")
-  serviceTagsJson Json?   @map("service_tags_json")
-  featuredRank   Int?     @map("featured_rank")
-  featuredUntil  DateTime? @map("featured_until")
-  consultCount   Int      @default(0) @map("consult_count")
-  dealCount      Int      @default(0) @map("deal_count")
-  ratingScore    Float    @default(0) @map("rating_score")
-  ratingCount    Int      @default(0) @map("rating_count")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  userId                String    @id @map("user_id") @db.Uuid
+  intro                 String?
+  position              String?   @map("position")
+  organization          String?   @map("organization")
+  experienceLabel       String?   @map("experience_label")
+  levelLabel            String?   @map("level_label")
+  serviceDirectionsJson Json?     @map("service_directions_json")
+  workHighlights        String?   @map("work_highlights")
+  contactName           String?   @map("contact_name")
+  contactPhone          String?   @map("contact_phone")
+  serviceTagsJson       Json?     @map("service_tags_json")
+  featuredRank          Int?      @map("featured_rank")
+  featuredUntil         DateTime? @map("featured_until")
+  consultCount          Int       @default(0) @map("consult_count")
+  dealCount             Int       @default(0) @map("deal_count")
+  ratingScore           Float     @default(0) @map("rating_score")
+  ratingCount           Int       @default(0) @map("rating_count")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id])
+  user   User               @relation(fields: [userId], references: [id])
   badges TechManagerBadge[]
 
   @@index([featuredRank])
@@ -579,20 +618,20 @@ model TechManagerBadgeDefinition {
 }
 
 model TechManagerBadge {
-  id                 String                 @id @default(uuid()) @db.Uuid
-  techManagerUserId  String                 @map("tech_manager_user_id") @db.Uuid
-  badgeCode          String                 @map("badge_code")
-  assignedByUserId   String?                @map("assigned_by_user_id") @db.Uuid
-  source             TechManagerBadgeSource
-  assignedAt         DateTime               @default(now()) @map("assigned_at")
-  expiresAt          DateTime?              @map("expires_at")
-  note               String?
-  createdAt          DateTime               @default(now()) @map("created_at")
-  updatedAt          DateTime               @updatedAt @map("updated_at")
+  id                String                 @id @default(uuid()) @db.Uuid
+  techManagerUserId String                 @map("tech_manager_user_id") @db.Uuid
+  badgeCode         String                 @map("badge_code")
+  assignedByUserId  String?                @map("assigned_by_user_id") @db.Uuid
+  source            TechManagerBadgeSource
+  assignedAt        DateTime               @default(now()) @map("assigned_at")
+  expiresAt         DateTime?              @map("expires_at")
+  note              String?
+  createdAt         DateTime               @default(now()) @map("created_at")
+  updatedAt         DateTime               @updatedAt @map("updated_at")
 
-  techManagerProfile TechManagerProfile     @relation(fields: [techManagerUserId], references: [userId])
+  techManagerProfile TechManagerProfile         @relation(fields: [techManagerUserId], references: [userId])
   badgeDefinition    TechManagerBadgeDefinition @relation(fields: [badgeCode], references: [code])
-  assignedBy         User?                  @relation("TechManagerBadge_AssignedBy", fields: [assignedByUserId], references: [id])
+  assignedBy         User?                      @relation("TechManagerBadge_AssignedBy", fields: [assignedByUserId], references: [id])
 
   @@index([techManagerUserId, assignedAt])
   @@index([badgeCode, assignedAt])
@@ -643,8 +682,8 @@ model Comment {
   createdAt       DateTime           @default(now()) @map("created_at")
   updatedAt       DateTime           @updatedAt @map("updated_at")
 
-  user    User     @relation(fields: [userId], references: [id])
-  parent  Comment? @relation("CommentParent", fields: [parentCommentId], references: [id])
+  user    User      @relation(fields: [userId], references: [id])
+  parent  Comment?  @relation("CommentParent", fields: [parentCommentId], references: [id])
   replies Comment[] @relation("CommentParent")
 
   @@index([contentType, contentId, createdAt])
@@ -666,10 +705,10 @@ model Region {
   parent   Region?  @relation("Region_Parent", fields: [parentCode], references: [code])
   children Region[] @relation("Region_Parent")
 
-  users            User[]
-  listings         Listing[]
-  achievements     Achievement[]
-  verifications    UserVerification[]
+  users         User[]
+  listings      Listing[]
+  achievements  Achievement[]
+  verifications UserVerification[]
 
   @@map("regions")
 }
@@ -713,39 +752,40 @@ model UserVerification {
 }
 
 model Patent {
-  id                   String              @id @default(uuid()) @db.Uuid
-  jurisdiction         String              @default("CN")
-  applicationNoNorm    String              @map("application_no_norm")
-  applicationNoDisplay String?             @map("application_no_display")
-  patentType           PatentType          @map("patent_type")
-  title                String
-  abstract             String?
-  filingDate           DateTime?           @map("filing_date") @db.Date
-  publicationDate      DateTime?           @map("publication_date") @db.Date
-  grantDate            DateTime?           @map("grant_date") @db.Date
-  legalStatus          String?             @map("legal_status")
-  legalStatusRaw       String?             @map("legal_status_raw")
-  publicationNoDisplay String?             @map("publication_no_display")
-  patentNoDisplay      String?             @map("patent_no_display")
-  grantPublicationNoDisplay String?        @map("grant_publication_no_display")
-  transferCount        Int                 @default(0) @map("transfer_count")
-  sourcePrimary        PatentSourcePrimary @default(USER) @map("source_primary")
-  sourceUpdatedAt      DateTime?           @map("source_updated_at")
-  ownerUserId          String?             @map("owner_user_id") @db.Uuid
-  ownerClaimedAt       DateTime?           @map("owner_claimed_at")
-  ownerClaimSource     PatentOwnerClaimSource? @map("owner_claim_source")
-  createdAt            DateTime            @default(now()) @map("created_at")
-  updatedAt            DateTime            @updatedAt @map("updated_at")
+  id                        String                  @id @default(uuid()) @db.Uuid
+  jurisdiction              String                  @default("CN")
+  applicationNoNorm         String                  @map("application_no_norm")
+  applicationNoDisplay      String?                 @map("application_no_display")
+  patentType                PatentType              @map("patent_type")
+  title                     String
+  abstract                  String?
+  filingDate                DateTime?               @map("filing_date") @db.Date
+  publicationDate           DateTime?               @map("publication_date") @db.Date
+  grantDate                 DateTime?               @map("grant_date") @db.Date
+  legalStatus               String?                 @map("legal_status")
+  legalStatusRaw            String?                 @map("legal_status_raw")
+  publicationNoDisplay      String?                 @map("publication_no_display")
+  patentNoDisplay           String?                 @map("patent_no_display")
+  grantPublicationNoDisplay String?                 @map("grant_publication_no_display")
+  transferCount             Int                     @default(0) @map("transfer_count")
+  sourcePrimary             PatentSourcePrimary     @default(USER) @map("source_primary")
+  sourceUpdatedAt           DateTime?               @map("source_updated_at")
+  ownerUserId               String?                 @map("owner_user_id") @db.Uuid
+  ownerClaimedAt            DateTime?               @map("owner_claimed_at")
+  ownerClaimSource          PatentOwnerClaimSource? @map("owner_claim_source")
+  createdAt                 DateTime                @default(now()) @map("created_at")
+  updatedAt                 DateTime                @updatedAt @map("updated_at")
 
-  identifiers     PatentIdentifier[]
-  classifications PatentClassification[]
-  parties         PatentParty[]
-  listings        Listing[]
-  legalEvents    PatentLegalEvent[]
+  identifiers          PatentIdentifier[]
+  classifications      PatentClassification[]
+  parties              PatentParty[]
+  listings             Listing[]
+  legalEvents          PatentLegalEvent[]
   maintenanceSchedules PatentMaintenanceSchedule[]
-  owner          User?                @relation("Patent_Owner", fields: [ownerUserId], references: [id])
-  importRows     PatentImportJobRow[]
-  claimRequests  PatentClaimRequest[]
+  owner                User?                       @relation("Patent_Owner", fields: [ownerUserId], references: [id])
+  importRows           PatentImportJobRow[]
+  claimRequests        PatentClaimRequest[]
+  dealRecords          DealRecord[]
 
   @@unique([jurisdiction, applicationNoNorm])
   @@index([jurisdiction, applicationNoNorm])
@@ -795,13 +835,13 @@ model PatentParty {
 }
 
 model PatentLegalEvent {
-  id          String   @id @default(uuid()) @db.Uuid
-  patentId    String   @map("patent_id") @db.Uuid
-  eventDate   DateTime @map("event_date") @db.Date
-  eventCode   String   @map("event_code")
-  eventTextRaw String  @map("event_text_raw")
-  source      String
-  createdAt   DateTime @default(now()) @map("created_at")
+  id           String   @id @default(uuid()) @db.Uuid
+  patentId     String   @map("patent_id") @db.Uuid
+  eventDate    DateTime @map("event_date") @db.Date
+  eventCode    String   @map("event_code")
+  eventTextRaw String   @map("event_text_raw")
+  source       String
+  createdAt    DateTime @default(now()) @map("created_at")
 
   patent Patent @relation(fields: [patentId], references: [id])
 
@@ -809,41 +849,41 @@ model PatentLegalEvent {
   @@map("patent_legal_events")
 }
 
-
 model File {
-  id                 String               @id @default(uuid()) @db.Uuid
-  url                String
-  fileName           String?              @map("file_name")
-  mimeType           String               @map("mime_type")
-  sizeBytes          Int                  @map("size_bytes")
-  ownerScope         FileOwnerScope       @map("owner_scope")
-  ownerId            String               @map("owner_id") @db.Uuid
-  moderationStatus   FileModerationStatus @default(NOT_REQUIRED) @map("moderation_status")
-  moderationProvider String?              @map("moderation_provider")
-  moderationTraceId  String?              @map("moderation_trace_id")
-  moderationLabel    String?              @map("moderation_label")
-  moderationReason   String?              @map("moderation_reason")
-  moderationRequestedAt DateTime?         @map("moderation_requested_at")
-  moderationCheckedAt DateTime?           @map("moderation_checked_at")
-  createdAt          DateTime             @default(now()) @map("created_at")
+  id                    String               @id @default(uuid()) @db.Uuid
+  url                   String
+  fileName              String?              @map("file_name")
+  mimeType              String               @map("mime_type")
+  sizeBytes             Int                  @map("size_bytes")
+  ownerScope            FileOwnerScope       @map("owner_scope")
+  ownerId               String               @map("owner_id") @db.Uuid
+  moderationStatus      FileModerationStatus @default(NOT_REQUIRED) @map("moderation_status")
+  moderationProvider    String?              @map("moderation_provider")
+  moderationTraceId     String?              @map("moderation_trace_id")
+  moderationLabel       String?              @map("moderation_label")
+  moderationReason      String?              @map("moderation_reason")
+  moderationRequestedAt DateTime?            @map("moderation_requested_at")
+  moderationCheckedAt   DateTime?            @map("moderation_checked_at")
+  createdAt             DateTime             @default(now()) @map("created_at")
 
-  listingMedia       ListingMedia[]
-  achievementMedia  AchievementMedia[]
-  messageAttachments ConversationMessage[]
-  milestoneEvidence  CsMilestone[]
-  caseEvidences      CsCaseEvidence[]
-  settlementEvidence Settlement[]
-  invoiceOrders      Order[]
-  contractFiles      Contract[]         @relation("Contract_File")
-  maintenanceEvidenceTasks PatentMaintenanceTask[] @relation("PatentMaintenanceTask_Evidence")
-  maintenanceReceiptOrders PatentMaintenanceOrder[] @relation("PatentMaintenanceOrder_ReceiptFile")
-  verificationLogos  UserVerification[]    @relation("UserVerification_LogoFile")
-  listingBatchJobErrorFiles ListingBatchJob[] @relation("ListingBatchJob_ErrorFile")
-  listingImportJobSourceFiles ListingImportJob[] @relation("ListingImportJob_SourceFile")
-  listingImportJobErrorFiles ListingImportJob[] @relation("ListingImportJob_ErrorFile")
-  patentImportJobSourceFiles PatentImportJob[] @relation("PatentImportJob_SourceFile")
-  patentImportJobErrorFiles PatentImportJob[] @relation("PatentImportJob_ErrorFile")
-  achievementCovers  Achievement[]        @relation("Achievement_CoverFile")
+  listingMedia                   ListingMedia[]
+  achievementMedia               AchievementMedia[]
+  messageAttachments             ConversationMessage[]
+  milestoneEvidence              CsMilestone[]
+  caseEvidences                  CsCaseEvidence[]
+  settlementEvidence             Settlement[]
+  invoiceOrders                  Order[]
+  contractFiles                  Contract[]               @relation("Contract_File")
+  maintenanceEvidenceTasks       PatentMaintenanceTask[]  @relation("PatentMaintenanceTask_Evidence")
+  maintenanceReceiptOrders       PatentMaintenanceOrder[] @relation("PatentMaintenanceOrder_ReceiptFile")
+  verificationLogos              UserVerification[]       @relation("UserVerification_LogoFile")
+  listingBatchJobErrorFiles      ListingBatchJob[]        @relation("ListingBatchJob_ErrorFile")
+  listingImportJobSourceFiles    ListingImportJob[]       @relation("ListingImportJob_SourceFile")
+  listingImportJobErrorFiles     ListingImportJob[]       @relation("ListingImportJob_ErrorFile")
+  patentImportJobSourceFiles     PatentImportJob[]        @relation("PatentImportJob_SourceFile")
+  patentImportJobErrorFiles      PatentImportJob[]        @relation("PatentImportJob_ErrorFile")
+  achievementCovers              Achievement[]            @relation("Achievement_CoverFile")
+  dealRecordImportJobSourceFiles DealRecordImportJob[]    @relation("DealRecordImportJob_SourceFile")
 
   @@index([ownerScope, ownerId])
   @@index([moderationStatus, createdAt])
@@ -852,42 +892,42 @@ model File {
 }
 
 model Listing {
-  id                 String           @id @default(uuid()) @db.Uuid
-  sellerUserId       String           @map("seller_user_id") @db.Uuid
-  source             ContentSource    @default(USER) @map("source")
-  patentId           String?          @map("patent_id") @db.Uuid
-  title              String
-  summary            String?
-  tradeMode          ListingTradeMode @map("trade_mode")
-  licenseMode        LicenseMode?     @map("license_mode")
-  priceType          PriceType        @map("price_type")
-  priceAmount        Int?             @map("price_amount")
-  depositAmount      Int              @map("deposit_amount")
-  deliverablesJson   Json?            @map("deliverables_json")
-  expectedCompletionDays Int?         @map("expected_completion_days")
-  negotiableRangeFen Int?             @map("negotiable_range_fen")
-  negotiableRangePercent Float?       @map("negotiable_range_percent")
-  negotiableNote     String?          @map("negotiable_note")
-  pledgeStatus       PledgeStatus?    @map("pledge_status")
-  existingLicenseStatus ExistingLicenseStatus? @map("existing_license_status")
-  encumbranceNote    String?          @map("encumbrance_note")
-  regionCode         String?          @map("region_code")
-  industryTagsJson   Json?            @map("industry_tags_json")
-  listingTopicsJson  Json?            @map("listing_topics_json")
-  proofFileIdsJson   Json?            @map("proof_file_ids_json")
-  consultationRouting ConsultationRouting @default(PLATFORM) @map("consultation_routing")
-  featuredLevel      FeaturedLevel    @default(NONE) @map("featured_level")
-  featuredRegionCode String?          @map("featured_region_code")
-  featuredRank       Int?             @map("featured_rank")
-  featuredUntil      DateTime?        @map("featured_until")
-  auditStatus        AuditStatus      @default(PENDING) @map("audit_status")
-  status             ListingStatus    @default(DRAFT)
-  createdAt          DateTime         @default(now()) @map("created_at")
-  updatedAt          DateTime         @updatedAt @map("updated_at")
+  id                     String                 @id @default(uuid()) @db.Uuid
+  sellerUserId           String                 @map("seller_user_id") @db.Uuid
+  source                 ContentSource          @default(USER) @map("source")
+  patentId               String?                @map("patent_id") @db.Uuid
+  title                  String
+  summary                String?
+  tradeMode              ListingTradeMode       @map("trade_mode")
+  licenseMode            LicenseMode?           @map("license_mode")
+  priceType              PriceType              @map("price_type")
+  priceAmount            Int?                   @map("price_amount")
+  depositAmount          Int                    @map("deposit_amount")
+  deliverablesJson       Json?                  @map("deliverables_json")
+  expectedCompletionDays Int?                   @map("expected_completion_days")
+  negotiableRangeFen     Int?                   @map("negotiable_range_fen")
+  negotiableRangePercent Float?                 @map("negotiable_range_percent")
+  negotiableNote         String?                @map("negotiable_note")
+  pledgeStatus           PledgeStatus?          @map("pledge_status")
+  existingLicenseStatus  ExistingLicenseStatus? @map("existing_license_status")
+  encumbranceNote        String?                @map("encumbrance_note")
+  regionCode             String?                @map("region_code")
+  industryTagsJson       Json?                  @map("industry_tags_json")
+  listingTopicsJson      Json?                  @map("listing_topics_json")
+  proofFileIdsJson       Json?                  @map("proof_file_ids_json")
+  consultationRouting    ConsultationRouting    @default(PLATFORM) @map("consultation_routing")
+  featuredLevel          FeaturedLevel          @default(NONE) @map("featured_level")
+  featuredRegionCode     String?                @map("featured_region_code")
+  featuredRank           Int?                   @map("featured_rank")
+  featuredUntil          DateTime?              @map("featured_until")
+  auditStatus            AuditStatus            @default(PENDING) @map("audit_status")
+  status                 ListingStatus          @default(DRAFT)
+  createdAt              DateTime               @default(now()) @map("created_at")
+  updatedAt              DateTime               @updatedAt @map("updated_at")
 
-  seller User     @relation("Listing_Seller", fields: [sellerUserId], references: [id])
-  patent Patent?  @relation(fields: [patentId], references: [id])
-  region Region?  @relation(fields: [regionCode], references: [code])
+  seller User    @relation("Listing_Seller", fields: [sellerUserId], references: [id])
+  patent Patent? @relation(fields: [patentId], references: [id])
+  region Region? @relation(fields: [regionCode], references: [code])
 
   media         ListingMedia[]
   auditLogs     ListingAuditLog[]
@@ -906,35 +946,35 @@ model Listing {
 }
 
 model Achievement {
-  id                   String              @id @default(uuid()) @db.Uuid
-  publisherUserId      String              @map("publisher_user_id") @db.Uuid
-  source               ContentSource       @default(USER)
-  externalId           String?             @unique @map("external_id")
-  sourceRawCategory    String?             @map("source_raw_category")
-  sourceRawStatus      String?             @map("source_raw_status")
-  sourceBatch          String?             @map("source_batch")
-  sourceRawRegion      String?             @map("source_raw_region")
-  sourceOrgName        String?             @map("source_org_name")
+  id                   String               @id @default(uuid()) @db.Uuid
+  publisherUserId      String               @map("publisher_user_id") @db.Uuid
+  source               ContentSource        @default(USER)
+  externalId           String?              @unique @map("external_id")
+  sourceRawCategory    String?              @map("source_raw_category")
+  sourceRawStatus      String?              @map("source_raw_status")
+  sourceBatch          String?              @map("source_batch")
+  sourceRawRegion      String?              @map("source_raw_region")
+  sourceOrgName        String?              @map("source_org_name")
   title                String
   summary              String?
   description          String?
-  keywordsJson         Json?               @map("keywords_json")
+  keywordsJson         Json?                @map("keywords_json")
   maturity             AchievementMaturity?
-  cooperationModesJson Json?               @map("cooperation_modes_json")
-  coverFileId          String?             @map("cover_file_id") @db.Uuid
-  regionCode           String?             @map("region_code")
-  industryTagsJson     Json?               @map("industry_tags_json")
-  auditStatus          AuditStatus         @default(PENDING) @map("audit_status")
-  status               ContentStatus       @default(DRAFT)
-  createdAt            DateTime            @default(now()) @map("created_at")
-  updatedAt            DateTime            @updatedAt @map("updated_at")
+  cooperationModesJson Json?                @map("cooperation_modes_json")
+  coverFileId          String?              @map("cover_file_id") @db.Uuid
+  regionCode           String?              @map("region_code")
+  industryTagsJson     Json?                @map("industry_tags_json")
+  auditStatus          AuditStatus          @default(PENDING) @map("audit_status")
+  status               ContentStatus        @default(DRAFT)
+  createdAt            DateTime             @default(now()) @map("created_at")
+  updatedAt            DateTime             @updatedAt @map("updated_at")
 
-  publisher  User   @relation("Achievement_Publisher", fields: [publisherUserId], references: [id])
-  coverFile  File?  @relation("Achievement_CoverFile", fields: [coverFileId], references: [id])
-  region     Region? @relation(fields: [regionCode], references: [code])
-  media      AchievementMedia[]
-  stats      AchievementStats?
-  favorites  AchievementFavorite[]
+  publisher User                  @relation("Achievement_Publisher", fields: [publisherUserId], references: [id])
+  coverFile File?                 @relation("Achievement_CoverFile", fields: [coverFileId], references: [id])
+  region    Region?               @relation(fields: [regionCode], references: [code])
+  media     AchievementMedia[]
+  stats     AchievementStats?
+  favorites AchievementFavorite[]
 
   @@index([publisherUserId, createdAt])
   @@index([auditStatus, status])
@@ -945,11 +985,11 @@ model Achievement {
 }
 
 model AchievementMedia {
-  id            String            @id @default(uuid()) @db.Uuid
-  achievementId String            @map("achievement_id") @db.Uuid
-  fileId        String            @map("file_id") @db.Uuid
+  id            String           @id @default(uuid()) @db.Uuid
+  achievementId String           @map("achievement_id") @db.Uuid
+  fileId        String           @map("file_id") @db.Uuid
   type          ContentMediaType
-  sort          Int               @default(0)
+  sort          Int              @default(0)
 
   achievement Achievement @relation(fields: [achievementId], references: [id])
   file        File        @relation(fields: [fileId], references: [id])
@@ -1031,8 +1071,8 @@ model ListingBatchJob {
   createdAt      DateTime           @default(now()) @map("created_at")
   updatedAt      DateTime           @updatedAt @map("updated_at")
 
-  operator User @relation("ListingBatchJob_Operator", fields: [operatorUserId], references: [id])
-  errorFile File? @relation("ListingBatchJob_ErrorFile", fields: [errorFileId], references: [id])
+  operator  User                  @relation("ListingBatchJob_Operator", fields: [operatorUserId], references: [id])
+  errorFile File?                 @relation("ListingBatchJob_ErrorFile", fields: [errorFileId], references: [id])
   items     ListingBatchJobItem[]
 
   @@index([operatorUserId, createdAt])
@@ -1082,9 +1122,9 @@ model ListingImportJob {
   createdAt       DateTime                     @default(now()) @map("created_at")
   updatedAt       DateTime                     @updatedAt @map("updated_at")
 
-  operator User @relation("ListingImportJob_Operator", fields: [operatorUserId], references: [id])
-  sourceFile File @relation("ListingImportJob_SourceFile", fields: [fileId], references: [id])
-  errorFile  File? @relation("ListingImportJob_ErrorFile", fields: [errorFileId], references: [id])
+  operator   User                  @relation("ListingImportJob_Operator", fields: [operatorUserId], references: [id])
+  sourceFile File                  @relation("ListingImportJob_SourceFile", fields: [fileId], references: [id])
+  errorFile  File?                 @relation("ListingImportJob_ErrorFile", fields: [errorFileId], references: [id])
   rows       ListingImportJobRow[]
 
   @@index([operatorUserId, createdAt])
@@ -1094,18 +1134,18 @@ model ListingImportJob {
 }
 
 model ListingImportJobRow {
-  id             String               @id @default(uuid()) @db.Uuid
-  jobId          String               @map("job_id") @db.Uuid
-  rowNo          Int                  @map("row_no")
+  id             String                 @id @default(uuid()) @db.Uuid
+  jobId          String                 @map("job_id") @db.Uuid
+  rowNo          Int                    @map("row_no")
   status         ListingImportRowStatus @default(PENDING)
-  rawJson        Json                 @map("raw_json")
-  normalizedJson Json?                @map("normalized_json")
-  listingId      String?              @map("listing_id") @db.Uuid
-  errorCode      String?              @map("error_code")
-  errorMessage   String?              @map("error_message")
-  processedAt    DateTime?            @map("processed_at")
-  createdAt      DateTime             @default(now()) @map("created_at")
-  updatedAt      DateTime             @updatedAt @map("updated_at")
+  rawJson        Json                   @map("raw_json")
+  normalizedJson Json?                  @map("normalized_json")
+  listingId      String?                @map("listing_id") @db.Uuid
+  errorCode      String?                @map("error_code")
+  errorMessage   String?                @map("error_message")
+  processedAt    DateTime?              @map("processed_at")
+  createdAt      DateTime               @default(now()) @map("created_at")
+  updatedAt      DateTime               @updatedAt @map("updated_at")
 
   job     ListingImportJob @relation(fields: [jobId], references: [id])
   listing Listing?         @relation(fields: [listingId], references: [id])
@@ -1156,42 +1196,18 @@ model ListingConsultEvent {
 }
 
 model ContentEvent {
-  id          String            @id @default(uuid()) @db.Uuid
+  id          String             @id @default(uuid()) @db.Uuid
   contentType CommentContentType @map("content_type")
-  contentId   String            @map("content_id") @db.Uuid
-  eventType   ContentEventType  @map("event_type")
-  actorKey    String            @map("actor_key")
-  actorUserId String?           @map("actor_user_id") @db.Uuid
-  deviceId    String?           @map("device_id")
-  createdAt   DateTime          @default(now()) @map("created_at")
+  contentId   String             @map("content_id") @db.Uuid
+  eventType   ContentEventType   @map("event_type")
+  actorKey    String             @map("actor_key")
+  actorUserId String?            @map("actor_user_id") @db.Uuid
+  deviceId    String?            @map("device_id")
+  createdAt   DateTime           @default(now()) @map("created_at")
 
   @@index([contentType, contentId, eventType, actorKey, createdAt])
   @@map("content_events")
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 model UserTagScore {
   id        String   @id @default(uuid()) @db.Uuid
@@ -1227,13 +1243,14 @@ model Order {
   assignedCs  User?   @relation("Order_AssignedCs", fields: [assignedCsUserId], references: [id])
   invoiceFile File?   @relation(fields: [invoiceFileId], references: [id])
 
-  payments       Payment[]
+  payments             Payment[]
   paymentWebhookEvents PaymentWebhookEvent[]
-  refundRequests RefundRequest[]
-  csCases        CsCase[]
-  settlement     Settlement?
-  conversations  Conversation[]
-  contract      Contract?
+  refundRequests       RefundRequest[]
+  csCases              CsCase[]
+  settlement           Settlement?
+  conversations        Conversation[]
+  contract             Contract?
+  dealRecord           DealRecord?
 
   @@index([status, createdAt])
   @@map("orders")
@@ -1257,16 +1274,16 @@ model Contract {
 }
 
 model Conversation {
-  id            String    @id @default(uuid()) @db.Uuid
+  id            String                  @id @default(uuid()) @db.Uuid
   contentType   ConversationContentType @map("content_type")
-  contentId     String    @map("content_id") @db.Uuid
-  listingId     String?   @map("listing_id") @db.Uuid
-  orderId       String?   @map("order_id") @db.Uuid
-  buyerUserId   String    @map("buyer_user_id") @db.Uuid
-  sellerUserId  String    @map("seller_user_id") @db.Uuid
-  lastMessageAt DateTime? @map("last_message_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  contentId     String                  @map("content_id") @db.Uuid
+  listingId     String?                 @map("listing_id") @db.Uuid
+  orderId       String?                 @map("order_id") @db.Uuid
+  buyerUserId   String                  @map("buyer_user_id") @db.Uuid
+  sellerUserId  String                  @map("seller_user_id") @db.Uuid
+  lastMessageAt DateTime?               @map("last_message_at")
+  createdAt     DateTime                @default(now()) @map("created_at")
+  updatedAt     DateTime                @updatedAt @map("updated_at")
 
   listing Listing? @relation(fields: [listingId], references: [id])
   order   Order?   @relation(fields: [orderId], references: [id])
@@ -1333,30 +1350,30 @@ model ConversationAgent {
 }
 
 model PatentImportJob {
-  id              String                       @id @default(uuid()) @db.Uuid
-  operatorUserId  String                       @map("operator_user_id") @db.Uuid
-  fileId          String                       @map("file_id") @db.Uuid
-  duplicatePolicy PatentImportDuplicatePolicy  @default(SKIP) @map("duplicate_policy")
-  defaultsJson    Json?                        @map("defaults_json")
-  status          PatentJobStatus              @default(PENDING)
-  totalCount      Int                          @default(0) @map("total_count")
-  validCount      Int                          @default(0) @map("valid_count")
-  invalidCount    Int                          @default(0) @map("invalid_count")
-  successCount    Int                          @default(0) @map("success_count")
-  failedCount     Int                          @default(0) @map("failed_count")
-  skippedCount    Int                          @default(0) @map("skipped_count")
-  failRate        Float                        @default(0) @map("fail_rate")
-  validatedAt     DateTime?                    @map("validated_at")
-  startedAt       DateTime?                    @map("started_at")
-  finishedAt      DateTime?                    @map("finished_at")
-  pausedAt        DateTime?                    @map("paused_at")
-  errorFileId     String?                      @map("error_file_id") @db.Uuid
-  createdAt       DateTime                     @default(now()) @map("created_at")
-  updatedAt       DateTime                     @updatedAt @map("updated_at")
+  id              String                      @id @default(uuid()) @db.Uuid
+  operatorUserId  String                      @map("operator_user_id") @db.Uuid
+  fileId          String                      @map("file_id") @db.Uuid
+  duplicatePolicy PatentImportDuplicatePolicy @default(SKIP) @map("duplicate_policy")
+  defaultsJson    Json?                       @map("defaults_json")
+  status          PatentJobStatus             @default(PENDING)
+  totalCount      Int                         @default(0) @map("total_count")
+  validCount      Int                         @default(0) @map("valid_count")
+  invalidCount    Int                         @default(0) @map("invalid_count")
+  successCount    Int                         @default(0) @map("success_count")
+  failedCount     Int                         @default(0) @map("failed_count")
+  skippedCount    Int                         @default(0) @map("skipped_count")
+  failRate        Float                       @default(0) @map("fail_rate")
+  validatedAt     DateTime?                   @map("validated_at")
+  startedAt       DateTime?                   @map("started_at")
+  finishedAt      DateTime?                   @map("finished_at")
+  pausedAt        DateTime?                   @map("paused_at")
+  errorFileId     String?                     @map("error_file_id") @db.Uuid
+  createdAt       DateTime                    @default(now()) @map("created_at")
+  updatedAt       DateTime                    @updatedAt @map("updated_at")
 
-  operator   User               @relation("PatentImportJob_Operator", fields: [operatorUserId], references: [id])
-  sourceFile File               @relation("PatentImportJob_SourceFile", fields: [fileId], references: [id])
-  errorFile  File?              @relation("PatentImportJob_ErrorFile", fields: [errorFileId], references: [id])
+  operator   User                 @relation("PatentImportJob_Operator", fields: [operatorUserId], references: [id])
+  sourceFile File                 @relation("PatentImportJob_SourceFile", fields: [fileId], references: [id])
+  errorFile  File?                @relation("PatentImportJob_ErrorFile", fields: [errorFileId], references: [id])
   rows       PatentImportJobRow[]
 
   @@index([operatorUserId, createdAt])
@@ -1366,18 +1383,18 @@ model PatentImportJob {
 }
 
 model PatentImportJobRow {
-  id             String              @id @default(uuid()) @db.Uuid
-  jobId          String              @map("job_id") @db.Uuid
-  rowNo          Int                 @map("row_no")
+  id             String                @id @default(uuid()) @db.Uuid
+  jobId          String                @map("job_id") @db.Uuid
+  rowNo          Int                   @map("row_no")
   status         PatentImportRowStatus @default(PENDING)
-  rawJson        Json                @map("raw_json")
-  normalizedJson Json?               @map("normalized_json")
-  patentId       String?             @map("patent_id") @db.Uuid
-  errorCode      String?             @map("error_code")
-  errorMessage   String?             @map("error_message")
-  processedAt    DateTime?           @map("processed_at")
-  createdAt      DateTime            @default(now()) @map("created_at")
-  updatedAt      DateTime            @updatedAt @map("updated_at")
+  rawJson        Json                  @map("raw_json")
+  normalizedJson Json?                 @map("normalized_json")
+  patentId       String?               @map("patent_id") @db.Uuid
+  errorCode      String?               @map("error_code")
+  errorMessage   String?               @map("error_message")
+  processedAt    DateTime?             @map("processed_at")
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
 
   job    PatentImportJob @relation(fields: [jobId], references: [id])
   patent Patent?         @relation(fields: [patentId], references: [id])
@@ -1389,18 +1406,18 @@ model PatentImportJobRow {
 }
 
 model PatentClaimRequest {
-  id                 String           @id @default(uuid()) @db.Uuid
-  patentId           String           @map("patent_id") @db.Uuid
-  applicantUserId    String           @map("applicant_user_id") @db.Uuid
-  status             PatentClaimStatus @default(PENDING)
-  claimReason        String?          @map("claim_reason")
-  evidenceFileIdsJson Json?           @map("evidence_file_ids_json")
-  reviewerUserId     String?          @map("reviewer_user_id") @db.Uuid
-  reviewComment      String?          @map("review_comment")
-  submittedAt        DateTime         @default(now()) @map("submitted_at")
-  reviewedAt         DateTime?        @map("reviewed_at")
-  createdAt          DateTime         @default(now()) @map("created_at")
-  updatedAt          DateTime         @updatedAt @map("updated_at")
+  id                  String            @id @default(uuid()) @db.Uuid
+  patentId            String            @map("patent_id") @db.Uuid
+  applicantUserId     String            @map("applicant_user_id") @db.Uuid
+  status              PatentClaimStatus @default(PENDING)
+  claimReason         String?           @map("claim_reason")
+  evidenceFileIdsJson Json?             @map("evidence_file_ids_json")
+  reviewerUserId      String?           @map("reviewer_user_id") @db.Uuid
+  reviewComment       String?           @map("review_comment")
+  submittedAt         DateTime          @default(now()) @map("submitted_at")
+  reviewedAt          DateTime?         @map("reviewed_at")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
 
   patent    Patent @relation(fields: [patentId], references: [id])
   applicant User   @relation("PatentClaimRequest_Applicant", fields: [applicantUserId], references: [id])
@@ -1410,6 +1427,98 @@ model PatentClaimRequest {
   @@index([applicantUserId, status, createdAt])
   @@index([status, submittedAt])
   @@map("patent_claim_requests")
+}
+
+model DealRecord {
+  id              String           @id @default(uuid()) @db.Uuid
+  source          DealRecordSource
+  status          DealRecordStatus @default(ACTIVE)
+  sourceOrderId   String?          @unique @map("source_order_id") @db.Uuid
+  importJobId     String?          @map("import_job_id") @db.Uuid
+  patentId        String?          @map("patent_id") @db.Uuid
+  patentNoNorm    String           @map("patent_no_norm")
+  patentNoDisplay String           @map("patent_no_display")
+  patentTitle     String           @map("patent_title")
+  tradeType       DealTradeType    @default(UNKNOWN) @map("trade_type")
+  sellerPartyName String           @map("seller_party_name")
+  buyerPartyName  String           @map("buyer_party_name")
+  dealAt          DateTime         @map("deal_at")
+  priceFen        Int              @map("price_fen")
+  dedupeKey       String           @unique @map("dedupe_key")
+  rawJson         Json?            @map("raw_json")
+  note            String?
+  createdByUserId String?          @map("created_by_user_id") @db.Uuid
+  updatedByUserId String?          @map("updated_by_user_id") @db.Uuid
+  voidedByUserId  String?          @map("voided_by_user_id") @db.Uuid
+  voidedAt        DateTime?        @map("voided_at")
+  voidReason      String?          @map("void_reason")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  sourceOrder Order?                   @relation(fields: [sourceOrderId], references: [id])
+  patent      Patent?                  @relation(fields: [patentId], references: [id])
+  importJob   DealRecordImportJob?     @relation(fields: [importJobId], references: [id])
+  createdBy   User?                    @relation("DealRecord_CreatedBy", fields: [createdByUserId], references: [id])
+  updatedBy   User?                    @relation("DealRecord_UpdatedBy", fields: [updatedByUserId], references: [id])
+  voidedBy    User?                    @relation("DealRecord_VoidedBy", fields: [voidedByUserId], references: [id])
+  importRows  DealRecordImportJobRow[]
+
+  @@index([status, dealAt])
+  @@index([source, status, dealAt])
+  @@index([patentNoNorm])
+  @@index([patentTitle])
+  @@index([importJobId])
+  @@map("deal_records")
+}
+
+model DealRecordImportJob {
+  id              String                          @id @default(uuid()) @db.Uuid
+  operatorUserId  String                          @map("operator_user_id") @db.Uuid
+  fileId          String                          @map("file_id") @db.Uuid
+  status          DealRecordImportJobStatus       @default(PENDING)
+  duplicatePolicy DealRecordImportDuplicatePolicy @default(SKIP) @map("duplicate_policy")
+  totalCount      Int                             @default(0) @map("total_count")
+  validCount      Int                             @default(0) @map("valid_count")
+  invalidCount    Int                             @default(0) @map("invalid_count")
+  successCount    Int                             @default(0) @map("success_count")
+  skippedCount    Int                             @default(0) @map("skipped_count")
+  failedCount     Int                             @default(0) @map("failed_count")
+  createdAt       DateTime                        @default(now()) @map("created_at")
+  updatedAt       DateTime                        @updatedAt @map("updated_at")
+  finishedAt      DateTime?                       @map("finished_at")
+
+  operator    User                     @relation("DealRecordImportJob_Operator", fields: [operatorUserId], references: [id])
+  sourceFile  File                     @relation("DealRecordImportJob_SourceFile", fields: [fileId], references: [id])
+  rows        DealRecordImportJobRow[]
+  dealRecords DealRecord[]
+
+  @@index([operatorUserId, createdAt])
+  @@index([status, createdAt])
+  @@index([fileId])
+  @@map("deal_record_import_jobs")
+}
+
+model DealRecordImportJobRow {
+  id             String                    @id @default(uuid()) @db.Uuid
+  jobId          String                    @map("job_id") @db.Uuid
+  rowNo          Int                       @map("row_no")
+  status         DealRecordImportRowStatus
+  rawJson        Json                      @map("raw_json")
+  normalizedJson Json?                     @map("normalized_json")
+  dealRecordId   String?                   @map("deal_record_id") @db.Uuid
+  errorCode      String?                   @map("error_code")
+  errorMessage   String?                   @map("error_message")
+  processedAt    DateTime?                 @map("processed_at")
+  createdAt      DateTime                  @default(now()) @map("created_at")
+  updatedAt      DateTime                  @updatedAt @map("updated_at")
+
+  job        DealRecordImportJob @relation(fields: [jobId], references: [id])
+  dealRecord DealRecord?         @relation(fields: [dealRecordId], references: [id])
+
+  @@unique([jobId, rowNo])
+  @@index([jobId, status])
+  @@index([dealRecordId])
+  @@map("deal_record_import_job_rows")
 }
 
 model Payment {
@@ -1483,7 +1592,7 @@ model RefundRequest {
   createdAt  DateTime     @default(now()) @map("created_at")
   updatedAt  DateTime     @updatedAt @map("updated_at")
 
-  order Order @relation(fields: [orderId], references: [id])
+  order                Order                 @relation(fields: [orderId], references: [id])
   paymentWebhookEvents PaymentWebhookEvent[]
 
   @@index([orderId, status])
@@ -1491,18 +1600,18 @@ model RefundRequest {
 }
 
 model CsCase {
-  id            String         @id @default(uuid()) @db.Uuid
-  orderId       String?        @map("order_id") @db.Uuid
-  csUserId      String?        @map("cs_user_id") @db.Uuid
-  title         String         @default("")
+  id            String        @id @default(uuid()) @db.Uuid
+  orderId       String?       @map("order_id") @db.Uuid
+  csUserId      String?       @map("cs_user_id") @db.Uuid
+  title         String        @default("")
   type          CaseType
-  status        CaseStatus     @default(OPEN)
-  requesterName String?        @map("requester_name")
+  status        CaseStatus    @default(OPEN)
+  requesterName String?       @map("requester_name")
   priority      CasePriority?
   description   String?
-  dueAt         DateTime?      @map("due_at")
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
+  dueAt         DateTime?     @map("due_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
 
   order  Order? @relation(fields: [orderId], references: [id])
   csUser User?  @relation("CsCase_Cs", fields: [csUserId], references: [id])
@@ -1584,8 +1693,6 @@ model Settlement {
   @@map("settlements")
 }
 
-
-
 model SystemConfig {
   id          String                @id @default(uuid()) @db.Uuid
   key         String                @unique
@@ -1666,18 +1773,18 @@ model RbacUserRole {
 }
 
 model AiParseResult {
-  id           String        @id @default(uuid()) @db.Uuid
-  contentType  AiContentType @map("content_type")
-  contentId    String        @map("content_id") @db.Uuid
-  summaryPlain String?       @map("summary_plain")
-  featuresPlain String?      @map("features_plain")
-  keywordsJson Json?         @map("keywords_json")
-  confidence   Float         @default(0)
-  modelVersion String?       @map("model_version")
-  status       AiParseStatus @default(ACTIVE)
-  note         String?
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
+  id            String        @id @default(uuid()) @db.Uuid
+  contentType   AiContentType @map("content_type")
+  contentId     String        @map("content_id") @db.Uuid
+  summaryPlain  String?       @map("summary_plain")
+  featuresPlain String?       @map("features_plain")
+  keywordsJson  Json?         @map("keywords_json")
+  confidence    Float         @default(0)
+  modelVersion  String?       @map("model_version")
+  status        AiParseStatus @default(ACTIVE)
+  note          String?
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
 
   feedbacks AiParseFeedback[]
 
@@ -1687,14 +1794,14 @@ model AiParseResult {
 }
 
 model AiParseFeedback {
-  id            String                   @id @default(uuid()) @db.Uuid
-  parseResultId String                   @map("parse_result_id") @db.Uuid
-  actorUserId   String?                  @map("actor_user_id") @db.Uuid
-  actorType     AiParseFeedbackActorType @map("actor_type")
-  score         Int
-  reasonTagsJson Json?                   @map("reason_tags_json")
-  comment       String?
-  createdAt     DateTime                 @default(now()) @map("created_at")
+  id             String                   @id @default(uuid()) @db.Uuid
+  parseResultId  String                   @map("parse_result_id") @db.Uuid
+  actorUserId    String?                  @map("actor_user_id") @db.Uuid
+  actorType      AiParseFeedbackActorType @map("actor_type")
+  score          Int
+  reasonTagsJson Json?                    @map("reason_tags_json")
+  comment        String?
+  createdAt      DateTime                 @default(now()) @map("created_at")
 
   parseResult AiParseResult @relation(fields: [parseResultId], references: [id])
   actor       User?         @relation("AiParseFeedback_Actor", fields: [actorUserId], references: [id])
@@ -1704,17 +1811,17 @@ model AiParseFeedback {
 }
 
 model AlertEvent {
-  id          String          @id @default(uuid()) @db.Uuid
+  id          String           @id @default(uuid()) @db.Uuid
   type        String
   severity    AlertSeverity
   channel     AlertChannel
   status      AlertStatus
   targetType  AlertTargetType? @map("target_type")
-  targetId    String?         @map("target_id") @db.Uuid
+  targetId    String?          @map("target_id") @db.Uuid
   message     String?
-  triggeredAt DateTime        @map("triggered_at")
-  sentAt      DateTime?       @map("sent_at")
-  createdAt   DateTime        @default(now()) @map("created_at")
+  triggeredAt DateTime         @map("triggered_at")
+  sentAt      DateTime?        @map("sent_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
 
   @@index([status, triggeredAt])
   @@index([targetType, targetId])
@@ -1722,16 +1829,16 @@ model AlertEvent {
 }
 
 model PatentMaintenanceSchedule {
-  id             String                   @id @default(uuid()) @db.Uuid
-  patentId       String                   @map("patent_id") @db.Uuid
-  yearNo         Int                      @map("year_no")
-  dueDate        DateTime                 @map("due_date") @db.Date
-  gracePeriodEnd DateTime?                @map("grace_period_end") @db.Date
-  status         PatentMaintenanceStatus  @default(DUE)
-  createdAt      DateTime                 @default(now()) @map("created_at")
-  updatedAt      DateTime                 @updatedAt @map("updated_at")
+  id             String                  @id @default(uuid()) @db.Uuid
+  patentId       String                  @map("patent_id") @db.Uuid
+  yearNo         Int                     @map("year_no")
+  dueDate        DateTime                @map("due_date") @db.Date
+  gracePeriodEnd DateTime?               @map("grace_period_end") @db.Date
+  status         PatentMaintenanceStatus @default(DUE)
+  createdAt      DateTime                @default(now()) @map("created_at")
+  updatedAt      DateTime                @updatedAt @map("updated_at")
 
-  patent Patent @relation(fields: [patentId], references: [id])
+  patent Patent                   @relation(fields: [patentId], references: [id])
   tasks  PatentMaintenanceTask[]
   orders PatentMaintenanceOrder[]
 
@@ -1741,14 +1848,14 @@ model PatentMaintenanceSchedule {
 }
 
 model PatentMaintenanceTask {
-  id               String                     @id @default(uuid()) @db.Uuid
-  scheduleId       String                     @map("schedule_id") @db.Uuid
-  assignedCsUserId String?                    @map("assigned_cs_user_id") @db.Uuid
+  id               String                      @id @default(uuid()) @db.Uuid
+  scheduleId       String                      @map("schedule_id") @db.Uuid
+  assignedCsUserId String?                     @map("assigned_cs_user_id") @db.Uuid
   status           PatentMaintenanceTaskStatus @default(OPEN)
   note             String?
-  evidenceFileId   String?                    @map("evidence_file_id") @db.Uuid
-  createdAt        DateTime                   @default(now()) @map("created_at")
-  updatedAt        DateTime                   @updatedAt @map("updated_at")
+  evidenceFileId   String?                     @map("evidence_file_id") @db.Uuid
+  createdAt        DateTime                    @default(now()) @map("created_at")
+  updatedAt        DateTime                    @updatedAt @map("updated_at")
 
   schedule       PatentMaintenanceSchedule @relation(fields: [scheduleId], references: [id])
   assignedCsUser User?                     @relation("PatentMaintenanceTask_Assignee", fields: [assignedCsUserId], references: [id])
@@ -1760,34 +1867,34 @@ model PatentMaintenanceTask {
 }
 
 model PatentMaintenanceOrder {
-  id                  String                          @id @default(uuid()) @db.Uuid
-  scheduleId          String                          @map("schedule_id") @db.Uuid
-  applicantUserId     String                          @map("applicant_user_id") @db.Uuid
-  assignedCsUserId    String?                         @map("assigned_cs_user_id") @db.Uuid
-  status              PatentMaintenanceOrderStatus    @default(REQUESTED)
-  paymentChannel      PatentMaintenancePaymentChannel? @map("payment_channel")
-  officialFeeFen      Int                             @default(0) @map("official_fee_fen")
-  lateFeeFen          Int                             @default(0) @map("late_fee_fen")
-  serviceFeeFen       Int                             @default(0) @map("service_fee_fen")
-  totalAmountFen      Int                             @default(0) @map("total_amount_fen")
-  paymentDeadline     DateTime?                       @map("payment_deadline")
-  paidAt              DateTime?                       @map("paid_at")
-  executedAt          DateTime?                       @map("executed_at")
-  receiptIssuedAt     DateTime?                       @map("receipt_issued_at")
-  officialSubmissionNo String?                        @map("official_submission_no")
-  officialReceiptNo   String?                         @map("official_receipt_no")
-  paymentTxnNo        String?                         @map("payment_txn_no")
-  officialReceiptFileId String?                       @map("official_receipt_file_id") @db.Uuid
-  reconcileStatus     PatentMaintenanceReconcileStatus @default(PENDING) @map("reconcile_status")
-  reconcileNote       String?                         @map("reconcile_note")
-  closeNote           String?                         @map("close_note")
-  createdAt           DateTime                        @default(now()) @map("created_at")
-  updatedAt           DateTime                        @updatedAt @map("updated_at")
+  id                    String                           @id @default(uuid()) @db.Uuid
+  scheduleId            String                           @map("schedule_id") @db.Uuid
+  applicantUserId       String                           @map("applicant_user_id") @db.Uuid
+  assignedCsUserId      String?                          @map("assigned_cs_user_id") @db.Uuid
+  status                PatentMaintenanceOrderStatus     @default(REQUESTED)
+  paymentChannel        PatentMaintenancePaymentChannel? @map("payment_channel")
+  officialFeeFen        Int                              @default(0) @map("official_fee_fen")
+  lateFeeFen            Int                              @default(0) @map("late_fee_fen")
+  serviceFeeFen         Int                              @default(0) @map("service_fee_fen")
+  totalAmountFen        Int                              @default(0) @map("total_amount_fen")
+  paymentDeadline       DateTime?                        @map("payment_deadline")
+  paidAt                DateTime?                        @map("paid_at")
+  executedAt            DateTime?                        @map("executed_at")
+  receiptIssuedAt       DateTime?                        @map("receipt_issued_at")
+  officialSubmissionNo  String?                          @map("official_submission_no")
+  officialReceiptNo     String?                          @map("official_receipt_no")
+  paymentTxnNo          String?                          @map("payment_txn_no")
+  officialReceiptFileId String?                          @map("official_receipt_file_id") @db.Uuid
+  reconcileStatus       PatentMaintenanceReconcileStatus @default(PENDING) @map("reconcile_status")
+  reconcileNote         String?                          @map("reconcile_note")
+  closeNote             String?                          @map("close_note")
+  createdAt             DateTime                         @default(now()) @map("created_at")
+  updatedAt             DateTime                         @updatedAt @map("updated_at")
 
-  schedule            PatentMaintenanceSchedule       @relation(fields: [scheduleId], references: [id])
-  applicantUser       User                            @relation("PatentMaintenanceOrder_Applicant", fields: [applicantUserId], references: [id])
-  assignedCsUser      User?                           @relation("PatentMaintenanceOrder_Assignee", fields: [assignedCsUserId], references: [id])
-  officialReceiptFile File?                           @relation("PatentMaintenanceOrder_ReceiptFile", fields: [officialReceiptFileId], references: [id])
+  schedule            PatentMaintenanceSchedule     @relation(fields: [scheduleId], references: [id])
+  applicantUser       User                          @relation("PatentMaintenanceOrder_Applicant", fields: [applicantUserId], references: [id])
+  assignedCsUser      User?                         @relation("PatentMaintenanceOrder_Assignee", fields: [assignedCsUserId], references: [id])
+  officialReceiptFile File?                         @relation("PatentMaintenanceOrder_ReceiptFile", fields: [officialReceiptFileId], references: [id])
   events              PatentMaintenanceOrderEvent[]
 
   @@index([scheduleId, status])
@@ -1797,15 +1904,15 @@ model PatentMaintenanceOrder {
 }
 
 model PatentMaintenanceOrderEvent {
-  id         String                       @id @default(uuid()) @db.Uuid
-  orderId    String                       @map("order_id") @db.Uuid
-  actorUserId String?                     @map("actor_user_id") @db.Uuid
-  eventType  PatentMaintenanceOrderEventType @map("event_type")
-  fromStatus PatentMaintenanceOrderStatus? @map("from_status")
-  toStatus   PatentMaintenanceOrderStatus @map("to_status")
-  note       String?
-  payloadJson Json?                       @map("payload_json")
-  createdAt  DateTime                     @default(now()) @map("created_at")
+  id          String                          @id @default(uuid()) @db.Uuid
+  orderId     String                          @map("order_id") @db.Uuid
+  actorUserId String?                         @map("actor_user_id") @db.Uuid
+  eventType   PatentMaintenanceOrderEventType @map("event_type")
+  fromStatus  PatentMaintenanceOrderStatus?   @map("from_status")
+  toStatus    PatentMaintenanceOrderStatus    @map("to_status")
+  note        String?
+  payloadJson Json?                           @map("payload_json")
+  createdAt   DateTime                        @default(now()) @map("created_at")
 
   order     PatentMaintenanceOrder @relation(fields: [orderId], references: [id])
   actorUser User?                  @relation("PatentMaintenanceOrderEvent_Actor", fields: [actorUserId], references: [id])

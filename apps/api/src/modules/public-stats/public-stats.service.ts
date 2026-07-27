@@ -38,7 +38,7 @@ export class PublicStatsService {
         },
       }),
       this.prisma.user.count(),
-      this.prisma.order.count({ where: { status: 'COMPLETED' } }),
+      this.prisma.dealRecord.count({ where: { status: 'ACTIVE' } }),
     ]);
 
     const data: PublicHomeStats = {

@@ -13,6 +13,7 @@ describe('ReportsService showcase summary suite', () => {
       patent: { count: vi.fn(), findMany: vi.fn() },
       userVerification: { count: vi.fn() },
       order: { count: vi.fn(), aggregate: vi.fn(), findMany: vi.fn() },
+      dealRecord: { count: vi.fn(), aggregate: vi.fn(), findMany: vi.fn() },
       listing: { count: vi.fn() },
       conversation: { count: vi.fn() },
       csCase: { count: vi.fn() },
@@ -37,8 +38,8 @@ describe('ReportsService showcase summary suite', () => {
     prisma.patent.count.mockResolvedValueOnce(42);
     prisma.userVerification.count.mockResolvedValueOnce(7);
     prisma.order.count.mockResolvedValueOnce(100);
-    prisma.order.count.mockResolvedValueOnce(64);
-    prisma.order.aggregate.mockResolvedValueOnce({ _sum: { dealAmount: 123456 } });
+    prisma.dealRecord.count.mockResolvedValueOnce(64);
+    prisma.dealRecord.aggregate.mockResolvedValueOnce({ _sum: { priceFen: 123456 }, _count: { _all: 64 } });
     prisma.userVerification.count.mockResolvedValueOnce(11);
     prisma.listing.count.mockResolvedValueOnce(9);
     prisma.conversation.count.mockResolvedValueOnce(5);
@@ -64,6 +65,10 @@ describe('ReportsService showcase summary suite', () => {
         status: 'CANCELLED',
         dealAmount: 500,
       },
+    ]);
+    prisma.dealRecord.findMany.mockResolvedValueOnce([
+      { dealAt: new Date('2026-03-10T08:00:00.000Z'), priceFen: 1200 },
+      { dealAt: new Date('2026-03-11T09:00:00.000Z'), priceFen: 2400 },
     ]);
     prisma.patent.findMany.mockResolvedValueOnce([
       { patentType: 'INVENTION' },
@@ -179,6 +184,19 @@ describe('ReportsService showcase summary suite', () => {
         dealAmount: true,
       },
     });
+    expect(prisma.dealRecord.findMany).toHaveBeenCalledWith({
+      where: {
+        status: 'ACTIVE',
+        dealAt: {
+          gte: new Date('2026-03-10T00:00:00.000Z'),
+          lte: new Date('2026-03-12T00:00:00.000Z'),
+        },
+      },
+      select: {
+        dealAt: true,
+        priceFen: true,
+      },
+    });
     expect(prisma.patent.findMany).toHaveBeenCalledWith({
       where: {
         createdAt: {
@@ -196,8 +214,8 @@ describe('ReportsService showcase summary suite', () => {
     prisma.patent.count.mockResolvedValueOnce(12);
     prisma.userVerification.count.mockResolvedValueOnce(4);
     prisma.order.count.mockResolvedValueOnce(30);
-    prisma.order.count.mockResolvedValueOnce(18);
-    prisma.order.aggregate.mockResolvedValueOnce({ _sum: { dealAmount: 999999 } });
+    prisma.dealRecord.count.mockResolvedValueOnce(18);
+    prisma.dealRecord.aggregate.mockResolvedValueOnce({ _sum: { priceFen: 999999 }, _count: { _all: 18 } });
     prisma.userVerification.count.mockResolvedValueOnce(9);
     prisma.listing.count.mockResolvedValueOnce(5);
     prisma.conversation.count.mockResolvedValueOnce(2);
@@ -218,6 +236,10 @@ describe('ReportsService showcase summary suite', () => {
         status: 'COMPLETED',
         dealAmount: 2400,
       },
+    ]);
+    prisma.dealRecord.findMany.mockResolvedValueOnce([
+      { dealAt: new Date('2025-07-15T08:00:00.000Z'), priceFen: 1200 },
+      { dealAt: new Date('2026-06-20T08:00:00.000Z'), priceFen: 2400 },
     ]);
     prisma.patent.findMany.mockResolvedValueOnce([
       { patentType: 'INVENTION' },

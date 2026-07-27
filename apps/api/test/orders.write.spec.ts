@@ -52,6 +52,7 @@ describe('OrdersService write-first suite', () => {
   let config: any;
   let notifications: any;
   let opsNotifications: any;
+  let dealRecords: any;
   let service: OrdersService;
   let originalDemoPayment: string | undefined;
 
@@ -93,8 +94,9 @@ describe('OrdersService write-first suite', () => {
       enqueueOrderDepositPaid: vi.fn().mockResolvedValue({ count: 1 }),
       enqueueOrderDepositPending: vi.fn().mockResolvedValue({ count: 1 }),
     };
+    dealRecords = { upsertOnlineOrderDealRecord: vi.fn().mockResolvedValue({ id: 'deal-record-1' }) };
 
-    service = new OrdersService(prisma, audit, config, notifications, opsNotifications);
+    service = new OrdersService(prisma, audit, config, notifications, opsNotifications, dealRecords);
   });
 
   afterEach(() => {
@@ -1405,6 +1407,11 @@ describe('OrdersService write-first suite', () => {
           payoutRef: 'PO-1',
         }),
       }),
+    );
+    expect(dealRecords.upsertOnlineOrderDealRecord).toHaveBeenCalledWith(
+      prisma,
+      ORDER_ID,
+      expect.objectContaining({ actorUserId: ADMIN_ID }),
     );
     expect(result).toMatchObject({ id: 'settlement-1', orderId: ORDER_ID, status: 'COMPLETED', payoutStatus: 'SUCCEEDED' });
   });

@@ -3170,6 +3170,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/orders/{orderId}/contract/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload order contract file */
+        post: operations["adminUploadOrderContract"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/orders/{orderId}/milestones/transfer-completed": {
         parameters: {
             query?: never;
@@ -3371,6 +3388,23 @@ export interface paths {
         put?: never;
         /** Confirm contract signed for assigned order */
         post: operations["adminConfirmAssignedOrderContractSigned"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/orders/assigned/{orderId}/contract/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload contract file for assigned order */
+        post: operations["adminUploadAssignedOrderContract"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3930,6 +3964,142 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/admin/deal-records/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get deal record summary */
+        get: operations["adminGetDealRecordSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/deal-records/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List deal record import jobs */
+        get: operations["adminListDealRecordImportJobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/deal-records/import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview deal record import */
+        post: operations["adminPreviewDealRecordImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/deal-records/import/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Execute deal record import */
+        post: operations["adminExecuteDealRecordImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/deal-records/backfill/completed-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Backfill completed order deal records */
+        post: operations["adminBackfillCompletedOrderDealRecords"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/deal-records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List deal records */
+        get: operations["adminListDealRecords"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/deal-records/{dealRecordId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get deal record detail */
+        get: operations["adminGetDealRecordById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/deal-records/{dealRecordId}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Void deal record */
+        patch: operations["adminVoidDealRecord"];
         trace?: never;
     };
     "/admin/reports/finance/summary": {
@@ -5524,6 +5694,130 @@ export interface components {
         PagedOrder: {
             items: components["schemas"]["Order"][];
             page: components["schemas"]["PageMeta"];
+        };
+        AdminOrderContractUploadRequest: {
+            contractFileId: components["schemas"]["Uuid"];
+        };
+        /** @enum {string} */
+        DealRecordSource: "ONLINE_ORDER" | "ADMIN_IMPORT";
+        /** @enum {string} */
+        DealRecordStatus: "ACTIVE" | "VOIDED";
+        /** @enum {string} */
+        DealTradeType: "LICENSE" | "TRANSFER" | "UNKNOWN";
+        /** @enum {string} */
+        DealRecordImportDuplicatePolicy: "SKIP" | "UPSERT";
+        /** @enum {string} */
+        DealRecordImportJobStatus: "PENDING" | "SUCCEEDED" | "FAILED" | "PARTIAL_FAILED";
+        DealRecordPayload: {
+            patentId?: components["schemas"]["Uuid"];
+            patentNoNorm: string;
+            patentNoDisplay: string;
+            patentTitle: string;
+            tradeType: components["schemas"]["DealTradeType"];
+            sellerPartyName: string;
+            buyerPartyName: string;
+            /** Format: date-time */
+            dealAt: string;
+            priceFen: components["schemas"]["MoneyFen"];
+            dedupeKey: string;
+            note?: string | null;
+        };
+        DealRecord: components["schemas"]["DealRecordPayload"] & {
+            id: components["schemas"]["Uuid"];
+            source: components["schemas"]["DealRecordSource"];
+            status: components["schemas"]["DealRecordStatus"];
+            sourceOrderId?: components["schemas"]["Uuid"];
+            importJobId?: components["schemas"]["Uuid"];
+            /** Format: date-time */
+            voidedAt?: string | null;
+            voidReason?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        PagedDealRecord: {
+            items: components["schemas"]["DealRecord"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        DealRecordSummary: {
+            activeTotal: number;
+            onlineTotal: number;
+            importedTotal: number;
+            activeAmountFen: components["schemas"]["MoneyFen"];
+        };
+        DealRecordImportRequest: {
+            fileId: components["schemas"]["Uuid"];
+            duplicatePolicy?: components["schemas"]["DealRecordImportDuplicatePolicy"];
+        };
+        DealRecordImportSummary: {
+            totalRows: number;
+            validRows: number;
+            invalidRows: number;
+            duplicateRows: number;
+            warningRows: number;
+        };
+        DealRecordImportExecuteSummary: {
+            totalRows: number;
+            validRows: number;
+            invalidRows: number;
+            successCount: number;
+            skippedCount: number;
+            failedCount: number;
+        };
+        DealRecordImportPreviewIssue: {
+            rowNo: number;
+            code?: string | null;
+            message?: string | null;
+            existingDealRecordId?: components["schemas"]["Uuid"];
+        };
+        DealRecordImportPreviewRow: {
+            rowNo: number;
+            data?: components["schemas"]["DealRecordPayload"];
+        };
+        DealRecordImportPreviewResponse: {
+            summary: components["schemas"]["DealRecordImportSummary"];
+            sampleErrors: components["schemas"]["DealRecordImportPreviewIssue"][];
+            sampleWarnings: components["schemas"]["DealRecordImportPreviewIssue"][];
+            sampleRows: components["schemas"]["DealRecordImportPreviewRow"][];
+        };
+        DealRecordImportJob: {
+            id: components["schemas"]["Uuid"];
+            operatorUserId: components["schemas"]["Uuid"];
+            fileId: components["schemas"]["Uuid"];
+            status: components["schemas"]["DealRecordImportJobStatus"];
+            duplicatePolicy: components["schemas"]["DealRecordImportDuplicatePolicy"];
+            totalCount: number;
+            validCount: number;
+            invalidCount: number;
+            successCount: number;
+            skippedCount: number;
+            failedCount: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** Format: date-time */
+            finishedAt?: string | null;
+        };
+        PagedDealRecordImportJob: {
+            items: components["schemas"]["DealRecordImportJob"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        DealRecordImportExecuteResponse: {
+            job: components["schemas"]["DealRecordImportJob"];
+            summary: components["schemas"]["DealRecordImportExecuteSummary"];
+        };
+        DealRecordVoidRequest: {
+            reason: string;
+        };
+        DealRecordBackfillRequest: {
+            limit?: number;
+        };
+        DealRecordBackfillResponse: {
+            requested: number;
+            createdOrUpdated: number;
+            failed: number;
         };
         /** @enum {string} */
         RefundRequestStatus: "PENDING" | "APPROVED" | "REJECTED" | "REFUNDING" | "REFUNDED";
@@ -13152,6 +13446,37 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
+    adminUploadOrderContract: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: components["parameters"]["OrderId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminOrderContractUploadRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Order"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
     adminConfirmTransferCompleted: {
         parameters: {
             query?: never;
@@ -13602,6 +13927,37 @@ export interface operations {
                     signedAt?: string;
                     remark?: string;
                 };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Order"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminUploadAssignedOrderContract: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: components["parameters"]["OrderId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminOrderContractUploadRequest"];
             };
         };
         responses: {
@@ -14764,6 +15120,241 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OpsNotificationJob"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminGetDealRecordSummary: {
+        parameters: {
+            query?: {
+                dealFrom?: string;
+                dealTo?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DealRecordSummary"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminListDealRecordImportJobs: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedDealRecordImportJob"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminPreviewDealRecordImport: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DealRecordImportRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DealRecordImportPreviewResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminExecuteDealRecordImport: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DealRecordImportRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DealRecordImportExecuteResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminBackfillCompletedOrderDealRecords: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DealRecordBackfillRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DealRecordBackfillResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminListDealRecords: {
+        parameters: {
+            query?: {
+                /** @description 閸忔娊鏁拠宥忕礄閺嶅洭顣?閹芥顩?閺夊啫鍩勬禍?閸欐垶妲戞禍?閺堢儤鐎崥宥囆炵粵澶涚礆 */
+                q?: components["parameters"]["Q"];
+                source?: components["schemas"]["DealRecordSource"];
+                status?: components["schemas"]["DealRecordStatus"];
+                tradeType?: components["schemas"]["DealTradeType"];
+                dealFrom?: string;
+                dealTo?: string;
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedDealRecord"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminGetDealRecordById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dealRecordId: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DealRecord"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminVoidDealRecord: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dealRecordId: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DealRecordVoidRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DealRecord"];
                 };
             };
             400: components["responses"]["BadRequest"];

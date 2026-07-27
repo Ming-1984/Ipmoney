@@ -24,6 +24,7 @@ import { ConfigService, TradeRulesConfig } from '../config/config.service';
 import { isDemoPaymentEnabled } from '../../common/demo';
 import { NotificationsService } from '../notifications/notifications.service';
 import { OpsNotificationsService } from '../ops-notifications/ops-notifications.service';
+import { DealRecordsService } from '../deal-records/deal-records.service';
 import { WechatPayClient, WechatPayError } from '../../common/wechat-pay.client';
 import { normalizeDisplayText, resolvePublicFileUrl } from '../content-utils';
 
@@ -246,6 +247,7 @@ export class OrdersService {
     private readonly config: ConfigService,
     private readonly notifications: NotificationsService,
     private readonly opsNotifications: OpsNotificationsService,
+    private readonly dealRecords: DealRecordsService,
   ) {}
 
   private async notifyUser(userId: string | null | undefined, title: string, summary: string, source: string) {
@@ -2522,34 +2524,41 @@ export class OrdersService {
     const remark = body?.remark ? String(body.remark).trim() : undefined;
     const rules = await this.config.getTradeRules();
     const settlementAmounts = this.computeSettlementAmounts(order, rules);
-    const settlement = await this.prisma.settlement.upsert({
-      where: { orderId: normalizedOrderId },
-      create: {
-        orderId: normalizedOrderId,
-        grossAmount: settlementAmounts.grossAmount,
-        commissionAmount: settlementAmounts.commissionAmount,
-        payoutAmount: settlementAmounts.payoutAmount,
-        payoutMethod: rules.payoutMethodDefault,
-        payoutStatus: 'SUCCEEDED',
-        payoutRef,
-        payoutEvidenceFileId,
-        payoutAt,
-        status: 'COMPLETED',
-      },
-      update: {
-        grossAmount: settlementAmounts.grossAmount,
-        commissionAmount: settlementAmounts.commissionAmount,
-        payoutAmount: settlementAmounts.payoutAmount,
-        payoutStatus: 'SUCCEEDED',
-        payoutRef,
-        payoutEvidenceFileId,
-        payoutAt,
-        status: 'COMPLETED',
-      },
-    });
-    await this.prisma.order.update({
-      where: { id: normalizedOrderId },
-      data: { status: 'COMPLETED', commissionAmount: settlementAmounts.commissionAmount },
+    const settlement = await this.prisma.$transaction(async (tx) => {
+      const nextSettlement = await tx.settlement.upsert({
+        where: { orderId: normalizedOrderId },
+        create: {
+          orderId: normalizedOrderId,
+          grossAmount: settlementAmounts.grossAmount,
+          commissionAmount: settlementAmounts.commissionAmount,
+          payoutAmount: settlementAmounts.payoutAmount,
+          payoutMethod: rules.payoutMethodDefault,
+          payoutStatus: 'SUCCEEDED',
+          payoutRef,
+          payoutEvidenceFileId,
+          payoutAt,
+          status: 'COMPLETED',
+        },
+        update: {
+          grossAmount: settlementAmounts.grossAmount,
+          commissionAmount: settlementAmounts.commissionAmount,
+          payoutAmount: settlementAmounts.payoutAmount,
+          payoutStatus: 'SUCCEEDED',
+          payoutRef,
+          payoutEvidenceFileId,
+          payoutAt,
+          status: 'COMPLETED',
+        },
+      });
+      await tx.order.update({
+        where: { id: normalizedOrderId },
+        data: { status: 'COMPLETED', commissionAmount: settlementAmounts.commissionAmount },
+      });
+      await this.dealRecords.upsertOnlineOrderDealRecord(tx, normalizedOrderId, {
+        actorUserId: req.auth.userId,
+        dealAt: payoutAt,
+      });
+      return nextSettlement;
     });
     await this.audit.log({
       actorUserId: req.auth.userId,

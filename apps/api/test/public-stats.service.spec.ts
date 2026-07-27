@@ -16,6 +16,7 @@ describe('PublicStatsService suite', () => {
       userVerification: { count: vi.fn() },
       user: { count: vi.fn() },
       order: { count: vi.fn() },
+      dealRecord: { count: vi.fn() },
     };
     service = new PublicStatsService(prisma);
   });
@@ -29,7 +30,7 @@ describe('PublicStatsService suite', () => {
     prisma.patent.count.mockResolvedValueOnce(13366);
     prisma.userVerification.count.mockResolvedValueOnce(193);
     prisma.user.count.mockResolvedValueOnce(228);
-    prisma.order.count.mockResolvedValueOnce(0);
+    prisma.dealRecord.count.mockResolvedValueOnce(0);
 
     const result = await service.getHomeStats();
 
@@ -48,14 +49,14 @@ describe('PublicStatsService suite', () => {
       },
     });
     expect(prisma.user.count).toHaveBeenCalledTimes(1);
-    expect(prisma.order.count).toHaveBeenCalledWith({ where: { status: 'COMPLETED' } });
+    expect(prisma.dealRecord.count).toHaveBeenCalledWith({ where: { status: 'ACTIVE' } });
   });
 
   it('caches homepage stats for a short public-read window', async () => {
     prisma.patent.count.mockResolvedValueOnce(10);
     prisma.userVerification.count.mockResolvedValueOnce(2);
     prisma.user.count.mockResolvedValueOnce(3);
-    prisma.order.count.mockResolvedValueOnce(4);
+    prisma.dealRecord.count.mockResolvedValueOnce(4);
 
     const first = await service.getHomeStats();
     const second = await service.getHomeStats();
@@ -64,7 +65,7 @@ describe('PublicStatsService suite', () => {
     expect(prisma.patent.count).toHaveBeenCalledTimes(1);
     expect(prisma.userVerification.count).toHaveBeenCalledTimes(1);
     expect(prisma.user.count).toHaveBeenCalledTimes(1);
-    expect(prisma.order.count).toHaveBeenCalledTimes(1);
+    expect(prisma.dealRecord.count).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -6423,6 +6423,40 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+  /admin/orders/{orderId}/contract/upload:
+    post:
+      tags:
+        - Admin
+        - Orders
+      summary: Upload order contract file
+      operationId: adminUploadOrderContract
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminOrderContractUploadRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /admin/orders/{orderId}/milestones/transfer-completed:
     post:
       tags:
@@ -6941,6 +6975,40 @@ paths:
                   format: date-time
                 remark:
                   type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /admin/orders/assigned/{orderId}/contract/upload:
+    post:
+      tags:
+        - Admin
+        - Orders
+      summary: Upload contract file for assigned order
+      operationId: adminUploadAssignedOrderContract
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminOrderContractUploadRequest'
       responses:
         '200':
           description: OK
@@ -8205,6 +8273,275 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OpsNotificationJob'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/deal-records/summary:
+    get:
+      tags:
+        - Admin
+      summary: Get deal record summary
+      operationId: adminGetDealRecordSummary
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: dealFrom
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: dealTo
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DealRecordSummary'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admin/deal-records/imports:
+    get:
+      tags:
+        - Admin
+      summary: List deal record import jobs
+      operationId: adminListDealRecordImportJobs
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedDealRecordImportJob'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admin/deal-records/import/preview:
+    post:
+      tags:
+        - Admin
+      summary: Preview deal record import
+      operationId: adminPreviewDealRecordImport
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DealRecordImportRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DealRecordImportPreviewResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /admin/deal-records/import/execute:
+    post:
+      tags:
+        - Admin
+      summary: Execute deal record import
+      operationId: adminExecuteDealRecordImport
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DealRecordImportRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DealRecordImportExecuteResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /admin/deal-records/backfill/completed-orders:
+    post:
+      tags:
+        - Admin
+      summary: Backfill completed order deal records
+      operationId: adminBackfillCompletedOrderDealRecords
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DealRecordBackfillRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DealRecordBackfillResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admin/deal-records:
+    get:
+      tags:
+        - Admin
+      summary: List deal records
+      operationId: adminListDealRecords
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Q'
+        - name: source
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/DealRecordSource'
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/DealRecordStatus'
+        - name: tradeType
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/DealTradeType'
+        - name: dealFrom
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: dealTo
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedDealRecord'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admin/deal-records/{dealRecordId}:
+    get:
+      tags:
+        - Admin
+      summary: Get deal record detail
+      operationId: adminGetDealRecordById
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: dealRecordId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DealRecord'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/deal-records/{dealRecordId}/void:
+    patch:
+      tags:
+        - Admin
+      summary: Void deal record
+      operationId: adminVoidDealRecord
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: dealRecordId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DealRecordVoidRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DealRecord'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -12995,6 +13332,365 @@ components:
             $ref: '#/components/schemas/Order'
         page:
           $ref: '#/components/schemas/PageMeta'
+    AdminOrderContractUploadRequest:
+      type: object
+      required:
+        - contractFileId
+      properties:
+        contractFileId:
+          $ref: '#/components/schemas/Uuid'
+    DealRecordSource:
+      type: string
+      enum:
+        - ONLINE_ORDER
+        - ADMIN_IMPORT
+    DealRecordStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - VOIDED
+    DealTradeType:
+      type: string
+      enum:
+        - LICENSE
+        - TRANSFER
+        - UNKNOWN
+    DealRecordImportDuplicatePolicy:
+      type: string
+      enum:
+        - SKIP
+        - UPSERT
+    DealRecordImportJobStatus:
+      type: string
+      enum:
+        - PENDING
+        - SUCCEEDED
+        - FAILED
+        - PARTIAL_FAILED
+    DealRecordPayload:
+      type: object
+      required:
+        - patentNoNorm
+        - patentNoDisplay
+        - patentTitle
+        - tradeType
+        - sellerPartyName
+        - buyerPartyName
+        - dealAt
+        - priceFen
+        - dedupeKey
+      properties:
+        patentId:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+        patentNoNorm:
+          type: string
+        patentNoDisplay:
+          type: string
+        patentTitle:
+          type: string
+        tradeType:
+          $ref: '#/components/schemas/DealTradeType'
+        sellerPartyName:
+          type: string
+        buyerPartyName:
+          type: string
+        dealAt:
+          type: string
+          format: date-time
+        priceFen:
+          $ref: '#/components/schemas/MoneyFen'
+        dedupeKey:
+          type: string
+        note:
+          type: string
+          nullable: true
+    DealRecord:
+      allOf:
+        - $ref: '#/components/schemas/DealRecordPayload'
+        - type: object
+          required:
+            - id
+            - source
+            - status
+            - createdAt
+          properties:
+            id:
+              $ref: '#/components/schemas/Uuid'
+            source:
+              $ref: '#/components/schemas/DealRecordSource'
+            status:
+              $ref: '#/components/schemas/DealRecordStatus'
+            sourceOrderId:
+              $ref: '#/components/schemas/Uuid'
+              nullable: true
+            importJobId:
+              $ref: '#/components/schemas/Uuid'
+              nullable: true
+            voidedAt:
+              type: string
+              format: date-time
+              nullable: true
+            voidReason:
+              type: string
+              nullable: true
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+              nullable: true
+    PagedDealRecord:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DealRecord'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    DealRecordSummary:
+      type: object
+      required:
+        - activeTotal
+        - onlineTotal
+        - importedTotal
+        - activeAmountFen
+      properties:
+        activeTotal:
+          type: integer
+          minimum: 0
+        onlineTotal:
+          type: integer
+          minimum: 0
+        importedTotal:
+          type: integer
+          minimum: 0
+        activeAmountFen:
+          $ref: '#/components/schemas/MoneyFen'
+    DealRecordImportRequest:
+      type: object
+      required:
+        - fileId
+      properties:
+        fileId:
+          $ref: '#/components/schemas/Uuid'
+        duplicatePolicy:
+          $ref: '#/components/schemas/DealRecordImportDuplicatePolicy'
+    DealRecordImportSummary:
+      type: object
+      required:
+        - totalRows
+        - validRows
+        - invalidRows
+        - duplicateRows
+        - warningRows
+      properties:
+        totalRows:
+          type: integer
+          minimum: 0
+        validRows:
+          type: integer
+          minimum: 0
+        invalidRows:
+          type: integer
+          minimum: 0
+        duplicateRows:
+          type: integer
+          minimum: 0
+        warningRows:
+          type: integer
+          minimum: 0
+    DealRecordImportExecuteSummary:
+      type: object
+      required:
+        - totalRows
+        - validRows
+        - invalidRows
+        - successCount
+        - skippedCount
+        - failedCount
+      properties:
+        totalRows:
+          type: integer
+          minimum: 0
+        validRows:
+          type: integer
+          minimum: 0
+        invalidRows:
+          type: integer
+          minimum: 0
+        successCount:
+          type: integer
+          minimum: 0
+        skippedCount:
+          type: integer
+          minimum: 0
+        failedCount:
+          type: integer
+          minimum: 0
+    DealRecordImportPreviewIssue:
+      type: object
+      required:
+        - rowNo
+      properties:
+        rowNo:
+          type: integer
+          minimum: 1
+        code:
+          type: string
+          nullable: true
+        message:
+          type: string
+          nullable: true
+        existingDealRecordId:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+    DealRecordImportPreviewRow:
+      type: object
+      required:
+        - rowNo
+      properties:
+        rowNo:
+          type: integer
+          minimum: 1
+        data:
+          $ref: '#/components/schemas/DealRecordPayload'
+          nullable: true
+    DealRecordImportPreviewResponse:
+      type: object
+      required:
+        - summary
+        - sampleErrors
+        - sampleWarnings
+        - sampleRows
+      properties:
+        summary:
+          $ref: '#/components/schemas/DealRecordImportSummary'
+        sampleErrors:
+          type: array
+          items:
+            $ref: '#/components/schemas/DealRecordImportPreviewIssue'
+        sampleWarnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/DealRecordImportPreviewIssue'
+        sampleRows:
+          type: array
+          items:
+            $ref: '#/components/schemas/DealRecordImportPreviewRow'
+    DealRecordImportJob:
+      type: object
+      required:
+        - id
+        - operatorUserId
+        - fileId
+        - status
+        - duplicatePolicy
+        - totalCount
+        - validCount
+        - invalidCount
+        - successCount
+        - skippedCount
+        - failedCount
+        - createdAt
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        operatorUserId:
+          $ref: '#/components/schemas/Uuid'
+        fileId:
+          $ref: '#/components/schemas/Uuid'
+        status:
+          $ref: '#/components/schemas/DealRecordImportJobStatus'
+        duplicatePolicy:
+          $ref: '#/components/schemas/DealRecordImportDuplicatePolicy'
+        totalCount:
+          type: integer
+          minimum: 0
+        validCount:
+          type: integer
+          minimum: 0
+        invalidCount:
+          type: integer
+          minimum: 0
+        successCount:
+          type: integer
+          minimum: 0
+        skippedCount:
+          type: integer
+          minimum: 0
+        failedCount:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        finishedAt:
+          type: string
+          format: date-time
+          nullable: true
+    PagedDealRecordImportJob:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DealRecordImportJob'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    DealRecordImportExecuteResponse:
+      type: object
+      required:
+        - job
+        - summary
+      properties:
+        job:
+          $ref: '#/components/schemas/DealRecordImportJob'
+        summary:
+          $ref: '#/components/schemas/DealRecordImportExecuteSummary'
+    DealRecordVoidRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          maxLength: 500
+    DealRecordBackfillRequest:
+      type: object
+      properties:
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 1000
+    DealRecordBackfillResponse:
+      type: object
+      required:
+        - requested
+        - createdOrUpdated
+        - failed
+      properties:
+        requested:
+          type: integer
+          minimum: 0
+        createdOrUpdated:
+          type: integer
+          minimum: 0
+        failed:
+          type: integer
+          minimum: 0
     RefundRequestStatus:
       type: string
       enum:

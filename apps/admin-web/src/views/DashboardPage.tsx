@@ -760,6 +760,7 @@ export function DashboardPage() {
   }, [summary]);
 
   const hasOrderAccess = can(permissionSet, 'order.read');
+  const hasDealRecordAccess = can(permissionSet, 'dealRecord.read') || hasOrderAccess;
   const hasListingAccess = can(permissionSet, 'listing.read');
   const hasVerificationAccess = can(permissionSet, 'verification.read');
   const hasReportAccess = can(permissionSet, 'report.read');
@@ -779,7 +780,7 @@ export function DashboardPage() {
           title: '累计成交额',
           value: formatFenValue(toMetricValue(summary?.overview?.completedDealAmountFen)),
           suffix: '元',
-          permission: 'order.read',
+          permission: 'dealRecord.read',
           icon: <DollarOutlined />,
         },
         {
@@ -808,14 +809,14 @@ export function DashboardPage() {
         },
         {
           key: 'completed-orders-total',
-          title: '已完成订单数',
+          title: '累计成交量',
           value: formatCount(toMetricValue(summary?.overview?.completedOrdersTotal)),
-          suffix: '单',
-          permission: 'order.read',
+          suffix: '笔',
+          permission: 'dealRecord.read',
           icon: <CheckSquareOutlined />,
         },
-      ].filter((item) => can(permissionSet, item.permission)),
-    [permissionSet, summary],
+      ].filter((item) => can(permissionSet, item.permission) || (item.permission === 'dealRecord.read' && hasOrderAccess)),
+    [hasOrderAccess, permissionSet, summary],
   );
 
   const quickActions = useMemo(
@@ -873,8 +874,8 @@ export function DashboardPage() {
   const healthItems = Object.entries(healthChecks || {});
 
   const ordersTrend = hasOrderAccess ? analysisData?.orders30d || [] : [];
-  const completedTrend = hasOrderAccess ? analysisData?.completedOrders30d || [] : [];
-  const amountTrend = hasOrderAccess ? analysisData?.dealAmount30d || [] : [];
+  const completedTrend = hasDealRecordAccess ? analysisData?.completedOrders30d || [] : [];
+  const amountTrend = hasDealRecordAccess ? analysisData?.dealAmount30d || [] : [];
   const orderStatusItems = hasOrderAccess ? analysisData?.orderStatuses || [] : [];
   const patentTypeItems = hasListingAccess ? analysisData?.patentTypes || [] : [];
   const orderDistributionTotal = orderStatusItems.reduce((acc, item) => acc + toNumber(item.value), 0);
@@ -915,7 +916,7 @@ export function DashboardPage() {
 
         <div className="ipm-showcase-trends">
           <TrendPanel title="订单数量统计" legend="订单数量（单）" points={ordersTrend} color="#ff6a00" />
-          <TrendPanel title="已完成订单统计" legend="已完成订单数（单）" points={completedTrend} color="#ff7a1a" />
+          <TrendPanel title="累计成交量统计" legend="累计成交量（笔）" points={completedTrend} color="#ff7a1a" />
           <TrendPanel title="成交额统计" legend="成交额（万元）" points={amountTrend} color="#ff8f3d" money />
         </div>
 

@@ -4,20 +4,22 @@
 
 ## Summary
 
-- OpenAPI operations: 276
-- Frontend-used operations (client): 96
-- Frontend-used operations (admin): 149
+- OpenAPI operations: 287
+- Frontend-used operations (client): 95
+- Frontend-used operations (admin): 156
 - Fixture scenarios: 7
 
 ## Key Gaps
 
 - Frontend-used but missing from OpenAPI: 0
-- OpenAPI-defined but unused by frontend: 38
+- OpenAPI-defined but unused by frontend: 43
   - GET /WW_verify_YpAqDE4xoAPsmGSK.txt
   - GET /admin/achievements/:param/audit-logs
   - GET /admin/ai/parse-results
   - GET /admin/ai/parse-results/:param
   - GET /admin/config/banner
+  - GET /admin/deal-records/:param
+  - GET /admin/deal-records/imports
   - GET /admin/listings/:param/audit-logs
   - GET /admin/listings/:param/materials
   - GET /admin/listings/jobs/batch/:param
@@ -36,7 +38,10 @@
   - GET /me/patent-maintenance/tasks
   - PATCH /admin/ai/parse-results/:param
   - PATCH /admin/tech-managers/batch/rating
+  - POST /achievements/:param/consultations
+  - POST /achievements/:param/conversations
   - POST /admin/achievements/:param/publish
+  - POST /admin/deal-records/backfill/completed-orders
   - POST /admin/listings
   - POST /admin/listings/:param/off-shelf
   - POST /admin/listings/:param/publish
@@ -51,7 +56,7 @@
   - POST /ai/parse-results/:param/feedback
   - PUT /admin/config/banner
   - PUT /admin/listings/:param/featured
-- Frontend-used but missing in happy fixtures: 234
+- Frontend-used but missing in happy fixtures: 239
   - DELETE /achievements/:param/favorites
   - DELETE /admin/config/home-announcements/items/:param
   - DELETE /admin/config/home-announcements/templates/:param
@@ -82,6 +87,8 @@
   - GET /admin/config/trade-rules
   - GET /admin/conversations/platform
   - GET /admin/dashboard/showcase-summary
+  - GET /admin/deal-records
+  - GET /admin/deal-records/summary
   - GET /admin/imports/people-achievements/history
   - GET /admin/industry-tags
   - GET /admin/invoices
@@ -100,9 +107,7 @@
   - GET /admin/patent-maintenance/orders
   - GET /admin/patent-maintenance/orders/:param/events
   - GET /admin/patent-maintenance/schedules
-  - GET /admin/patent-maintenance/tasks
-  - GET /admin/patents
-  - ... (184 more)
+  - ... (189 more)
 
 ## Coverage Details (by operation)
 
@@ -142,6 +147,10 @@
 | adminGetTradeRulesConfig | GET | /admin/config/trade-rules |  | Y |  |  |  |  |  |  |  |
 | adminListPlatformConversations | GET | /admin/conversations/platform |  | Y |  |  |  |  |  |  |  |
 | adminGetDashboardShowcaseSummary | GET | /admin/dashboard/showcase-summary |  | Y |  |  |  |  |  |  |  |
+| adminListDealRecords | GET | /admin/deal-records |  | Y |  |  |  |  |  |  |  |
+| adminGetDealRecordById | GET | /admin/deal-records/:param |  |  |  |  |  |  |  |  |  |
+| adminListDealRecordImportJobs | GET | /admin/deal-records/imports |  |  |  |  |  |  |  |  |  |
+| adminGetDealRecordSummary | GET | /admin/deal-records/summary |  | Y |  |  |  |  |  |  |  |
 | adminListPeopleAchievementsImportHistory | GET | /admin/imports/people-achievements/history |  | Y |  |  |  |  |  |  |  |
 | adminListIndustryTags | GET | /admin/industry-tags |  | Y |  |  |  |  |  |  |  |
 | adminListInvoices | GET | /admin/invoices |  | Y |  |  |  |  |  |  |  |
@@ -229,6 +238,7 @@
 | getPublicHomeAnnouncementsFeed | GET | /public/config/home-announcements | Y |  |  |  |  |  |  |  |  |
 | getPublicHomeLandingConfig | GET | /public/config/home-landing | Y |  | Y |  |  |  |  |  |  |
 | getPublicTradeRulesConfig | GET | /public/config/trade-rules | Y |  |  |  |  |  |  |  |  |
+| getPublicHomeStats | GET | /public/home-stats | Y |  | Y |  |  |  |  |  |  |
 | listPublicIndustryTags | GET | /public/industry-tags | Y |  |  |  |  |  |  |  |  |
 | getPublicListingById | GET | /public/listings/:param | Y |  |  |  |  |  |  |  |  |
 | listPublicListingComments | GET | /public/listings/:param/comments | Y |  |  |  |  |  |  |  |  |
@@ -248,6 +258,7 @@
 | adminUpdateAchievement | PATCH | /admin/achievements/:param |  | Y |  |  |  |  |  |  |  |
 | adminUpdateAiParseResult | PATCH | /admin/ai/parse-results/:param |  |  |  |  |  |  |  |  |  |
 | adminUpdateComment | PATCH | /admin/comments/:param |  | Y |  |  |  |  |  |  |  |
+| adminVoidDealRecord | PATCH | /admin/deal-records/:param/void |  | Y |  |  |  |  |  |  |  |
 | adminUpdateListing | PATCH | /admin/listings/:param |  | Y |  |  |  |  |  |  |  |
 | adminUpdatePatentMaintenanceSchedule | PATCH | /admin/patent-maintenance/schedules/:param |  | Y |  |  |  |  |  |  |  |
 | adminUpdatePatentMaintenanceTask | PATCH | /admin/patent-maintenance/tasks/:param |  | Y |  |  |  |  |  |  |  |
@@ -266,8 +277,8 @@
 | updateMyAddress | PATCH | /me/addresses/:param | Y |  |  |  |  |  |  |  |  |
 | createAchievement | POST | /achievements | Y |  |  |  |  |  |  |  |  |
 | createAchievementComment | POST | /achievements/:param/comments | Y |  |  |  |  |  |  |  |  |
-| createAchievementConsultation | POST | /achievements/:param/consultations | Y |  |  |  |  |  |  |  |  |
-| upsertAchievementConversation | POST | /achievements/:param/conversations | Y |  |  |  |  |  |  |  |  |
+| createAchievementConsultation | POST | /achievements/:param/consultations |  |  |  |  |  |  |  |  |  |
+| upsertAchievementConversation | POST | /achievements/:param/conversations |  |  |  |  |  |  |  |  |  |
 | favoriteAchievement | POST | /achievements/:param/favorites | Y |  |  |  |  |  |  |  |  |
 | offShelfAchievement | POST | /achievements/:param/off-shelf | Y |  |  |  |  |  |  |  |  |
 | submitAchievement | POST | /achievements/:param/submit | Y |  |  |  |  |  |  |  |  |
@@ -288,6 +299,9 @@
 | adminPublishHomeAnnouncementItem | POST | /admin/config/home-announcements/items/:param/publish |  | Y |  |  |  |  |  |  |  |
 | adminCreateHomeAnnouncementTemplate | POST | /admin/config/home-announcements/templates |  | Y |  |  |  |  |  |  |  |
 | adminAssignPlatformConversationAgent | POST | /admin/conversations/:param/agents |  | Y |  |  |  |  |  |  |  |
+| adminBackfillCompletedOrderDealRecords | POST | /admin/deal-records/backfill/completed-orders |  |  |  |  |  |  |  |  |  |
+| adminExecuteDealRecordImport | POST | /admin/deal-records/import/execute |  | Y |  |  |  |  |  |  |  |
+| adminPreviewDealRecordImport | POST | /admin/deal-records/import/preview |  | Y |  |  |  |  |  |  |  |
 | adminUpdateFileModeration | POST | /admin/files/:param/moderation |  | Y |  |  |  |  |  |  |  |
 | adminExecutePeopleAchievementsImport | POST | /admin/imports/people-achievements/execute |  | Y |  |  |  |  |  |  |  |
 | adminPreviewPeopleAchievementsImport | POST | /admin/imports/people-achievements/preview |  | Y |  |  |  |  |  |  |  |
@@ -301,11 +315,13 @@
 | adminCreateListingImportJob | POST | /admin/listings/jobs/import |  | Y |  |  |  |  |  |  |  |
 | adminExecuteListingImportJob | POST | /admin/listings/jobs/import/:param/execute |  | Y |  |  |  |  |  |  |  |
 | adminValidateListingImportJob | POST | /admin/listings/jobs/import/:param/validate |  | Y |  |  |  |  |  |  |  |
+| adminUploadOrderContract | POST | /admin/orders/:param/contract/upload |  | Y |  |  |  |  |  |  |  |
 | adminIssueOrderInvoice | POST | /admin/orders/:param/invoice |  | Y |  |  |  |  |  |  |  |
 | adminConfirmContractSigned | POST | /admin/orders/:param/milestones/contract-signed |  | Y |  |  |  |  |  |  |  |
 | adminConfirmTransferCompleted | POST | /admin/orders/:param/milestones/transfer-completed |  | Y |  |  |  |  |  |  |  |
 | adminManualConfirmPayment | POST | /admin/orders/:param/payments/manual |  | Y |  |  |  |  |  |  |  |
 | adminConfirmManualPayout | POST | /admin/orders/:param/payouts/manual |  | Y |  |  |  |  |  |  |  |
+| adminUploadAssignedOrderContract | POST | /admin/orders/assigned/:param/contract/upload |  | Y |  |  |  |  |  |  |  |
 | adminConfirmAssignedOrderContractSigned | POST | /admin/orders/assigned/:param/milestones/contract-signed |  | Y |  |  |  |  |  |  |  |
 | adminApprovePatentClaim | POST | /admin/patent-claims/:param/approve |  | Y |  |  |  |  |  |  |  |
 | adminRejectPatentClaim | POST | /admin/patent-claims/:param/reject |  | Y |  |  |  |  |  |  |  |

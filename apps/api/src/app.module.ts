@@ -38,6 +38,7 @@ import { BulkImportModule } from './modules/bulk-import/bulk-import.module';
 import { AdminNotificationsModule } from './modules/admin-notifications/admin-notifications.module';
 import { RateLimitGuard } from './common/guards/rate-limit.guard';
 import { PublicStatsModule } from './modules/public-stats/public-stats.module';
+import { DealRecordsModule } from './modules/deal-records/deal-records.module';
 
 @Module({
   imports: [
@@ -74,6 +75,7 @@ import { PublicStatsModule } from './modules/public-stats/public-stats.module';
     BulkImportModule,
     AdminNotificationsModule,
     PublicStatsModule,
+    DealRecordsModule,
   ],
   controllers: [HealthController, DomainVerificationController],
   providers: [RedisProbeService, { provide: APP_GUARD, useClass: RateLimitGuard }],
