@@ -30,13 +30,14 @@ describe('NotificationsService filter and id strictness suite', () => {
     await expect(service.list(req, { page: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list(req, { pageSize: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list(req, { kind: 'other' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.list(req, { kind: 'cs' })).rejects.toBeInstanceOf(BadRequestException);
 
     prisma.notification.findMany.mockResolvedValueOnce([]);
     prisma.notification.count.mockResolvedValueOnce(0);
     const result = await service.list(req, { page: '2', pageSize: '100' });
 
     expect(prisma.notification.findMany).toHaveBeenCalledWith({
-      where: { userId: 'u-1' },
+      where: { userId: 'u-1', kind: 'system' },
       orderBy: { createdAt: 'desc' },
       skip: 50,
       take: 50,
@@ -44,20 +45,20 @@ describe('NotificationsService filter and id strictness suite', () => {
     expect(result.page).toEqual({ page: 2, pageSize: 50, total: 0 });
   });
 
-  it('filters by notification kind when provided', async () => {
+  it('keeps system kind compatibility when provided', async () => {
     const req = { auth: { userId: 'u-1' } };
     prisma.notification.findMany.mockResolvedValueOnce([]);
     prisma.notification.count.mockResolvedValueOnce(0);
 
-    await service.list(req, { kind: 'cs' });
+    await service.list(req, { kind: 'system' });
 
     expect(prisma.notification.findMany).toHaveBeenCalledWith({
-      where: { userId: 'u-1', kind: 'cs' },
+      where: { userId: 'u-1', kind: 'system' },
       orderBy: { createdAt: 'desc' },
       skip: 0,
       take: 20,
     });
-    expect(prisma.notification.count).toHaveBeenCalledWith({ where: { userId: 'u-1', kind: 'cs' } });
+    expect(prisma.notification.count).toHaveBeenCalledWith({ where: { userId: 'u-1', kind: 'system' } });
   });
 
   it('uses default pagination and fallback dto time when createdAt is missing', async () => {
@@ -80,7 +81,7 @@ describe('NotificationsService filter and id strictness suite', () => {
       const result = await service.list(req, {});
 
       expect(prisma.notification.findMany).toHaveBeenCalledWith({
-        where: { userId: 'u-1' },
+        where: { userId: 'u-1', kind: 'system' },
         orderBy: { createdAt: 'desc' },
         skip: 0,
         take: 20,
@@ -113,7 +114,7 @@ describe('NotificationsService filter and id strictness suite', () => {
       createdAt: new Date('2026-03-13T00:00:00.000Z'),
     });
     const dto = await service.getById(req, ` ${id} `);
-    expect(prisma.notification.findFirst).toHaveBeenLastCalledWith({ where: { id, userId: 'u-1' } });
+    expect(prisma.notification.findFirst).toHaveBeenLastCalledWith({ where: { id, userId: 'u-1', kind: 'system' } });
     expect(dto).toMatchObject({
       id,
       kind: 'system',

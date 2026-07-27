@@ -106,7 +106,7 @@ export default function OrganizationDetailPage() {
 
   const displayName = normalizeDisplayText(data?.displayName);
   const regionText = normalizeDisplayText(regionDisplayName(data?.regionCode));
-  const titleText = displayTitleOrFallback(data?.displayName, '认证机构资料');
+  const titleText = displayName || '机构资料详情';
   const introText = displayInfoOrPlaceholder(data?.intro, displayName ? `${displayName}暂未公开简介` : '机构资料暂未公开简介');
 
   if (!orgUserId) {
@@ -126,6 +126,8 @@ export default function OrganizationDetailPage() {
         <LoadingCard />
       ) : error ? (
         <ErrorCard message={error} onRetry={load} />
+      ) : data && !displayName ? (
+        <EmptyCard message="机构资料暂不可见" actionText="返回" onAction={() => void safeNavigateBack()} />
       ) : data ? (
         <View>
           <Surface className="detail-compact-header" id="org-overview">

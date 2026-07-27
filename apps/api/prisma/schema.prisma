@@ -217,7 +217,6 @@ enum ContractStatus {
 
 enum NotificationKind {
   system
-  cs
 }
 
 enum CommentContentType {

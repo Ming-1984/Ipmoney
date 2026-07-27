@@ -7,7 +7,7 @@ import type { components } from '@ipmoney/api-types';
 
 import { STORAGE_KEYS } from '../../constants';
 import { apiGet } from '../../lib/api';
-import { displayInitial, displayTitleOrFallback, normalizeDisplayText } from '../../lib/displayText';
+import { displayInitial, normalizeDisplayText } from '../../lib/displayText';
 import { regionDisplayName } from '../../lib/regions';
 import {
   resolveTechManagerBadges,
@@ -143,7 +143,7 @@ export default function TechManagersPage() {
   }, [activeTab, orgList.reload, orgQ, techList.reload, techQ]);
 
   const techItems = useMemo(() => techList.items, [techList.items]);
-  const orgItems = useMemo(() => orgList.items, [orgList.items]);
+  const orgItems = useMemo(() => orgList.items.filter((item) => normalizeDisplayText(item.displayName)), [orgList.items]);
   const showTechInitialLoading = techList.loading && techItems.length === 0;
   const showOrgInitialLoading = orgList.loading && orgItems.length === 0;
 
@@ -280,7 +280,7 @@ export default function TechManagersPage() {
               <View className="consult-list">
                 {orgItems.map((it: OrganizationSummary) => {
                   const logo = it.logoUrl && !it.logoUrl.includes('example.com') ? it.logoUrl : '';
-                  const displayName = displayTitleOrFallback(it.displayName, '认证机构资料');
+                  const displayName = normalizeDisplayText(it.displayName) || '机构资料待完善';
                   const location = it.regionCode ? regionDisplayName(it.regionCode) : '';
                   const introText = normalizeDisplayText(it.intro);
                   return (
@@ -309,7 +309,7 @@ export default function TechManagersPage() {
                           {introText ? <Text className="consult-intro clamp-1">{introText}</Text> : null}
                         </View>
                       </View>
-                      <View className="consult-action">咨询</View>
+                      <View className="consult-action">查看</View>
                     </View>
                   );
                 })}

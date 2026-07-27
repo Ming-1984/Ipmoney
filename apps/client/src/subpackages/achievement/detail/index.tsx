@@ -1,5 +1,5 @@
 import { View, Text, Image } from '@tarojs/components';
-import Taro, { useDidHide, useDidShow, useShareAppMessage } from '@tarojs/taro';
+import { useShareAppMessage } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
@@ -7,7 +7,7 @@ import type { components } from '@ipmoney/api-types';
 
 import { Heart, HeartFill } from '../../../ui/icons';
 
-import { apiGet, apiPost } from '../../../lib/api';
+import { apiGet } from '../../../lib/api';
 import { displayInfoOrPlaceholder, displayTitleOrFallback, displayUserName } from '../../../lib/displayText';
 import { favoriteAchievement, isAchievementFavorited, syncAchievementFavorites, unfavoriteAchievement } from '../../../lib/favorites';
 import { ensureApproved } from '../../../lib/guard';
@@ -26,8 +26,6 @@ import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui
 
 type AchievementPublic = components['schemas']['AchievementDetail'];
 
-type Conversation = { id: string };
-
 type MediaItem = {
   type: 'IMAGE' | 'VIDEO' | 'FILE';
   url?: string | null;
@@ -37,22 +35,11 @@ type MediaItem = {
 export default function AchievementDetailPage() {
   const achievementId = useRouteUuidParam('achievementId');
   const achievementIdRef = useRef(achievementId);
-  const pageVisibleRef = useRef(true);
-  const consultSeqRef = useRef(0);
   const initialCachedData = achievementId ? getDetailCache<AchievementPublic>('achievement-public', achievementId) : null;
   const [loading, setLoading] = useState(!initialCachedData);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AchievementPublic | null>(initialCachedData);
   const [favoritedState, setFavoritedState] = useState(false);
-
-  useDidShow(() => {
-    pageVisibleRef.current = true;
-  });
-
-  useDidHide(() => {
-    pageVisibleRef.current = false;
-    consultSeqRef.current += 1;
-  });
 
   const achievementTitleText = displayTitleOrFallback(data?.title, '成果详情');
 
@@ -143,32 +130,6 @@ export default function AchievementDetailPage() {
     }
   }, [achievementId, favoritedState]);
 
-  const startConsult = useCallback(async () => {
-    if (!achievementId) return;
-    if (!ensureApproved()) return;
-    const seq = ++consultSeqRef.current;
-    try {
-      await apiPost<void>(
-        `/achievements/${achievementId}/consultations`,
-        { channel: 'FORM' },
-        { idempotencyKey: `ach-c-${achievementId}` },
-      );
-    } catch (_) {
-      // ignore heat event
-    }
-    try {
-      const conv = await apiPost<Conversation>(
-        `/achievements/${achievementId}/conversations`,
-        {},
-        { idempotencyKey: `ach-conv-${achievementId}` },
-      );
-      if (seq !== consultSeqRef.current || !pageVisibleRef.current) return;
-      Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conv.id}` });
-    } catch (e: any) {
-      toast(e?.message || '发起咨询失败');
-    }
-  }, [achievementId]);
-
   if (!achievementId) {
     return (
       <View className="container detail-page-compact">
@@ -180,7 +141,7 @@ export default function AchievementDetailPage() {
   }
 
   return (
-    <View className="container detail-page-compact">
+    <View className={`container detail-page-compact${data ? ' has-sticky' : ''}`}>
       <PageHeader title="成果详情" subtitle="平台审核通过后展示" />
       <Spacer />
 
@@ -252,9 +213,6 @@ export default function AchievementDetailPage() {
         <StickyBar>
           <Button variant="ghost" icon={favoritedState ? <HeartFill size={18} /> : <Heart size={18} />} onClick={toggleFavorite}>
             {favoritedState ? '已收藏' : '收藏'}
-          </Button>
-          <Button variant="primary" onClick={startConsult}>
-            发起咨询
           </Button>
         </StickyBar>
       ) : null}

@@ -6,7 +6,7 @@ import './index.scss';
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet } from '../../lib/api';
-import { displayInfoOrPlaceholder, displayTitleOrFallback, normalizeDisplayText } from '../../lib/displayText';
+import { displayInfoOrPlaceholder, normalizeDisplayText } from '../../lib/displayText';
 import { formatRegionPathNames, parseRegionPickerSelection, regionDisplayName } from '../../lib/regions';
 import { usePagedList } from '../../lib/usePagedList';
 import { ListFooter } from '../../ui/ListFooter';
@@ -111,7 +111,7 @@ export default function OrganizationsPage() {
       },
     });
 
-  const items = useMemo(() => rawItems, [rawItems]);
+  const items = useMemo(() => rawItems.filter((item) => normalizeDisplayText(item.displayName)), [rawItems]);
   const showInitialLoading = loading && rawItems.length === 0;
 
   const filterLabels = useMemo(() => {
@@ -198,7 +198,7 @@ export default function OrganizationsPage() {
               const logo = item.logoUrl && !item.logoUrl.includes('example.com') ? item.logoUrl : '';
               const location = item.regionCode ? regionDisplayName(item.regionCode) : '';
               const orgType = asOrganizationVerificationType(item.verificationType);
-              const titleText = displayTitleOrFallback(item.displayName, '认证机构资料');
+              const titleText = normalizeDisplayText(item.displayName) || '机构资料待完善';
               const introText = normalizeDisplayText(item.intro);
               return (
                 <View

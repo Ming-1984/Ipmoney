@@ -2,7 +2,7 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const NOTIFICATION_KIND_SET = new Set(['system', 'cs']);
+type NotificationKind = 'system';
 
 @Injectable()
 export class NotificationsService {
@@ -36,12 +36,12 @@ export class NotificationsService {
     return raw;
   }
 
-  private parseNotificationKindStrict(value: unknown, fieldName: string): 'system' | 'cs' {
+  private parseNotificationKindStrict(value: unknown, fieldName: string): NotificationKind {
     const raw = String(value ?? '').trim().toLowerCase();
-    if (!NOTIFICATION_KIND_SET.has(raw)) {
+    if (raw !== 'system') {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
-    return raw as 'system' | 'cs';
+    return 'system';
   }
 
   private toDto(item: any) {
@@ -60,15 +60,16 @@ export class NotificationsService {
     title: string;
     summary?: string | null;
     source?: string;
-    kind?: 'system' | 'cs';
+    kind?: NotificationKind;
   }) {
     const userId = params.userId ? String(params.userId) : '';
     if (!userId || !params.title) return null;
+    if (params.kind !== undefined) this.parseNotificationKindStrict(params.kind, 'kind');
     const summary = params.summary === undefined || params.summary === null ? null : String(params.summary).trim() || null;
     return await this.prisma.notification.create({
       data: {
         userId,
-        kind: params.kind ?? 'system',
+        kind: 'system',
         title: params.title,
         summary,
         source: params.source ?? 'SYSTEM',
@@ -81,15 +82,16 @@ export class NotificationsService {
     title: string;
     summary?: string | null;
     source?: string;
-    kind?: 'system' | 'cs';
+    kind?: NotificationKind;
   }) {
     const userIds = Array.from(new Set((params.userIds || []).filter(Boolean).map((id) => String(id))));
     if (!userIds.length || !params.title) return { count: 0 };
+    if (params.kind !== undefined) this.parseNotificationKindStrict(params.kind, 'kind');
     const summary = params.summary === undefined || params.summary === null ? null : String(params.summary).trim() || null;
     return await this.prisma.notification.createMany({
       data: userIds.map((userId) => ({
         userId,
-        kind: params.kind ?? 'system',
+        kind: 'system',
         title: params.title,
         summary,
         source: params.source ?? 'SYSTEM',
@@ -102,9 +104,8 @@ export class NotificationsService {
     const page = this.hasOwn(query, 'page') ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
     const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
     const pageSize = Math.min(50, pageSizeInput);
-    const kind = this.hasOwn(query, 'kind') ? this.parseNotificationKindStrict(query?.kind, 'kind') : undefined;
-    const where: any = { userId: req.auth.userId };
-    if (kind) where.kind = kind;
+    if (this.hasOwn(query, 'kind')) this.parseNotificationKindStrict(query?.kind, 'kind');
+    const where: any = { userId: req.auth.userId, kind: 'system' };
     const [items, total] = await Promise.all([
       this.prisma.notification.findMany({
         where,
@@ -120,7 +121,7 @@ export class NotificationsService {
   async getById(req: any, id: string) {
     this.ensureAuth(req);
     const normalizedId = this.parseUuidStrict(id, 'notificationId');
-    const item = await this.prisma.notification.findFirst({ where: { id: normalizedId, userId: req.auth.userId } });
+    const item = await this.prisma.notification.findFirst({ where: { id: normalizedId, userId: req.auth.userId, kind: 'system' } });
     if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '通知不存在' });
     return this.toDto(item);
   }

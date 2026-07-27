@@ -13,9 +13,11 @@ describe('OrganizationsService detail suite', () => {
     prisma = {
       userVerification: {
         findFirst: vi.fn(),
+        findMany: vi.fn(),
       },
       listing: {
         count: vi.fn(),
+        groupBy: vi.fn(),
         findMany: vi.fn(),
       },
     };
@@ -29,6 +31,55 @@ describe('OrganizationsService detail suite', () => {
 
   it('returns not found when organization is missing or not approved org type', async () => {
     prisma.userVerification.findFirst.mockResolvedValueOnce(null);
+
+    await expect(service.getById(VALID_ORG_USER_ID)).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.listing.count).not.toHaveBeenCalled();
+  });
+
+  it('does not expose approved organizations without a public display name', async () => {
+    prisma.userVerification.findMany.mockResolvedValueOnce([
+      {
+        userId: '11111111-1111-4111-8111-111111111111',
+        displayName: '',
+        verificationType: 'COMPANY',
+        verificationStatus: 'APPROVED',
+        regionCode: '110000',
+        intro: 'hidden empty name',
+        reviewedAt: new Date('2026-03-12T00:00:00.000Z'),
+        logoFile: null,
+      },
+      {
+        userId: VALID_ORG_USER_ID,
+        displayName: 'Org Alpha',
+        verificationType: 'COMPANY',
+        verificationStatus: 'APPROVED',
+        regionCode: '110000',
+        intro: 'intro text',
+        reviewedAt: new Date('2026-03-13T00:00:00.000Z'),
+        logoFile: null,
+      },
+    ]);
+    prisma.listing.groupBy.mockResolvedValueOnce([]);
+    prisma.listing.findMany.mockResolvedValueOnce([]);
+
+    const result = await service.list({ page: '1', pageSize: '20' });
+
+    expect(result.page.total).toBe(1);
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].displayName).toBe('Org Alpha');
+  });
+
+  it('returns not found when organization detail has no public display name', async () => {
+    prisma.userVerification.findFirst.mockResolvedValueOnce({
+      userId: VALID_ORG_USER_ID,
+      displayName: '   ',
+      verificationType: 'COMPANY',
+      verificationStatus: 'APPROVED',
+      regionCode: '110000',
+      intro: 'hidden empty name',
+      reviewedAt: new Date('2026-03-13T00:00:00.000Z'),
+      logoFile: null,
+    });
 
     await expect(service.getById(VALID_ORG_USER_ID)).rejects.toBeInstanceOf(NotFoundException);
     expect(prisma.listing.count).not.toHaveBeenCalled();

@@ -2,39 +2,6 @@
   padding: 0 24rpx 28rpx;
 }
 
-.notifications-tabs {
-  display: flex;
-  gap: 12rpx;
-  margin: 8rpx 0 20rpx;
-  background: #ffffff;
-  border-radius: 16rpx;
-  padding: 8rpx;
-}
-
-.notifications-tab {
-  flex: 1;
-  text-align: center;
-  padding: 12rpx 0;
-  color: #94a3b8;
-  font-size: 28rpx;
-  font-weight: 500;
-  position: relative;
-}
-
-.notifications-tab.is-active {
-  color: var(--c-primary-hover);
-}
-
-.notifications-tab-underline {
-  position: absolute;
-  left: 30%;
-  bottom: 4rpx;
-  width: 40%;
-  height: 4rpx;
-  border-radius: 999rpx;
-  background: var(--c-primary-hover);
-}
-
 .notifications-list {
   display: flex;
   flex-direction: column;
@@ -68,11 +35,6 @@
 .notification-tag.is-system {
   background: rgba(249, 115, 22, 0.12);
   color: var(--c-primary-hover);
-}
-
-.notification-tag.is-cs {
-  background: rgba(14, 165, 233, 0.12);
-  color: #0ea5e9;
 }
 
 .notification-time {
@@ -118,4 +80,3 @@
   font-size: 24rpx;
   color: #94a3b8;
 }
-

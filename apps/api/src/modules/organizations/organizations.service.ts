@@ -29,6 +29,10 @@ export class OrganizationsService {
     return normalizeDisplayText(value);
   }
 
+  private hasPublicDisplayName(verification: { displayName?: unknown } | null | undefined): boolean {
+    return Boolean(this.normalizeOptionalString(verification?.displayName));
+  }
+
   private toPublicSummary(
     verification: any,
     stats?: {
@@ -252,9 +256,10 @@ export class OrganizationsService {
         include: { logoFile: true },
         orderBy: { reviewedAt: 'desc' },
       });
-      const userIds = rows.map((item: any) => item.userId);
+      const visibleRows = rows.filter((item: any) => this.hasPublicDisplayName(item));
+      const userIds = visibleRows.map((item: any) => item.userId);
       const { listingCountMap, patentCountMap } = await this.buildStats(userIds);
-      const summaries = rows.map((item: any) => this.toPublicSummary(item, { listingCountMap, patentCountMap }));
+      const summaries = visibleRows.map((item: any) => this.toPublicSummary(item, { listingCountMap, patentCountMap }));
       const matched = summaries.filter((summary) => this.matchesSearchSummary(summary, q));
       const strongDisplayNameMatches = matched.filter((summary) => this.hasStrongDisplayNameMatch(summary, q));
       const searchPool = strongDisplayNameMatches.length ? strongDisplayNameMatches : matched;
@@ -266,16 +271,15 @@ export class OrganizationsService {
       };
     }
 
-    [items, total] = await Promise.all([
-      this.prisma.userVerification.findMany({
-        where,
-        include: { logoFile: true },
-        orderBy: { reviewedAt: 'desc' },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-      this.prisma.userVerification.count({ where }),
-    ]);
+    const rows = await this.prisma.userVerification.findMany({
+      where,
+      include: { logoFile: true },
+      orderBy: { reviewedAt: 'desc' },
+    });
+    const visibleRows = rows.filter((item: any) => this.hasPublicDisplayName(item));
+    const paged = this.paginateItems(visibleRows, page, pageSize);
+    items = paged.items;
+    total = paged.total;
 
     const userIds = items.map((item: any) => item.userId);
     const { listingCountMap, patentCountMap } = await this.buildStats(userIds);
@@ -296,7 +300,7 @@ export class OrganizationsService {
       },
       include: { logoFile: true },
     });
-    if (!v) throw new NotFoundException({ code: 'NOT_FOUND', message: 'organization not found' });
+    if (!v || !this.hasPublicDisplayName(v)) throw new NotFoundException({ code: 'NOT_FOUND', message: 'organization not found' });
     const [listingCount, patentCount] = await Promise.all([
       this.prisma.listing.count({
         where: {

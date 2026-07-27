@@ -6405,7 +6405,7 @@ export interface components {
             page: components["schemas"]["PageMeta"];
         };
         /** @enum {string} */
-        NotificationKind: "system" | "cs";
+        NotificationKind: "system";
         Notification: {
             id: components["schemas"]["Uuid"];
             kind: components["schemas"]["NotificationKind"];

@@ -875,6 +875,7 @@ async function seedOrders() {
 }
 
 async function seedNotifications() {
+  const staleNotificationIds = ['4a3f7c92-31b1-44b4-9b72-65c2d9e0e4a4'];
   const entries = [
     {
       id: '0a9e9d16-8c44-44b6-9a6c-4c15a205b5b0',
@@ -885,22 +886,16 @@ async function seedNotifications() {
       source: '交易通知',
       createdAt: '2026-02-01T08:30:00Z',
     },
-    {
-      id: '4a3f7c92-31b1-44b4-9b72-65c2d9e0e4a4',
-      userId: DEMO_USER_ID,
-      kind: 'cs',
-      title: '客服提醒',
-      summary: '请补充权属材料以完成审核。',
-      source: '平台客服',
-      createdAt: '2026-02-02T09:00:00Z',
-    },
   ];
 
   if (!SEED_DEMO_DATA) {
-    await prisma.notification.deleteMany({ where: { id: { in: entries.map((e) => e.id) } } });
-    console.log(`[seed] notifications demo data purged: ${entries.length}`);
+    const ids = [...entries.map((e) => e.id), ...staleNotificationIds];
+    await prisma.notification.deleteMany({ where: { id: { in: ids } } });
+    console.log(`[seed] notifications demo data purged: ${ids.length}`);
     return;
   }
+
+  await prisma.notification.deleteMany({ where: { id: { in: staleNotificationIds } } });
 
   for (const e of entries) {
     await prisma.notification.upsert({

@@ -7561,7 +7561,7 @@
 | `id` | `ref:Uuid` | Y | - | ID |
 | `id` | `string` | Y | - | ID |
 | `kind` | `ref:NotificationKind` | Y | - | 类别 |
-| `kind` | `string` | Y | system/cs | 类别 |
+| `kind` | `string` | Y | system | 类别 |
 | `title` | `string` | Y | - | 标题 |
 | `summary` | `string` | Y | - | 摘要 |
 | `source` | `string` | Y | - | 来源 |
@@ -8687,7 +8687,7 @@
 | `items[].id` | `ref:Uuid` | Y | - | ID |
 | `items[].id` | `string` | Y | - | ID |
 | `items[].kind` | `ref:NotificationKind` | Y | - | 类别 |
-| `items[].kind` | `string` | Y | system/cs | 类别 |
+| `items[].kind` | `string` | Y | system | 类别 |
 | `items[].title` | `string` | Y | - | 标题 |
 | `items[].summary` | `string` | Y | - | 摘要 |
 | `items[].source` | `string` | Y | - | 来源 |
@@ -11681,7 +11681,7 @@
 |---|---|---|---|---|---|
 | `id` | `String` | Y | - | `@id @default(uuid()) @db.Uuid` | ID |
 | `userId` | `String` | Y | - | `@map("user_id") @db.Uuid` | 用户ID |
-| `kind` | `NotificationKind` | Y | system/cs | `-` | 类别 |
+| `kind` | `NotificationKind` | Y | system | `-` | 类别 |
 | `title` | `String` | Y | - | `-` | 标题 |
 | `summary` | `String` | Y | - | `-` | 摘要 |
 | `source` | `String` | Y | - | `-` | 来源 |

@@ -15083,7 +15083,6 @@ components:
       type: string
       enum:
         - system
-        - cs
     Notification:
       type: object
       required:
