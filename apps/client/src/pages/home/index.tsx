@@ -499,15 +499,13 @@ export default function HomePage() {
     });
   });
 
-  const goSearch = useCallback((value?: string) => {
-    const q = typeof value === 'string' ? value.trim() : '';
-    if (typeof value === 'string' && !q) {
+  const goSearch = useCallback((value: string) => {
+    const q = value.trim();
+    if (!q) {
       toast('请输入关键词');
       return;
     }
-    if (q) {
-      Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { q, tab: 'LISTING' });
-    }
+    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { q, tab: 'LISTING' });
     Taro.navigateTo({ url: '/subpackages/search/index' });
   }, []);
 
@@ -682,8 +680,8 @@ export default function HomePage() {
             className="home-search-input"
             value={keyword}
             onInput={(e) => setKeyword(e.detail.value)}
-            onFocus={() => goSearch()}
             onConfirm={() => goSearch(keyword)}
+            confirmType="search"
             placeholder={homeLandingConfig.hero.searchPlaceholder}
             placeholderClass="home-search-placeholder"
           />
