@@ -5,7 +5,11 @@ import './index.scss';
 
 import { apiDelete, apiGet, apiPatch, apiPost } from '../../../lib/api';
 import { usePageAccess } from '../../../lib/guard';
-import { formatRegionPathNames, parseRegionPickerSelection, regionDisplayName } from '../../../lib/regions';
+import {
+  formatRegionPathNames,
+  parseRegionPickerSelection,
+  regionDisplayName,
+} from '../../../lib/regions';
 import { useRouteStringParam } from '../../../lib/routeParams';
 import { AccessGate } from '../../../ui/PageState';
 import { PageHeader, Spacer, Surface } from '../../../ui/layout';
@@ -180,7 +184,10 @@ export default function AddressEditPage() {
     return true;
   }, [payload]);
 
-  const regionLabel = useMemo(() => regionDisplayName(regionCode, regionName, ''), [regionCode, regionName]);
+  const regionLabel = useMemo(
+    () => regionDisplayName(regionCode, regionName, ''),
+    [regionCode, regionName],
+  );
 
   const save = useCallback(async () => {
     if (!validate()) return;
@@ -192,11 +199,21 @@ export default function AddressEditPage() {
       } else {
         await apiPost('/me/addresses', payload);
       }
-      if (seq !== saveSeqRef.current || !pageVisibleRef.current || addressIdRef.current !== currentAddressId) return;
+      if (
+        seq !== saveSeqRef.current ||
+        !pageVisibleRef.current ||
+        addressIdRef.current !== currentAddressId
+      )
+        return;
       toast(TEXT.saveSuccess, { icon: 'success' });
       Taro.navigateBack();
     } catch (e: any) {
-      if (seq !== saveSeqRef.current || !pageVisibleRef.current || addressIdRef.current !== currentAddressId) return;
+      if (
+        seq !== saveSeqRef.current ||
+        !pageVisibleRef.current ||
+        addressIdRef.current !== currentAddressId
+      )
+        return;
       toast(e?.message || TEXT.saveFailed, { icon: 'fail' });
     }
   }, [addressId, isEdit, payload, validate]);
@@ -214,11 +231,21 @@ export default function AddressEditPage() {
     const seq = ++removeSeqRef.current;
     try {
       await apiDelete(`/me/addresses/${addressId}`);
-      if (seq !== removeSeqRef.current || !pageVisibleRef.current || addressIdRef.current !== currentAddressId) return;
+      if (
+        seq !== removeSeqRef.current ||
+        !pageVisibleRef.current ||
+        addressIdRef.current !== currentAddressId
+      )
+        return;
       toast(TEXT.removeSuccess, { icon: 'success' });
       Taro.navigateBack();
     } catch (e: any) {
-      if (seq !== removeSeqRef.current || !pageVisibleRef.current || addressIdRef.current !== currentAddressId) return;
+      if (
+        seq !== removeSeqRef.current ||
+        !pageVisibleRef.current ||
+        addressIdRef.current !== currentAddressId
+      )
+        return;
       toast(e?.message || TEXT.removeFailed, { icon: 'fail' });
     }
   }, [addressId, isEdit]);
@@ -255,59 +282,86 @@ export default function AddressEditPage() {
 
   return (
     <View className="container address-edit-page">
-      <PageHeader back title={isEdit ? TEXT.editTitle : TEXT.createTitle} subtitle={TEXT.subtitle} />
+      <PageHeader
+        back
+        title={isEdit ? TEXT.editTitle : TEXT.createTitle}
+        subtitle={TEXT.subtitle}
+      />
       <Spacer />
 
-      <Surface className="address-form-card">
+      <Surface className="address-form-card" padding="none">
         <View className="form-field">
           <Text className="form-label">{TEXT.nameLabel}</Text>
-          <Input value={name} onChange={setName} placeholder={TEXT.nameLabel} clearable />
+          <View className="address-input-wrap">
+            <Input value={name} onChange={setName} placeholder={TEXT.nameLabel} clearable />
+          </View>
         </View>
         <View className="form-field">
           <Text className="form-label">{TEXT.phoneLabel}</Text>
-          <Input value={phone} onChange={setPhone} placeholder={TEXT.phoneLabel} type="digit" clearable />
+          <View className="address-input-wrap">
+            <Input
+              value={phone}
+              onChange={setPhone}
+              placeholder={TEXT.phoneLabel}
+              type="digit"
+              clearable
+            />
+          </View>
         </View>
         <View className="form-field">
           <Text className="form-label">{TEXT.regionLabel}</Text>
-          <Picker
-            mode="region"
-            level="region"
-            onChange={(event) => {
-              const parsed = parseRegionPickerSelection(event);
-              if (!parsed) {
-                toast('地区读取失败，请重试');
-                return;
-              }
-              setRegionCode(parsed.code);
-              setRegionName(formatRegionPathNames(parsed.pathNames, parsed.name));
-            }}
-          >
-            <View className="address-region-select">
-              <Text className={regionLabel ? 'address-region-value' : 'address-region-placeholder'}>
-                {regionLabel || TEXT.regionPlaceholder}
-              </Text>
-              <Text className="address-region-arrow">{'>'}</Text>
-            </View>
-          </Picker>
-          {regionCode ? (
-            <Text
-              className="address-region-clear"
-              onClick={() => {
-                setRegionCode('');
-                setRegionName('');
+          <View className="address-region-field">
+            <Picker
+              mode="region"
+              level="region"
+              onChange={(event) => {
+                const parsed = parseRegionPickerSelection(event);
+                if (!parsed) {
+                  toast('地区读取失败，请重试');
+                  return;
+                }
+                setRegionCode(parsed.code);
+                setRegionName(formatRegionPathNames(parsed.pathNames, parsed.name));
               }}
             >
-              {TEXT.clearRegion}
-            </Text>
-          ) : null}
+              <View className="address-region-select">
+                <Text
+                  className={regionLabel ? 'address-region-value' : 'address-region-placeholder'}
+                >
+                  {regionLabel || TEXT.regionPlaceholder}
+                </Text>
+                <Text className="address-region-arrow">{'>'}</Text>
+              </View>
+            </Picker>
+            {regionCode ? (
+              <Text
+                className="address-region-clear"
+                onClick={() => {
+                  setRegionCode('');
+                  setRegionName('');
+                }}
+              >
+                {TEXT.clearRegion}
+              </Text>
+            ) : null}
+          </View>
         </View>
         <View className="form-field">
           <Text className="form-label">{TEXT.lineLabel}</Text>
-          <Input value={addressLine} onChange={setAddressLine} placeholder={TEXT.linePlaceholder} clearable />
+          <View className="address-input-wrap">
+            <Input
+              value={addressLine}
+              onChange={setAddressLine}
+              placeholder={TEXT.linePlaceholder}
+              clearable
+            />
+          </View>
         </View>
         <View className="form-field form-switch">
           <Text className="form-label">{TEXT.defaultLabel}</Text>
-          <Switch checked={isDefault} onChange={(e) => setIsDefault(Boolean(e.detail.value))} />
+          <View className="address-switch-wrap">
+            <Switch checked={isDefault} onChange={(e) => setIsDefault(Boolean(e.detail.value))} />
+          </View>
         </View>
       </Surface>
 

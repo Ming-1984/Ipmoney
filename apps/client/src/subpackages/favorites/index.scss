@@ -1,3 +1,10 @@
 ﻿@use '../../styles/list-cards' as *;
 
 
+.favorites-page {
+  padding-top: 8rpx;
+}
+
+.favorites-page .favorites-tabs {
+  --nutui-tabs-titles-height: 78rpx;
+}

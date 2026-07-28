@@ -123,9 +123,10 @@ export default function FavoritesPage() {
   return (
     <View className="container favorites-page">
       <PageHeader title="我的收藏" subtitle="收藏后可快速回访；取消收藏后将不再显示" />
-      <Spacer />
+      <Spacer size={0} />
 
       <CategoryControl
+        className="favorites-tabs"
         value={tab}
         options={[
           { label: '专利信息', value: 'LISTING' },
