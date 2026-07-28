@@ -7,6 +7,7 @@ import type { components } from '@ipmoney/api-types';
 
 import iconSearch from '../../assets/icons/icon-search-gray.svg';
 import iconShield from '../../assets/icons/icon-shield-orange.svg';
+import iconBroomOrange from '../../assets/icons/icon-broom-orange.svg';
 import iconBellWhite from '../../assets/icons/icon-bell-white.svg';
 import { apiGet, apiPost } from '../../lib/api';
 import { getToken } from '../../lib/auth';
@@ -263,7 +264,7 @@ export default function MessagesPage() {
     }
     const unread = consultItems.filter((c) => (c.unreadCount || 0) > 0);
     if (!unread.length) {
-      toast('已全部已读', { icon: 'success' });
+      toast('已全部标为已读', { icon: 'success' });
       return;
     }
     try {
@@ -330,9 +331,10 @@ export default function MessagesPage() {
 
       {!showSearch && filteredItems.length ? (
         <View className="messages-toolbar">
-          <Text className="messages-toolbar-action" onClick={() => void markAllRead()}>
-            当前列表标为已读
-          </Text>
+          <View className="messages-toolbar-action" onClick={() => void markAllRead()}>
+            <Image src={iconBroomOrange} svg mode="aspectFit" className="messages-toolbar-icon" />
+            <Text>全部已读</Text>
+          </View>
         </View>
       ) : null}
 
@@ -341,7 +343,6 @@ export default function MessagesPage() {
           <Image src={iconShield} svg mode="aspectFit" className="messages-alert-icon" />
           <Text className="messages-alert-text">平台严禁引导线下交易，谨防诈骗</Text>
         </View>
-        <Text className="messages-alert-link">详情</Text>
       </View>
 
       <PageState

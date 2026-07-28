@@ -11,7 +11,7 @@ import { formatTimeSmart } from '../lib/format';
 import { ensureApproved } from '../lib/guard';
 import { SectionHeader, Spacer, Surface } from './layout';
 import type { SectionHeaderAccent } from './layout/SectionHeader';
-import { Avatar, Button, Empty, Tag, TextArea, confirm, toast } from './nutui';
+import { Avatar, Button, Tag, TextArea, confirm, toast } from './nutui';
 import emptyComments from '../assets/illustrations/empty-comments.svg';
 
 type CommentStatus = components['schemas']['CommentStatus'];
@@ -28,6 +28,7 @@ type CommentsSectionProps = {
   accent?: SectionHeaderAccent;
   showHeader?: boolean;
   className?: string;
+  variant?: 'card' | 'plain';
   composerVariant?: 'inline' | 'bottom-sheet';
   composerOpen?: boolean;
   onComposerOpenChange?: (open: boolean) => void;
@@ -60,7 +61,8 @@ export function CommentsSection(props: CommentsSectionProps) {
     accent = 'primary',
     showHeader = true,
     className,
-    composerVariant = 'inline',
+    variant = 'card',
+    composerVariant = 'bottom-sheet',
     composerOpen,
     onComposerOpenChange,
   } = props;
@@ -448,8 +450,9 @@ export function CommentsSection(props: CommentsSectionProps) {
     );
   };
 
-  return (
-    <Surface className={className || ''}>
+  const sectionClassName = ['comments-section', variant === 'plain' ? 'comments-section-plain' : '', className].filter(Boolean).join(' ');
+  const sectionContent = (
+    <>
       {showHeader ? <SectionHeader title={`${title}${total ? `（${total}）` : ''}`} density="compact" accent={accent} /> : null}
       <View className={`comment-composer ${isBottomSheetComposer ? 'comment-composer-external' : ''}`} id={composerId}>
         {isBottomSheetComposer ? (
@@ -528,11 +531,11 @@ export function CommentsSection(props: CommentsSectionProps) {
             );
           })
         ) : (
-          <Empty
-            image={<Image className="state-empty-ill" src={emptyComments} svg mode="aspectFit" />}
-            title="暂无评价"
-            description="还没有人评价，快来写下第一条。"
-          />
+          <View className="comment-empty-state">
+            <Image className="comment-empty-ill" src={emptyComments} svg mode="aspectFit" />
+            <Text className="comment-empty-title">暂无评价</Text>
+            <Text className="comment-empty-desc">还没有人评价，快来写下第一条。</Text>
+          </View>
         )}
       </View>
 
@@ -543,6 +546,12 @@ export function CommentsSection(props: CommentsSectionProps) {
           </Button>
         </View>
       ) : null}
-    </Surface>
+    </>
   );
+
+  if (variant === 'plain') {
+    return <View className={sectionClassName}>{sectionContent}</View>;
+  }
+
+  return <Surface className={sectionClassName}>{sectionContent}</Surface>;
 }

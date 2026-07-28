@@ -312,9 +312,18 @@
 }
 
 .messages-toolbar-action {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
   font-size: 24rpx;
   color: var(--c-primary);
   font-weight: 600;
+}
+
+.messages-toolbar-icon {
+  width: 26rpx;
+  height: 26rpx;
+  flex-shrink: 0;
 }
 
 .messages-alert {
@@ -325,7 +334,6 @@
   border-radius: 12rpx;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   color: #c2410c;
   font-size: 22rpx;
 }
@@ -343,11 +351,6 @@
 
 .messages-alert-text {
   color: #c2410c;
-}
-
-.messages-alert-link {
-  color: #c2410c;
-  text-decoration: none;
 }
 
 .messages-list-new {

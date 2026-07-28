@@ -812,8 +812,8 @@ export default function ListingDetailPage() {
               )
             ) : null}
 
-            <View className="detail-section listing-detail-block" id="listing-comments">
-              <CommentsSection contentId={listingId} composerVariant="bottom-sheet" />
+            <View className="detail-section listing-detail-block listing-comments-card" id="listing-comments">
+              <CommentsSection contentId={listingId} variant="plain" composerVariant="bottom-sheet" />
             </View>
 
           </View>

@@ -203,8 +203,8 @@ export default function AchievementDetailPage() {
             </View>
           ) : null}
 
-          <View className="detail-section">
-            <CommentsSection contentType="ACHIEVEMENT" contentId={achievementId} />
+          <View className="detail-section listing-detail-block achievement-comments-card">
+            <CommentsSection contentType="ACHIEVEMENT" contentId={achievementId} variant="plain" composerVariant="bottom-sheet" />
           </View>
         </View>
       )}

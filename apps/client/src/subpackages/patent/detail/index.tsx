@@ -655,7 +655,9 @@ const tradeSnapshot = data?.tradeSnapshot ?? null;
 
           <View id="patent-comments" className="patent-card-stack">
             {listingId ? (
-              <CommentsSection contentId={listingId} title="互动留言" />
+              <Surface className="detail-section-card patent-comments-card">
+                <CommentsSection contentId={listingId} title="互动留言" variant="plain" composerVariant="bottom-sheet" />
+              </Surface>
             ) : (
               <Surface className="detail-section-card">
                 <Text className="muted">暂无关联专利信息，无法展示评论。</Text>
