@@ -54,7 +54,7 @@ const ORDER_STATUS_LABELS: Record<string, string> = {
   WAIT_FINAL_PAYMENT: '待付尾款',
   FINAL_PAID_ESCROW: '尾款已托管',
   READY_TO_SETTLE: '待结算',
-  COMPLETED: '已完成',
+  COMPLETED: '已成交',
   CANCELLED: '已取消',
   REFUNDING: '退款中',
   REFUNDED: '已退款',
@@ -269,6 +269,7 @@ export class ReportsService {
       techManagersApprovedTotal,
       ordersTotal,
       completedDealsTotal,
+      importedDealsTotal,
       completedDealAmountAgg,
       pendingVerifications,
       pendingListings,
@@ -289,6 +290,7 @@ export class ReportsService {
         : Promise.resolve(null),
       this.can(req, 'order.read') ? this.prisma.order.count() : Promise.resolve(null),
       canDealRecordRead ? this.prisma.dealRecord.count({ where: { status: 'ACTIVE' } }) : Promise.resolve(null),
+      canDealRecordRead ? this.prisma.dealRecord.count({ where: { status: 'ACTIVE', source: 'ADMIN_IMPORT' } }) : Promise.resolve(null),
       canDealRecordRead
         ? this.prisma.dealRecord.aggregate({
             where: { status: 'ACTIVE' },
@@ -327,7 +329,7 @@ export class ReportsService {
       canDealRecordRead
         ? this.prisma.dealRecord.findMany({
             where: { status: 'ACTIVE', dealAt: { gte: start, lte: end } },
-            select: { dealAt: true, priceFen: true },
+            select: { dealAt: true, priceFen: true, source: true },
           })
         : Promise.resolve([]),
       this.can(req, 'listing.read')
@@ -337,6 +339,9 @@ export class ReportsService {
           })
         : Promise.resolve([]),
     ]);
+
+    const ordersTotalWithImportedDeals =
+      typeof ordersTotal === 'number' ? ordersTotal + (typeof importedDealsTotal === 'number' ? importedDealsTotal : 0) : ordersTotal;
 
     const bucketMap = new Map<string, { key: string; label: string; orders: number; completedOrders: number; dealAmountFen: number }>();
     for (const bucket of this.buildTrendBuckets(start, end, days)) {
@@ -351,13 +356,18 @@ export class ReportsService {
       bucket.orders += 1;
     }
 
-    for (const row of dealRows as Array<{ dealAt: Date; priceFen?: number | null }>) {
+    let importedDealRowsInRange = 0;
+    for (const row of dealRows as Array<{ dealAt: Date; priceFen?: number | null; source?: string | null }>) {
       const key =
         days >= 365 ? this.formatMonthKey(new Date(row.dealAt)) : this.formatDayKey(new Date(row.dealAt));
       const bucket = bucketMap.get(key);
       if (!bucket) continue;
       bucket.completedOrders += 1;
       bucket.dealAmountFen += Number(row.priceFen ?? 0);
+      if (String(row.source || '').trim().toUpperCase() === 'ADMIN_IMPORT') {
+        bucket.orders += 1;
+        importedDealRowsInRange += 1;
+      }
     }
 
     const orderStatusCounts = new Map<string, number>();
@@ -365,6 +375,9 @@ export class ReportsService {
       const key = String(row.status || '').trim().toUpperCase();
       if (!key) continue;
       orderStatusCounts.set(key, (orderStatusCounts.get(key) ?? 0) + 1);
+    }
+    if (importedDealRowsInRange > 0) {
+      orderStatusCounts.set('COMPLETED', (orderStatusCounts.get('COMPLETED') ?? 0) + importedDealRowsInRange);
     }
 
     const patentTypeCounts = new Map<string, number>();
@@ -382,15 +395,17 @@ export class ReportsService {
     const patentTypes = Object.entries(PATENT_TYPE_LABELS)
       .map(([key, label]) => ({ key, label, value: patentTypeCounts.get(key) ?? 0 }))
       .filter((item) => item.value > 0);
-    const orderStatuses = ORDER_STATUS_ORDER.map((key) => ({ key, label: ORDER_STATUS_LABELS[key] || key, value: orderStatusCounts.get(key) ?? 0 })).filter(
-      (item) => item.value > 0,
-    );
+    const orderStatuses = ORDER_STATUS_ORDER.map((key) => ({
+      key,
+      label: ORDER_STATUS_LABELS[key] || key,
+      value: orderStatusCounts.get(key) ?? 0,
+    })).filter((item) => item.value > 0);
 
     return {
       overview: {
         patentsTotal,
         techManagersApprovedTotal,
-        ordersTotal,
+        ordersTotal: ordersTotalWithImportedDeals,
         completedOrdersTotal: completedDealsTotal,
         completedDealAmountFen: completedDealAmountAgg?._sum?.priceFen ?? null,
       },
@@ -423,11 +438,18 @@ export class ReportsService {
     requirePermission(req, 'report.read');
     const { start, end } = this.buildRange(req?.query, 30);
 
-    const [orderAgg, refundCount, settlements] = await Promise.all([
+    const [orderAgg, importedDealCount, refundCount, settlements] = await Promise.all([
       this.prisma.order.aggregate({
         where: { createdAt: { gte: start, lte: end } },
         _count: { _all: true },
         _sum: { dealAmount: true, commissionAmount: true },
+      }),
+      this.prisma.dealRecord.count({
+        where: {
+          status: 'ACTIVE',
+          source: 'ADMIN_IMPORT',
+          dealAt: { gte: start, lte: end },
+        },
       }),
       this.prisma.refundRequest.count({ where: { createdAt: { gte: start, lte: end } } }),
       this.prisma.settlement.findMany({
@@ -436,7 +458,7 @@ export class ReportsService {
       }),
     ]);
 
-    const ordersTotal = orderAgg._count?._all ?? 0;
+    const ordersTotal = (orderAgg._count?._all ?? 0) + (importedDealCount ?? 0);
     const dealAmountFen = orderAgg._sum?.dealAmount ?? 0;
     const commissionAmountFen = orderAgg._sum?.commissionAmount ?? 0;
     const refundsTotal = refundCount ?? 0;

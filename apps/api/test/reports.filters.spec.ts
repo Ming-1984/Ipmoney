@@ -18,6 +18,9 @@ describe('ReportsService range filter strictness suite', () => {
         aggregate: vi.fn(),
         findMany: vi.fn(),
       },
+      dealRecord: {
+        count: vi.fn(),
+      },
       refundRequest: {
         count: vi.fn(),
         findMany: vi.fn(),
@@ -72,6 +75,7 @@ describe('ReportsService range filter strictness suite', () => {
       _count: { _all: 0 },
       _sum: { dealAmount: 0, commissionAmount: 0 },
     });
+    prisma.dealRecord.count.mockResolvedValueOnce(0);
     prisma.refundRequest.count.mockResolvedValueOnce(0);
     prisma.settlement.findMany.mockResolvedValueOnce([]);
 
@@ -91,6 +95,7 @@ describe('ReportsService range filter strictness suite', () => {
       _count: { _all: 0 },
       _sum: { dealAmount: 0, commissionAmount: 0 },
     });
+    prisma.dealRecord.count.mockResolvedValueOnce(0);
     prisma.refundRequest.count.mockResolvedValueOnce(0);
     prisma.settlement.findMany.mockResolvedValueOnce([]);
 
@@ -110,6 +115,7 @@ describe('ReportsService range filter strictness suite', () => {
       _count: { _all: 5 },
       _sum: { dealAmount: 1000, commissionAmount: 200 },
     });
+    prisma.dealRecord.count.mockResolvedValueOnce(2);
     prisma.refundRequest.count.mockResolvedValueOnce(1);
     prisma.settlement.findMany.mockResolvedValueOnce([{ payoutStatus: 'SUCCEEDED' }, { payoutStatus: 'PENDING' }]);
 
@@ -129,8 +135,8 @@ describe('ReportsService range filter strictness suite', () => {
     expect(result).toMatchObject({
       dealAmountFen: 1000,
       commissionAmountFen: 200,
-      ordersTotal: 5,
-      refundRate: 0.2,
+      ordersTotal: 7,
+      refundRate: 0.1429,
       payoutSuccessRate: 0.5,
     });
   });

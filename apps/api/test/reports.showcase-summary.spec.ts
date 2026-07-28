@@ -39,6 +39,7 @@ describe('ReportsService showcase summary suite', () => {
     prisma.userVerification.count.mockResolvedValueOnce(7);
     prisma.order.count.mockResolvedValueOnce(100);
     prisma.dealRecord.count.mockResolvedValueOnce(64);
+    prisma.dealRecord.count.mockResolvedValueOnce(5);
     prisma.dealRecord.aggregate.mockResolvedValueOnce({ _sum: { priceFen: 123456 }, _count: { _all: 64 } });
     prisma.userVerification.count.mockResolvedValueOnce(11);
     prisma.listing.count.mockResolvedValueOnce(9);
@@ -67,8 +68,9 @@ describe('ReportsService showcase summary suite', () => {
       },
     ]);
     prisma.dealRecord.findMany.mockResolvedValueOnce([
-      { dealAt: new Date('2026-03-10T08:00:00.000Z'), priceFen: 1200 },
-      { dealAt: new Date('2026-03-11T09:00:00.000Z'), priceFen: 2400 },
+      { dealAt: new Date('2026-03-10T08:00:00.000Z'), priceFen: 1200, source: 'ONLINE_ORDER' },
+      { dealAt: new Date('2026-03-11T09:00:00.000Z'), priceFen: 2400, source: 'ONLINE_ORDER' },
+      { dealAt: new Date('2026-03-12T09:00:00.000Z'), priceFen: 5000, source: 'ADMIN_IMPORT' },
     ]);
     prisma.patent.findMany.mockResolvedValueOnce([
       { patentType: 'INVENTION' },
@@ -90,7 +92,7 @@ describe('ReportsService showcase summary suite', () => {
       overview: {
         patentsTotal: 42,
         techManagersApprovedTotal: 7,
-        ordersTotal: 100,
+        ordersTotal: 105,
         completedOrdersTotal: 64,
         completedDealAmountFen: 123456,
       },
@@ -110,17 +112,17 @@ describe('ReportsService showcase summary suite', () => {
         orders30d: [
           { key: '2026-03-10', label: '3/10', value: 2 },
           { key: '2026-03-11', label: '3/11', value: 1 },
-          { key: '2026-03-12', label: '3/12', value: 1 },
+          { key: '2026-03-12', label: '3/12', value: 2 },
         ],
         completedOrders30d: [
           { key: '2026-03-10', label: '3/10', value: 1 },
           { key: '2026-03-11', label: '3/11', value: 1 },
-          { key: '2026-03-12', label: '3/12', value: 0 },
+          { key: '2026-03-12', label: '3/12', value: 1 },
         ],
         dealAmount30d: [
           { key: '2026-03-10', label: '3/10', value: 1200 },
           { key: '2026-03-11', label: '3/11', value: 2400 },
-          { key: '2026-03-12', label: '3/12', value: 0 },
+          { key: '2026-03-12', label: '3/12', value: 5000 },
         ],
       },
       distribution: {
@@ -131,7 +133,7 @@ describe('ReportsService showcase summary suite', () => {
         ],
         orderStatuses: [
           { key: 'DEPOSIT_PAID', label: '定金已付', value: 1 },
-          { key: 'COMPLETED', label: '已完成', value: 2 },
+          { key: 'COMPLETED', label: '已成交', value: 3 },
           { key: 'CANCELLED', label: '已取消', value: 1 },
         ],
       },
@@ -195,6 +197,7 @@ describe('ReportsService showcase summary suite', () => {
       select: {
         dealAt: true,
         priceFen: true,
+        source: true,
       },
     });
     expect(prisma.patent.findMany).toHaveBeenCalledWith({
@@ -215,6 +218,7 @@ describe('ReportsService showcase summary suite', () => {
     prisma.userVerification.count.mockResolvedValueOnce(4);
     prisma.order.count.mockResolvedValueOnce(30);
     prisma.dealRecord.count.mockResolvedValueOnce(18);
+    prisma.dealRecord.count.mockResolvedValueOnce(0);
     prisma.dealRecord.aggregate.mockResolvedValueOnce({ _sum: { priceFen: 999999 }, _count: { _all: 18 } });
     prisma.userVerification.count.mockResolvedValueOnce(9);
     prisma.listing.count.mockResolvedValueOnce(5);
