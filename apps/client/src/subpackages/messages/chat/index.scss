@@ -28,9 +28,12 @@
 }
 
 .chat-header-back {
-  font-size: 42rpx;
-  line-height: 1;
-  color: #111827;
+  width: 22rpx;
+  height: 22rpx;
+  margin-left: 6rpx;
+  border-left: 4rpx solid #111827;
+  border-bottom: 4rpx solid #111827;
+  transform: rotate(45deg);
 }
 
 .chat-header-more {

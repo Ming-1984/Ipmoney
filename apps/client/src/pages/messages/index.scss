@@ -432,32 +432,49 @@
   align-items: center;
   justify-content: space-between;
   gap: 12rpx;
+  min-width: 0;
 }
 
 .message-title-left {
   display: flex;
   align-items: center;
   gap: 10rpx;
+  width: 0;
   min-width: 0;
-  flex: 1;
+  flex: 1 1 0;
+  overflow: hidden;
+}
+
+.message-title-text-wrap {
+  width: 0;
+  min-width: 0;
+  flex: 1 1 0;
+  overflow: hidden;
 }
 
 .message-title-new {
   font-size: 36rpx;
   font-weight: 600;
   color: #111827;
+  display: block;
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
+  line-height: 1.2;
 }
 
 .message-time-new {
   font-size: 20rpx;
   color: #9ca3af;
+  flex-shrink: 0;
+  line-height: 1.2;
 }
 
 .message-meta-row-new {
   display: flex;
   align-items: center;
   gap: 8rpx;
+  min-width: 0;
 }
 
 .message-official-badge {
@@ -481,6 +498,7 @@
   font-size: 24rpx;
   color: #6b7280;
   flex: 1;
+  min-width: 0;
 }
 
 .messages-popup-body {
@@ -510,13 +528,57 @@
   display: flex;
   align-items: center;
   gap: 8rpx;
+  width: 0;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  flex-wrap: nowrap;
+}
+
+.message-title-tag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 56rpx;
+  width: 56rpx;
+  height: 30rpx;
+  border-radius: 999rpx;
+  overflow: hidden;
+}
+
+.message-title-tag-text {
+  display: block;
+  width: 100%;
+  font-size: 20rpx;
+  line-height: 30rpx;
+  text-align: center;
+  white-space: nowrap;
+  word-break: keep-all;
+}
+
+.message-title-tag--cs {
+  color: #ff7a00;
+  background: #fff4e6;
+}
+
+.message-title-tag--trade {
+  color: #2563eb;
+  background: #e0f2fe;
 }
 
 .message-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 52rpx;
   padding: 2rpx 8rpx;
   border-radius: 999rpx;
   font-size: 20rpx;
   line-height: 1.2;
+  white-space: nowrap;
+  word-break: keep-all;
 }
 
 .message-tag--cs {

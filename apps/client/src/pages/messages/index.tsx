@@ -413,11 +413,13 @@ export default function MessagesPage() {
                   <View className="message-body-new">
                     <View className="message-title-row-new">
                       <View className="message-title-left">
-                        <Text className="message-title-new ellipsis">{c._displayName}</Text>
+                        <View className="message-title-text-wrap">
+                          <Text className="message-title-new ellipsis">{c._displayName}</Text>
+                        </View>
                         {c._category !== 'user' ? (
-                          <Text className={`message-tag message-tag--${c._category}`}>
-                            {c._category === 'cs' ? '平台' : '系统'}
-                          </Text>
+                          <View className={`message-title-tag message-title-tag--${c._category}`}>
+                            <Text className="message-title-tag-text">{c._category === 'cs' ? '平台' : '系统'}</Text>
+                          </View>
                         ) : null}
                       </View>
                       <Text className="message-time-new">{formatTimeSmart(c.lastMessageAt)}</Text>
