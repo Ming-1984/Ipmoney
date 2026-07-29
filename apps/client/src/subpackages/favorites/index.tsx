@@ -5,6 +5,7 @@ import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
+import { mergeAchievementStatsPatches, onAchievementStatsChanged } from '../../lib/achievementStatsSync';
 import { listAchievementFavorites, listFavorites, unfavorite } from '../../lib/favorites';
 import { apiPost } from '../../lib/api';
 import { ensureApproved, usePageAccess } from '../../lib/guard';
@@ -57,6 +58,23 @@ export default function FavoritesPage() {
     },
   );
 
+  useDidShow(() => {
+    achievementList.setItems((prev) => mergeAchievementStatsPatches(prev));
+  });
+
+  useEffect(
+    () =>
+      onAchievementStatsChanged((patch) => {
+        achievementList.setItems((prev) => {
+          const next = typeof patch.favorited === 'boolean' && !patch.favorited
+            ? prev.filter((item) => item.id !== patch.achievementId)
+            : prev;
+          return mergeAchievementStatsPatches(next);
+        });
+      }),
+    [achievementList.setItems],
+  );
+
   const access = usePageAccess('approved-required', (a) => {
     if (a.state === 'ok') {
       if (loadedOnceRef.current) {
@@ -84,7 +102,7 @@ export default function FavoritesPage() {
   }, [access.state, achievementList.reload, listingList.reload, tab]);
 
   const listingItems = useMemo(() => listingList.items, [listingList.items]);
-  const achievementItems = useMemo(() => achievementList.items, [achievementList.items]);
+  const achievementItems = useMemo(() => mergeAchievementStatsPatches(achievementList.items), [achievementList.items]);
 
   const startConsult = useCallback(async (listingId: string) => {
     if (!ensureApproved()) return;

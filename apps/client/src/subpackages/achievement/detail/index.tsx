@@ -8,6 +8,7 @@ import type { components } from '@ipmoney/api-types';
 import { Heart, HeartFill } from '../../../ui/icons';
 
 import { apiGet } from '../../../lib/api';
+import { notifyAchievementStatsChanged } from '../../../lib/achievementStatsSync';
 import { displayInfoOrPlaceholder, displayTitleOrFallback, displayUserName } from '../../../lib/displayText';
 import { favoriteAchievement, isAchievementFavorited, syncAchievementFavorites, unfavoriteAchievement } from '../../../lib/favorites';
 import { ensureApproved } from '../../../lib/guard';
@@ -86,6 +87,7 @@ export default function AchievementDetailPage() {
       if (achievementIdRef.current !== targetAchievementId) return;
       setData(d);
       setDetailCache('achievement-public', targetAchievementId, d);
+      notifyAchievementStatsChanged({ achievementId: targetAchievementId, stats: d.stats });
     } catch (e: any) {
       if (achievementIdRef.current !== targetAchievementId) return;
       if (!cached) {
@@ -114,21 +116,62 @@ export default function AchievementDetailPage() {
   const toggleFavorite = useCallback(async () => {
     if (!achievementId) return;
     if (!ensureApproved()) return;
+    const currentFavoriteCount = Math.max(0, data?.stats?.favoriteCount ?? 0);
     try {
       if (favoritedState) {
+        const nextFavoriteCount = Math.max(0, currentFavoriteCount - 1);
         await unfavoriteAchievement(achievementId);
         setFavoritedState(false);
+        setData((prev) => {
+          if (!prev) return prev;
+          const next = {
+            ...prev,
+            stats: {
+              viewCount: prev.stats?.viewCount ?? 0,
+              favoriteCount: nextFavoriteCount,
+              consultCount: prev.stats?.consultCount ?? 0,
+              commentCount: prev.stats?.commentCount ?? 0,
+            },
+          };
+          setDetailCache('achievement-public', achievementId, next);
+          return next;
+        });
+        notifyAchievementStatsChanged({
+          achievementId,
+          favorited: false,
+          stats: { favoriteCount: nextFavoriteCount },
+        });
         toast('已取消收藏', { icon: 'success' });
       } else {
+        const nextFavoriteCount = currentFavoriteCount + 1;
         await favoriteAchievement(achievementId);
         setFavoritedState(true);
+        setData((prev) => {
+          if (!prev) return prev;
+          const next = {
+            ...prev,
+            stats: {
+              viewCount: prev.stats?.viewCount ?? 0,
+              favoriteCount: nextFavoriteCount,
+              consultCount: prev.stats?.consultCount ?? 0,
+              commentCount: prev.stats?.commentCount ?? 0,
+            },
+          };
+          setDetailCache('achievement-public', achievementId, next);
+          return next;
+        });
+        notifyAchievementStatsChanged({
+          achievementId,
+          favorited: true,
+          stats: { favoriteCount: nextFavoriteCount },
+        });
         toast('已收藏', { icon: 'success' });
       }
       void syncAchievementFavorites().catch(() => {});
     } catch (e: any) {
       toast(e?.message || '操作失败');
     }
-  }, [achievementId, favoritedState]);
+  }, [achievementId, data?.stats?.favoriteCount, favoritedState]);
 
   if (!achievementId) {
     return (

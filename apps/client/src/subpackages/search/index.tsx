@@ -7,8 +7,10 @@ import type { components } from '@ipmoney/api-types';
 
 import { getToken } from '../../lib/auth';
 import { apiGet, apiPost } from '../../lib/api';
+import { mergeAchievementStatsPatches, onAchievementStatsChanged } from '../../lib/achievementStatsSync';
 import { favorite, getFavoriteListingIds, syncFavorites, unfavorite } from '../../lib/favorites';
 import { ensureApproved } from '../../lib/guard';
+import { mergeListingStatsPatches, onListingStatsChanged } from '../../lib/listingStatsSync';
 import {
   buildEnabledListingTopicOptions,
   fetchHomeLandingConfig,
@@ -408,7 +410,11 @@ export default function SearchPage() {
   useEffect(() => {
     if (!getToken()) return;
     const timer = setTimeout(() => {
-      syncFavorites().catch(() => {});
+      syncFavorites()
+        .then((ids) => setFavoriteIds(new Set(ids)))
+        .catch(() => {
+          setFavoriteIds(new Set(getFavoriteListingIds()));
+        });
     }, 600);
     return () => clearTimeout(timer);
   }, []);
@@ -463,6 +469,36 @@ export default function SearchPage() {
   );
 
   const achievementList = usePagedList<AchievementSummary>(fetchAchievement, { pageSize: 20 });
+
+  useDidShow(() => {
+    setFavoriteIds(new Set(getFavoriteListingIds()));
+    listingList.setItems((prev) => mergeListingStatsPatches(prev));
+    achievementList.setItems((prev) => mergeAchievementStatsPatches(prev));
+  });
+
+  useEffect(
+    () =>
+      onListingStatsChanged((patch) => {
+        listingList.setItems((prev) => mergeListingStatsPatches(prev));
+        if (typeof patch.favorited === 'boolean') {
+          setFavoriteIds((prev) => {
+            const next = new Set(prev);
+            if (patch.favorited) next.add(patch.listingId);
+            else next.delete(patch.listingId);
+            return next;
+          });
+        }
+      }),
+    [listingList.setItems],
+  );
+
+  useEffect(
+    () =>
+      onAchievementStatsChanged(() => {
+        achievementList.setItems((prev) => mergeAchievementStatsPatches(prev));
+      }),
+    [achievementList.setItems],
+  );
 
   const listingSignature = useMemo(
     () => JSON.stringify({ q, qType, sortBy, listingFilters, searchSeq }),
@@ -562,8 +598,8 @@ export default function SearchPage() {
     }
   }, []);
 
-  const listingItems = useMemo(() => listingList.items, [listingList.items]);
-  const achievementItems = useMemo(() => achievementList.items, [achievementList.items]);
+  const listingItems = useMemo(() => mergeListingStatsPatches(listingList.items), [listingList.items]);
+  const achievementItems = useMemo(() => mergeAchievementStatsPatches(achievementList.items), [achievementList.items]);
 
   const listingFilterLabels = useMemo(() => {
     const out: string[] = [];

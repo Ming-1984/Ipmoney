@@ -105,6 +105,14 @@ function isPatentNumberCompleteEnough(input: string): boolean {
   return /^(?:CN)?\d{7,9}[A-Z]\d?$/.test(cleaned);
 }
 
+const PATENT_NUMBER_FORMAT_MESSAGE = '专利号/申请号/公开号格式不正确，请填写完整号码';
+
+function normalizePatentSubmitError(error: any): string {
+  const message = String(error?.message || '').trim();
+  if (message.includes('invalid patent number format')) return PATENT_NUMBER_FORMAT_MESSAGE;
+  return message || '提交失败';
+}
+
 function splitList(input: string): string[] {
   return (input || '')
     .split(/[,，;；\n]/g)
@@ -581,6 +589,9 @@ export default function PublishPatentPage() {
       if (mode === 'submit' && !patentType) {
         return reportFormError('请选择专利类型');
       }
+      if (mode === 'submit' && !isPatentNumberCompleteEnough(raw)) {
+        return reportFormError(PATENT_NUMBER_FORMAT_MESSAGE);
+      }
       if (mode === 'submit' && !tradeMode) {
         return reportFormError('请选择交易方式');
       }
@@ -680,6 +691,9 @@ export default function PublishPatentPage() {
       }
       if (mode === 'submit' && !patentType) {
         return reportFormError('请选择专利类型');
+      }
+      if (mode === 'submit' && !patentNumberLocked && !isPatentNumberCompleteEnough(raw)) {
+        return reportFormError(PATENT_NUMBER_FORMAT_MESSAGE);
       }
       if (mode === 'submit' && !tradeMode) {
         return reportFormError('请选择交易方式');
@@ -880,7 +894,7 @@ export default function PublishPatentPage() {
       toast('已提交审核', { icon: 'success' });
     } catch (e: any) {
       if (seq !== submitSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
-      const message = e?.message || '提交失败';
+      const message = normalizePatentSubmitError(e);
       setFormError(message);
       toast(message);
     } finally {

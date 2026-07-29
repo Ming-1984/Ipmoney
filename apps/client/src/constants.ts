@@ -23,6 +23,7 @@ export const STORAGE_KEYS = {
   favoriteListingIds: 'ipmoney.favoriteListingIds',
   favoriteAchievementIds: 'ipmoney.favoriteAchievementIds',
   listingStatsPatches: 'ipmoney.listingStatsPatches',
+  achievementStatsPatches: 'ipmoney.achievementStatsPatches',
   regionPickerResult: 'ipmoney.regionPickerResult',
   regionNameMap: 'ipmoney.regionNameMap',
   regionParentMap: 'ipmoney.regionParentMap',

@@ -10,7 +10,7 @@ import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { normalizeDisplayText } from '../../../lib/displayText';
 import { ensureApproved, usePageAccess } from '../../../lib/guard';
 import { formatTimeSmart } from '../../../lib/format';
-import { orderStatusLabel, orderStatusTagClass } from '../../../lib/labels';
+import { orderStatusLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { useRouteStringParam } from '../../../lib/routeParams';
@@ -87,6 +87,54 @@ function refundStatusLabel(status?: string | null): string {
 
 function displayOrderInfo(value: unknown, fallback = '待确认'): string {
   return normalizeDisplayText(value) || fallback;
+}
+
+function shortOrderId(id?: string | null): string {
+  const compact = String(id || '').replace(/-/g, '').trim().toUpperCase();
+  if (!compact) return '待确认';
+  return compact.slice(0, 8);
+}
+
+function moneyDisplay(fen?: number | null): string {
+  if (fen === undefined || fen === null) return '待确认';
+  const yuan = fenToYuan(fen);
+  const [integer, decimal] = yuan.split('.');
+  const formatted = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return `¥${decimal ? `${formatted}.${decimal}` : formatted}`;
+}
+
+function orderStatusToneClass(status: OrderBase['status']): string {
+  if (status === 'DEPOSIT_PENDING') return 'is-deposit-pending';
+  if (status === 'DEPOSIT_PAID') return 'is-deposit-paid';
+  if (status === 'WAIT_FINAL_PAYMENT') return 'is-wait-final';
+  if (status === 'FINAL_PAID_ESCROW') return 'is-final-escrow';
+  if (status === 'READY_TO_SETTLE') return 'is-ready-settle';
+  if (status === 'COMPLETED') return 'is-completed';
+  if (status === 'CANCELLED') return 'is-cancelled';
+  if (status === 'REFUNDING') return 'is-refunding';
+  if (status === 'REFUNDED') return 'is-refunded';
+  return 'is-unknown';
+}
+
+function orderProgressHint(order: OrderDetail): string {
+  if (order.status === 'DEPOSIT_PENDING') return '等待支付订金';
+  if (order.status === 'DEPOSIT_PAID') return '订金已支付，平台客服将介入跟单';
+  if (order.status === 'WAIT_FINAL_PAYMENT') return '合同已确认，可支付尾款';
+  if (order.status === 'FINAL_PAID_ESCROW') return '尾款已托管，等待权属变更';
+  if (order.status === 'READY_TO_SETTLE') return '权属变更完成，等待款项处理';
+  if (order.status === 'COMPLETED') return '订单已完成';
+  if (order.status === 'CANCELLED') return '订单已取消';
+  if (order.status === 'REFUNDING') return '退款处理中';
+  if (order.status === 'REFUNDED') return '退款已完成';
+  return '订单状态待确认';
+}
+
+function milestoneToneClass(status?: string | null): string {
+  if (status === 'DONE') return 'is-done';
+  if (status === 'IN_PROGRESS') return 'is-active';
+  if (status === 'FAILED') return 'is-danger';
+  if (status === 'SKIPPED') return 'is-muted';
+  return 'is-pending';
 }
 
 export default function OrderDetailPage() {
@@ -516,7 +564,7 @@ export default function OrderDetailPage() {
   }
 
   return (
-    <View className="container detail-page-compact">
+    <View className="container detail-page-compact order-detail-page">
       <PageHeader weapp title="订单详情" subtitle="查看交易进度、退款与发票信息" />
       <Spacer />
 
@@ -527,30 +575,60 @@ export default function OrderDetailPage() {
       ) : error ? (
         <ErrorCard message={error} onRetry={load} />
       ) : order ? (
-        <View>
-          <Surface className="detail-compact-header" id="order-overview">
-            <View className="row-between" style={{ gap: '12rpx' }}>
-              <Text className="text-card-title">状态</Text>
-              <Text className={orderStatusTagClass(order.status)}>{orderStatusLabel(order.status)}</Text>
+        <View className="order-detail-content">
+          <Surface className={`order-detail-hero ${orderStatusToneClass(order.status)}`} id="order-overview" padding="none">
+            <View className="order-detail-hero-accent" />
+            <View className="order-detail-hero-body">
+              <View className="order-detail-status-row">
+                <View className="order-detail-title-group">
+                  <Text className="order-detail-eyebrow">当前进度</Text>
+                  <Text className="order-detail-headline">{orderProgressHint(order)}</Text>
+                  <Text className="order-detail-updated">更新于 {formatTimeSmart(order.updatedAt || order.createdAt)}</Text>
+                </View>
+                <Text className="order-detail-status-pill">{orderStatusLabel(order.status)}</Text>
+              </View>
+
+              <View className="order-detail-target">
+                <Text className="order-detail-target-label">交易标的</Text>
+                <Text className="order-detail-target-title clamp-2">{displayOrderInfo(order.listingTitle, '交易标的待确认')}</Text>
+                <View className="order-detail-target-meta">
+                  <Text>订单号 {shortOrderId(order.id)}</Text>
+                  {normalizeDisplayText(order.applicationNoDisplay) ? <Text>申请号 {displayOrderInfo(order.applicationNoDisplay)}</Text> : null}
+                </View>
+              </View>
+
+              <View className="order-detail-money-grid">
+                <View className="order-detail-money-cell is-total">
+                  <Text className="order-detail-money-label">成交总价</Text>
+                  <Text className={order.dealAmountFen == null ? 'order-detail-money-value is-empty' : 'order-detail-money-value'}>
+                    {moneyDisplay(order.dealAmountFen)}
+                  </Text>
+                </View>
+                <View className="order-detail-money-cell">
+                  <Text className="order-detail-money-label">订金</Text>
+                  <Text className={order.depositAmountFen == null ? 'order-detail-money-value is-empty' : 'order-detail-money-value'}>
+                    {moneyDisplay(order.depositAmountFen)}
+                  </Text>
+                </View>
+                <View className="order-detail-money-cell">
+                  <Text className="order-detail-money-label">尾款</Text>
+                  <Text className={order.finalAmountFen == null ? 'order-detail-money-value is-empty' : 'order-detail-money-value'}>
+                    {moneyDisplay(order.finalAmountFen)}
+                  </Text>
+                </View>
+              </View>
+
+              <View className="order-detail-party-grid">
+                <View className="order-detail-party-card">
+                  <Text className="order-detail-party-label">意向方</Text>
+                  <Text className="order-detail-party-name clamp-1">{displayOrderInfo(order.buyerDisplayName)}</Text>
+                </View>
+                <View className="order-detail-party-card">
+                  <Text className="order-detail-party-label">权利方</Text>
+                  <Text className="order-detail-party-name clamp-1">{displayOrderInfo(order.sellerDisplayName)}</Text>
+                </View>
+              </View>
             </View>
-            <View style={{ height: '10rpx' }} />
-            <Text className="muted">订金：¥{fenToYuan(order.depositAmountFen, { empty: '待确认' })}</Text>
-            <View style={{ height: '6rpx' }} />
-            <Text className="muted">成交总价：¥{fenToYuan(order.dealAmountFen, { empty: '待确认' })}</Text>
-            <View style={{ height: '6rpx' }} />
-            <Text className="muted">尾款：¥{fenToYuan(order.finalAmountFen, { empty: '待确认' })}</Text>
-            {normalizeDisplayText(order.listingTitle) ? (
-              <>
-                <View style={{ height: '6rpx' }} />
-                <Text className="muted">交易标的：{normalizeDisplayText(order.listingTitle)}</Text>
-              </>
-            ) : null}
-            {normalizeDisplayText(order.applicationNoDisplay) ? (
-              <>
-                <View style={{ height: '6rpx' }} />
-                <Text className="muted">申请号：{displayOrderInfo(order.applicationNoDisplay)}</Text>
-              </>
-            ) : null}
           </Surface>
 
           <View className="detail-tabs">
@@ -567,15 +645,13 @@ export default function OrderDetailPage() {
             </View>
           </View>
 
-          <View style={{ height: '16rpx' }} />
-
           {order.status === 'WAIT_FINAL_PAYMENT' ? (
-            <>
-              <Surface>
-                <Text className="text-card-title">下一步</Text>
-                <View style={{ height: '10rpx' }} />
-                <Text className="muted">合同已确认，可在平台托管支付尾款。</Text>
-                <View style={{ height: '12rpx' }} />
+            <Surface className="order-detail-action-card">
+              <View className="order-detail-action-copy">
+                <Text className="order-detail-action-title">下一步：支付尾款</Text>
+                <Text className="order-detail-action-desc">合同已确认，可在平台托管支付尾款。</Text>
+              </View>
+              <View className="order-detail-action-button">
                 <Button
                   variant="primary"
                   onClick={() => {
@@ -585,41 +661,55 @@ export default function OrderDetailPage() {
                 >
                   支付尾款{order.finalAmountFen != null ? ` ¥${fenToYuan(order.finalAmountFen)}` : ''}
                 </Button>
-              </Surface>
-              <View style={{ height: '16rpx' }} />
-            </>
+              </View>
+            </Surface>
           ) : null}
 
-          <Surface id="order-case">
-            <View className="row-between" style={{ gap: '12rpx' }}>
-              <Text className="text-card-title">跟单与里程碑</Text>
+          <Surface className="order-detail-card" id="order-case" padding="none">
+            <View className="order-detail-card-head">
+              <View className="order-detail-card-title-group">
+                <Text className="order-detail-card-title">跟单与里程碑</Text>
+                <Text className="order-detail-card-subtitle">平台跟单节点与履约进度</Text>
+              </View>
               <Button variant="ghost" size="small" onClick={() => void loadCase()}>
                 刷新
               </Button>
             </View>
-            <View style={{ height: '10rpx' }} />
-            {caseLoading ? (
-              <Text className="muted">加载中…</Text>
-            ) : caseData?.milestones?.length ? (
-              caseData.milestones.map((m, idx) => (
-                <View key={`${m.name}-${idx}`} className="list-item">
-                  <Text className="text-strong">{milestoneNameLabel(m.name)}</Text>
-                  <Text className="muted">{milestoneStatusLabel(m.status)}</Text>
+            <View className="order-detail-card-body">
+              {caseLoading ? (
+                <Text className="order-detail-empty">加载中…</Text>
+              ) : caseData?.milestones?.length ? (
+                <View className="order-timeline">
+                  {caseData.milestones.map((m, idx) => (
+                    <View key={`${m.name}-${idx}`} className={`order-timeline-item ${milestoneToneClass(m.status)}`}>
+                      <View className="order-timeline-rail">
+                        <View className="order-timeline-dot" />
+                      </View>
+                      <View className="order-timeline-body">
+                        <View className="order-timeline-main">
+                          <Text className="order-timeline-title">{milestoneNameLabel(m.name)}</Text>
+                          <Text className="order-timeline-status">{milestoneStatusLabel(m.status)}</Text>
+                        </View>
+                        <Text className="order-timeline-time">{m.occurredAt ? formatTimeSmart(m.occurredAt) : '时间待确认'}</Text>
+                      </View>
+                    </View>
+                  ))}
                 </View>
-              ))
-            ) : caseError ? (
-              <ErrorCard title="里程碑加载失败" message={caseError} onRetry={loadCase} />
-            ) : (
-              <Text className="muted">（暂无里程碑数据）</Text>
-            )}
+              ) : caseError ? (
+                <ErrorCard title="里程碑加载失败" message={caseError} onRetry={loadCase} />
+              ) : (
+                <Text className="order-detail-empty">暂无里程碑数据</Text>
+              )}
+            </View>
           </Surface>
 
-          <View style={{ height: '16rpx' }} />
-
-          <Surface id="order-refund">
-            <View className="row-between" style={{ gap: '12rpx' }}>
-              <Text className="text-card-title">退款申请</Text>
-              <View style={{ display: 'flex', gap: '8rpx' }}>
+          <Surface className="order-detail-card" id="order-refund" padding="none">
+            <View className="order-detail-card-head order-detail-card-head-dual">
+              <View className="order-detail-card-title-group">
+                <Text className="order-detail-card-title">退款与争议</Text>
+                <Text className="order-detail-card-subtitle">退款申请、争议沟通记录</Text>
+              </View>
+              <View className="order-detail-card-actions order-detail-card-actions-dual">
                 <Button variant="ghost" size="small" loading={openingDisputeChat} onClick={() => void openDisputeConversation()}>
                   争议沟通
                 </Button>
@@ -640,77 +730,79 @@ export default function OrderDetailPage() {
                 </Button>
               </View>
             </View>
-            <View style={{ height: '10rpx' }} />
-            {!canSubmitRefund && refundBlockedHint ? <Text className="muted">{refundBlockedHint}</Text> : null}
-            {!canSubmitRefund && refundBlockedHint ? <View style={{ height: '10rpx' }} /> : null}
-            {refundsLoading ? (
-              <Text className="muted">加载中…</Text>
-            ) : refundsError ? (
-              <ErrorCard title="退款申请加载失败" message={refundsError} onRetry={loadRefunds} />
-            ) : refunds.length ? (
-              refunds.map((r) => (
-                <View key={r.id} className="list-item">
-                  <Text className="text-strong">{refundStatusLabel(r.status)}</Text>
-                  <Text className="muted">{formatTimeSmart(r.createdAt)}</Text>
+            <View className="order-detail-card-body">
+              {!canSubmitRefund && refundBlockedHint ? <Text className="order-detail-hint">{refundBlockedHint}</Text> : null}
+              {refundsLoading ? (
+                <Text className="order-detail-empty">加载中…</Text>
+              ) : refundsError ? (
+                <ErrorCard title="退款申请加载失败" message={refundsError} onRetry={loadRefunds} />
+              ) : refunds.length ? (
+                <View className="order-record-list">
+                  {refunds.map((r) => (
+                    <View key={r.id} className="order-record-item">
+                      <View className="order-record-main">
+                        <Text className="order-record-title">{refundStatusLabel(r.status)}</Text>
+                        <Text className="order-record-subtitle">{formatTimeSmart(r.createdAt)}</Text>
+                      </View>
+                    </View>
+                  ))}
                 </View>
-              ))
-            ) : (
-              <Text className="muted">（暂无退款申请）</Text>
-            )}
+              ) : (
+                <Text className="order-detail-empty">暂无退款申请</Text>
+              )}
+            </View>
           </Surface>
 
-          <View style={{ height: '16rpx' }} />
-
-          <Surface>
-            <View className="row-between" style={{ gap: '12rpx' }}>
-              <Text className="text-card-title">发票</Text>
-              <Button variant="ghost" size="small" disabled={invoiceLoading || !canFetchInvoiceDetail} onClick={() => void loadInvoice()}>
-                刷新
-              </Button>
-            </View>
-            <View style={{ height: '10rpx' }} />
-            <View id="order-invoice" />
-            {invoiceLoading ? (
-              <Text className="muted">加载中…</Text>
-            ) : invoiceError ? (
-              <ErrorCard title="发票信息加载失败" message={invoiceError} onRetry={loadInvoice} />
-            ) : hasInvoiceFile && invoice?.invoiceFile?.url ? (
-              <View className="row-between" style={{ gap: '12rpx' }}>
-                <Text className="muted clamp-1">电子发票已上传</Text>
-                <Button
-                  variant="ghost"
-                  size="small"
-                  onClick={() => {
-                    Taro.setClipboardData({ data: invoice.invoiceFile.url });
-                    toast('已复制下载链接', { icon: 'success' });
-                  }}
-                >
-                  复制链接
+          <Surface className="order-detail-card" id="order-invoice" padding="none">
+            <View className="order-detail-card-head order-detail-card-head-dual">
+              <View className="order-detail-card-title-group">
+                <Text className="order-detail-card-title">发票与开票</Text>
+                <Text className="order-detail-card-subtitle">平台服务费发票与下载入口</Text>
+              </View>
+              <View className="order-detail-card-actions order-detail-card-actions-dual">
+                <Button variant="ghost" size="small" disabled={invoiceLoading || !canFetchInvoiceDetail} onClick={() => void loadInvoice()}>
+                  刷新
+                </Button>
+                <Button variant="ghost" size="small" onClick={openInvoiceCenter}>
+                  发票中心
                 </Button>
               </View>
-            ) : (
-              <View className="row-between" style={{ gap: '12rpx' }}>
-                <Text className="muted">{invoiceHint}</Text>
-                {canRequestInvoice ? (
-                  <Button variant="primary" size="small" loading={invoiceRequesting} onClick={() => void requestInvoice()}>
-                    申请开票
-                  </Button>
-                ) : null}
-              </View>
-            )}
-          </Surface>
-          <View style={{ height: '16rpx' }} />
-          <Surface>
-            <View className="row-between" style={{ gap: '12rpx' }}>
-              <Text className="text-card-title">发票管理</Text>
-              <Button variant="ghost" size="small" onClick={openInvoiceCenter}>
-                发票中心
-              </Button>
             </View>
-            <View style={{ height: '10rpx' }} />
-            <Text className="muted">发票由平台财务线下开具（仅平台服务费）；开具后可在发票中心下载。</Text>
+            <View className="order-detail-card-body">
+              {invoiceLoading ? (
+                <Text className="order-detail-empty">加载中…</Text>
+              ) : invoiceError ? (
+                <ErrorCard title="发票信息加载失败" message={invoiceError} onRetry={loadInvoice} />
+              ) : hasInvoiceFile && invoice?.invoiceFile?.url ? (
+                <View className="order-invoice-ready">
+                  <View className="order-record-main">
+                    <Text className="order-record-title">电子发票已上传</Text>
+                    <Text className="order-record-subtitle">{displayOrderInfo(invoice.invoiceNo || order.invoiceNo, '发票号待确认')}</Text>
+                  </View>
+                  <Button
+                    variant="ghost"
+                    size="small"
+                    onClick={() => {
+                      Taro.setClipboardData({ data: invoice.invoiceFile.url });
+                      toast('已复制下载链接', { icon: 'success' });
+                    }}
+                  >
+                    复制链接
+                  </Button>
+                </View>
+              ) : (
+                <View className="order-invoice-pending">
+                  <Text className="order-detail-hint">{invoiceHint}</Text>
+                  {canRequestInvoice ? (
+                    <Button variant="primary" size="small" loading={invoiceRequesting} onClick={() => void requestInvoice()}>
+                      申请开票
+                    </Button>
+                  ) : null}
+                </View>
+              )}
+              <Text className="order-detail-note">发票由平台财务线下开具（仅平台服务费）；开具后可在发票中心下载。</Text>
+            </View>
           </Surface>
-          <View style={{ height: '16rpx' }} />
         </View>
       ) : (
         <EmptyCard message="无数据" actionText="返回" onAction={() => Taro.navigateBack()} />
@@ -726,9 +818,9 @@ export default function OrderDetailPage() {
         onOverlayClick={() => setRefundOpen(false)}
       >
         <PopupSheet scrollable={false}>
-          <Surface>
+          <Surface className="refund-popup-card">
             <Text className="text-strong">原因类型</Text>
-            <View style={{ height: '10rpx' }} />
+            <View className="refund-popup-gap-sm" />
             <View className="refund-reason-grid">
               {REFUND_REASON_OPTIONS.map((option) => (
                 <View
@@ -741,12 +833,12 @@ export default function OrderDetailPage() {
               ))}
             </View>
 
-            <View style={{ height: '12rpx' }} />
+            <View className="refund-popup-gap" />
             <Text className="muted">说明（可选）</Text>
-            <View style={{ height: '8rpx' }} />
+            <View className="refund-popup-gap-xs" />
             <TextArea value={reasonText} onChange={setReasonText} placeholder={`原因：${reasonLabel(reasonCode)}`} maxLength={500} />
 
-            <View style={{ height: '14rpx' }} />
+            <View className="refund-popup-gap-lg" />
             <Button loading={refundSubmitting} disabled={refundSubmitting} onClick={() => void submitRefund()}>
               提交
             </Button>

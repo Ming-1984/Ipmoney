@@ -32,7 +32,6 @@ function reportWeappDebug(title: string, detail?: unknown) {
 type AchievementDraft = components['schemas']['AchievementEdit'];
 type ContentMedia = components['schemas']['ContentMedia'];
 type AchievementMaturity = components['schemas']['AchievementMaturity'];
-type CooperationMode = components['schemas']['CooperationMode'];
 type AuditStatus = components['schemas']['AuditStatus'];
 type ContentStatus = components['schemas']['ContentStatus'];
 
@@ -88,17 +87,22 @@ const MATURITY_OPTIONS: ChipOption<AchievementMaturity | ''>[] = [
   { value: 'OTHER', label: '其他' },
 ];
 
-const COOPERATION_OPTIONS: ChipOption<CooperationMode>[] = [
-  { value: 'TRANSFER', label: '技术转让' },
-  { value: 'TECH_CONSULTING', label: '技术咨询' },
-  { value: 'COMMISSIONED_DEV', label: '委托开发' },
-  { value: 'PLATFORM_CO_BUILD', label: '平台共建' },
-];
-
 const UNTITLED_ACHIEVEMENT_DRAFT_TITLE = '未命名成果草稿';
 
 function isSubmittedAchievement(status?: ContentStatus | null, auditStatus?: AuditStatus | null): boolean {
   return status !== 'DRAFT' && (auditStatus === 'PENDING' || auditStatus === 'APPROVED' || auditStatus === 'REJECTED');
+}
+
+function achievementAuditStatusLabel(status?: ContentStatus | null, auditStatus?: AuditStatus | null): string {
+  if (status === 'DRAFT') return '未提交';
+  if (!auditStatus) return '';
+  return auditStatusLabel(auditStatus);
+}
+
+function achievementDisplayStatusLabel(status?: ContentStatus | null, auditStatus?: AuditStatus | null): string {
+  if (!status) return '';
+  if (status === 'ACTIVE' && auditStatus === 'PENDING') return '待审核通过后展示';
+  return contentStatusLabel(status);
 }
 
 function splitList(input: string): string[] {
@@ -199,7 +203,6 @@ export default function PublishAchievementPage() {
   const [description, setDescription] = useState('');
   const [keywordsInput, setKeywordsInput] = useState('');
   const [maturity, setMaturity] = useState<AchievementMaturity | ''>('');
-  const [cooperationModes, setCooperationModes] = useState<CooperationMode[]>([]);
   const [regionCode, setRegionCode] = useState<string | undefined>();
   const [regionName, setRegionName] = useState<string | undefined>();
   const [industryTags, setIndustryTags] = useState<string[]>([]);
@@ -247,7 +250,6 @@ export default function PublishAchievementPage() {
     setDescription('');
     setKeywordsInput('');
     setMaturity('');
-    setCooperationModes([]);
     setRegionCode(undefined);
     setRegionName(undefined);
     setIndustryTags([]);
@@ -282,7 +284,6 @@ export default function PublishAchievementPage() {
         setDescription(draft.description || '');
         setKeywordsInput((draft.keywords || []).join(', '));
         setMaturity((draft.maturity || '') as AchievementMaturity | '');
-        setCooperationModes((draft.cooperationModes || []) as CooperationMode[]);
         setIndustryTags(sanitizeIndustryTagNames(draft.industryTags || []));
 
         if (draft.regionCode) {
@@ -534,13 +535,13 @@ export default function PublishAchievementPage() {
       description: description.trim() || undefined,
       keywords,
       maturity: maturity || undefined,
-      cooperationModes,
+      cooperationModes: [],
       regionCode: regionCode || undefined,
       industryTags: sanitizedIndustryTags,
       coverFileId: coverFile?.id || undefined,
       media: toMediaInput(mediaFiles),
     };
-  }, [cooperationModes, coverFile, description, keywords, maturity, mediaFiles, regionCode, sanitizedIndustryTags, summary, title]);
+  }, [coverFile, description, keywords, maturity, mediaFiles, regionCode, sanitizedIndustryTags, summary, title]);
 
   const saveDraft = useCallback(async (mode: 'save' | 'submit' = 'save'): Promise<AchievementDraft | null> => {
     if (!ensureApproved()) return null;
@@ -566,7 +567,7 @@ export default function PublishAchievementPage() {
         achievementRouteIdRef.current = created.id;
         setAuditStatus(created.auditStatus || null);
         setContentStatus(created.status || null);
-        toast('草稿已保存，可在草稿箱查看', { icon: 'success' });
+        if (mode === 'save') toast('草稿已保存，可在草稿箱查看', { icon: 'success' });
         return created;
       }
 
@@ -576,15 +577,15 @@ export default function PublishAchievementPage() {
       if (seq !== saveSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return null;
       setAuditStatus(updated.auditStatus || null);
       setContentStatus(updated.status || null);
-      toast('草稿已保存，可在草稿箱查看', { icon: 'success' });
+      if (mode === 'save') toast('草稿已保存，可在草稿箱查看', { icon: 'success' });
       return updated;
     } catch (error: any) {
       reportWeappDebug('成果保存失败详情', buildActionErrorDetail(error));
-      if (seq !== saveSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return null;
+      if (seq !== saveSeqRef.current || !pageVisibleRef.current) return null;
       toast(error?.message || '保存失败');
       return null;
     } finally {
-      if (seq === saveSeqRef.current && pageVisibleRef.current && achievementRouteIdRef.current === targetAchievementId) {
+      if (seq === saveSeqRef.current && pageVisibleRef.current) {
         setSaving(false);
       }
     }
@@ -593,24 +594,34 @@ export default function PublishAchievementPage() {
   const submit = useCallback(async () => {
     if (submitting) return;
     if (!ensureApproved()) return;
-    const targetAchievementId = achievementRouteIdRef.current || '';
     const seq = ++submitSeqRef.current;
     setSubmitting(true);
     try {
       const saved = await saveDraft('submit');
-      if (seq !== submitSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return;
+      if (seq !== submitSeqRef.current || !pageVisibleRef.current) return;
       const id = saved?.id || achievementId || achievementRouteIdRef.current || null;
       if (!id) return;
-      await apiPost(`/achievements/${id}/submit`, {}, { idempotencyKey: `ach-submit-${id}` });
-      if (seq !== submitSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return;
-      setSubmitted(true);
+      const submittedAchievement = await apiPost<Pick<AchievementDraft, 'id' | 'auditStatus' | 'status'>>(
+        `/achievements/${id}/submit`,
+        {},
+        { idempotencyKey: `ach-submit-${id}` },
+      );
+      if (seq !== submitSeqRef.current || !pageVisibleRef.current) return;
+      const nextId = submittedAchievement.id || id;
+      const nextAuditStatus = submittedAchievement.auditStatus || 'PENDING';
+      const nextContentStatus = submittedAchievement.status || 'ACTIVE';
+      setAchievementId(nextId);
+      achievementRouteIdRef.current = nextId;
+      setAuditStatus(nextAuditStatus);
+      setContentStatus(nextContentStatus);
+      setSubmitted(isSubmittedAchievement(nextContentStatus, nextAuditStatus));
       toast('已提交审核', { icon: 'success' });
     } catch (error: any) {
       reportWeappDebug('成果提交失败详情', buildActionErrorDetail(error));
-      if (seq !== submitSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return;
+      if (seq !== submitSeqRef.current || !pageVisibleRef.current) return;
       toast(error?.message || '提交失败');
     } finally {
-      if (seq === submitSeqRef.current && pageVisibleRef.current && achievementRouteIdRef.current === targetAchievementId) {
+      if (seq === submitSeqRef.current && pageVisibleRef.current) {
         setSubmitting(false);
       }
     }
@@ -656,7 +667,7 @@ export default function PublishAchievementPage() {
                 <PublishTextArea
                   value={description}
                   onChange={setDescription}
-                  placeholder="描述应用场景、技术优势与合作方式"
+                  placeholder="描述应用场景、技术优势与落地场景"
                   className="publish-textarea"
                   maxLength={5000}
                   showCount
@@ -665,19 +676,10 @@ export default function PublishAchievementPage() {
             </Surface>
 
             <Surface className="publish-card">
-              <Text className="publish-section-title">成熟度与合作</Text>
+              <Text className="publish-section-title">成果成熟度</Text>
               <View className="form-field">
                 <Text className="form-label">成熟度</Text>
                 <ChipGroup value={maturity} options={MATURITY_OPTIONS} onChange={(value) => setMaturity(value as AchievementMaturity | '')} />
-              </View>
-              <View className="form-field">
-                <Text className="form-label">合作方式</Text>
-                <ChipGroup
-                  multiple
-                  value={cooperationModes}
-                  options={COOPERATION_OPTIONS}
-                  onChange={(next) => setCooperationModes(next as CooperationMode[])}
-                />
               </View>
             </Surface>
 
@@ -835,8 +837,10 @@ export default function PublishAchievementPage() {
                   </View>
                 </View>
               </View>
-              {auditStatus ? <Text className="form-hint">当前审核状态：{auditStatusLabel(auditStatus)}</Text> : null}
-              {contentStatus ? <Text className="form-hint">当前展示状态：{contentStatusLabel(contentStatus)}</Text> : null}
+              {achievementAuditStatusLabel(contentStatus, auditStatus) ? (
+                <Text className="form-hint">当前审核状态：{achievementAuditStatusLabel(contentStatus, auditStatus)}</Text>
+              ) : null}
+              {contentStatus ? <Text className="form-hint">当前展示状态：{achievementDisplayStatusLabel(contentStatus, auditStatus)}</Text> : null}
             </Surface>
           </View>
         </View>
