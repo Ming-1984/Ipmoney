@@ -3,6 +3,7 @@ import { Button, Space, Typography, Upload, message } from 'antd';
 import React, { useCallback, useState } from 'react';
 
 import { apiUploadFile, type FileObject } from '../lib/api';
+import { ContractPreviewLink } from './ContractPreviewLink';
 
 type ContractFileUploadFieldProps = {
   value?: FileObject | null;
@@ -81,13 +82,14 @@ export function ContractFileUploadField(props: ContractFileUploadFieldProps) {
         </Button>
       </Upload>
       {value?.id ? (
-        <Typography.Text type="secondary">{`${TEXT.uploaded}：${value.fileName || value.id}`}</Typography.Text>
+        <Space size={8}>
+          <Typography.Text type="secondary">{`${TEXT.uploaded}：${value.fileName || value.id}`}</Typography.Text>
+          <ContractPreviewLink fileUrl={value.url}>{TEXT.viewSaved}</ContractPreviewLink>
+        </Space>
       ) : savedFileUrl ? (
         <Space size={8}>
           <Typography.Text type="secondary">{TEXT.saved}</Typography.Text>
-          <Typography.Link href={savedFileUrl} target="_blank" rel="noreferrer">
-            {TEXT.viewSaved}
-          </Typography.Link>
+          <ContractPreviewLink fileUrl={savedFileUrl}>{TEXT.viewSaved}</ContractPreviewLink>
         </Space>
       ) : (
         <Typography.Text type="secondary">{TEXT.empty}</Typography.Text>

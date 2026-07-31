@@ -7,6 +7,7 @@ import { fenToYuan, formatTimeSmart } from '../lib/format';
 import { normalizeUserFacingText } from '../lib/userFacingText';
 import { orderStatusLabel } from '../lib/labels';
 import { ContractFileUploadField } from '../ui/ContractFileUploadField';
+import { ContractPreviewLink } from '../ui/ContractPreviewLink';
 import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
 import { confirmActionWithReason } from '../ui/confirm';
 
@@ -76,6 +77,7 @@ const TEXT = {
   contractWaitUpload: '待上传',
   contractWaitConfirm: '待签署确认',
   contractAvailable: '可查看',
+  contractPreview: '预览合同',
   transferCompleted: '\u53d8\u66f4\u5b8c\u6210',
   transferTitle: '\u786e\u8ba4\u6743\u5c5e\u53d8\u66f4\u5df2\u5b8c\u6210\uff1f',
   transferContent:
@@ -116,9 +118,21 @@ function hasUploadedContract(order?: Pick<Order, 'contractStatus' | 'contractFil
 }
 
 function contractStatusTag(order: Order) {
-  if (order.contractStatus === 'AVAILABLE') return <Tag color="green">{TEXT.contractAvailable}</Tag>;
-  if (hasUploadedContract(order)) return <Tag color="blue">{TEXT.contractWaitConfirm}</Tag>;
-  return <Tag>{TEXT.contractWaitUpload}</Tag>;
+  const tag =
+    order.contractStatus === 'AVAILABLE' ? (
+      <Tag color="green">{TEXT.contractAvailable}</Tag>
+    ) : hasUploadedContract(order) ? (
+      <Tag color="blue">{TEXT.contractWaitConfirm}</Tag>
+    ) : (
+      <Tag>{TEXT.contractWaitUpload}</Tag>
+    );
+  if (!order.contractFileUrl) return tag;
+  return (
+    <Space size={4} wrap>
+      {tag}
+      <ContractPreviewLink fileUrl={order.contractFileUrl}>{TEXT.contractPreview}</ContractPreviewLink>
+    </Space>
+  );
 }
 
 export function OrdersPage() {
