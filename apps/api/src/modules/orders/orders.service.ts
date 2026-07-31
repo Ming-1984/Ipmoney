@@ -53,6 +53,21 @@ const ORDER_STATUSES = [
 const ORDER_STATUS_GROUPS = ['PAYMENT_PENDING', 'IN_PROGRESS', 'REFUND', 'DONE'] as const;
 const INVOICE_STATUSES = ['WAIT_APPLY', 'APPLYING', 'ISSUED'] as const;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const CONTRACT_ID_PREFIX = 'contract-';
+const SIGNED_SUBMISSION_INCLUDE = {
+  file: true,
+  submittedBy: { include: { verifications: { orderBy: { submittedAt: 'desc' as const }, take: 1 } } },
+  reviewedBy: { include: { verifications: { orderBy: { submittedAt: 'desc' as const }, take: 1 } } },
+};
+const ORDER_CONTRACT_INCLUDE = {
+  contractFile: true,
+  signedContractFile: true,
+  signedSubmissions: {
+    orderBy: { createdAt: 'desc' as const },
+    take: 1,
+    include: SIGNED_SUBMISSION_INCLUDE,
+  },
+};
 const LISTING_LOCKING_ORDER_STATUSES = [
   'DEPOSIT_PAID',
   'WAIT_FINAL_PAYMENT',
@@ -74,8 +89,26 @@ type OrderStatus =
   | 'REFUNDED';
 
 type ContractStatus = 'WAIT_UPLOAD' | 'WAIT_CONFIRM' | 'AVAILABLE';
+type ContractSignedSubmissionStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'SUPERSEDED';
 
 type OrderListRole = 'BUYER' | 'SELLER';
+
+type ContractSignedSubmissionDto = {
+  id: string;
+  orderId: string;
+  contractId: string;
+  status: ContractSignedSubmissionStatus;
+  fileId: string;
+  fileUrl?: string | null;
+  fileName?: string | null;
+  submittedByUserId: string;
+  submittedByName?: string | null;
+  createdAt: string;
+  reviewedAt?: string | null;
+  rejectReason?: string | null;
+  reviewedByUserId?: string | null;
+  reviewedByName?: string | null;
+};
 
 type OrderDto = {
   id: string;
@@ -99,6 +132,7 @@ type OrderDto = {
   contractFileUrl?: string | null;
   contractUploadedAt?: string | null;
   contractSignedAt?: string | null;
+  latestSignedSubmission?: ContractSignedSubmissionDto | null;
 };
 
 type PagedOrder = {
@@ -414,14 +448,14 @@ export class OrdersService {
     }
   }
 
-  private async ensureDefaultCsUserId(): Promise<string> {
-    const existing = await this.prisma.user.findFirst({
+  private async ensureDefaultCsUserId(client: any = this.prisma): Promise<string> {
+    const existing = await client.user.findFirst({
       where: { role: 'cs' },
       orderBy: { createdAt: 'asc' },
     });
     if (existing) return existing.id;
 
-    const created = await this.prisma.user.upsert({
+    const created = await client.user.upsert({
       where: { id: DEFAULT_CS_USER_ID },
       update: {
         role: 'cs',
@@ -436,8 +470,8 @@ export class OrdersService {
     return created.id;
   }
 
-  private async ensureCaseMilestones(caseId: string) {
-    const existing = await this.prisma.csMilestone.findMany({ where: { caseId } });
+  private async ensureCaseMilestones(caseId: string, client: any = this.prisma) {
+    const existing = await client.csMilestone.findMany({ where: { caseId } });
     const existingNames = new Set(existing.map((m: any) => m.name));
     const data: Prisma.CsMilestoneCreateManyInput[] = [];
     if (!existingNames.has('CONTRACT_SIGNED')) {
@@ -450,20 +484,20 @@ export class OrdersService {
       data.push({ caseId, name: MilestoneName.TRANSFER_COMPLETED, status: 'PENDING' });
     }
     if (data.length > 0) {
-      await this.prisma.csMilestone.createMany({ data });
+      await client.csMilestone.createMany({ data });
     }
   }
 
-  private async ensureCaseForOrder(order: { id: string; assignedCsUserId?: string | null }) {
-    const assignedCsUserId = order.assignedCsUserId ?? (await this.ensureDefaultCsUserId());
+  private async ensureCaseForOrder(order: { id: string; assignedCsUserId?: string | null }, client: any = this.prisma) {
+    const assignedCsUserId = order.assignedCsUserId ?? (await this.ensureDefaultCsUserId(client));
     if (!order.assignedCsUserId) {
-      await this.prisma.order.update({ where: { id: order.id }, data: { assignedCsUserId } });
+      await client.order.update({ where: { id: order.id }, data: { assignedCsUserId } });
     }
 
-    let csCase = await this.prisma.csCase.findFirst({ where: { orderId: order.id, type: 'FOLLOWUP' } });
+    let csCase = await client.csCase.findFirst({ where: { orderId: order.id, type: 'FOLLOWUP' } });
     if (!csCase) {
       const dueAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      csCase = await this.prisma.csCase.create({
+      csCase = await client.csCase.create({
         data: {
           orderId: order.id,
           csUserId: assignedCsUserId,
@@ -474,18 +508,22 @@ export class OrdersService {
         },
       });
     } else if (csCase.csUserId !== assignedCsUserId) {
-      csCase = await this.prisma.csCase.update({
+      csCase = await client.csCase.update({
         where: { id: csCase.id },
         data: { csUserId: assignedCsUserId },
       });
     }
 
-    await this.ensureCaseMilestones(csCase.id);
+    await this.ensureCaseMilestones(csCase.id, client);
     return csCase;
   }
 
-  private async markCaseMilestone(caseId: string, name: 'CONTRACT_SIGNED' | 'TRANSFER_SUBMITTED' | 'TRANSFER_COMPLETED') {
-    await this.prisma.csMilestone.updateMany({ where: { caseId, name }, data: { status: 'DONE' } });
+  private async markCaseMilestone(
+    caseId: string,
+    name: 'CONTRACT_SIGNED' | 'TRANSFER_SUBMITTED' | 'TRANSFER_COMPLETED',
+    client: any = this.prisma,
+  ) {
+    await client.csMilestone.updateMany({ where: { caseId, name }, data: { status: 'DONE' } });
   }
 
   private computeSettlementAmounts(
@@ -689,6 +727,35 @@ export class OrdersService {
     };
   }
 
+  private userDisplayName(user: any): string | null {
+    return (
+      normalizeDisplayText(user?.verifications?.[0]?.displayName) ??
+      normalizeDisplayText(user?.nickname) ??
+      normalizeDisplayText(user?.phone) ??
+      null
+    );
+  }
+
+  private toSignedSubmissionDto(submission?: any | null): ContractSignedSubmissionDto | null {
+    if (!submission) return null;
+    return {
+      id: submission.id,
+      orderId: submission.orderId,
+      contractId: `${CONTRACT_ID_PREFIX}${submission.contractOrderId || submission.orderId}`,
+      status: submission.status as ContractSignedSubmissionStatus,
+      fileId: submission.fileId,
+      fileUrl: resolvePublicFileUrl(submission.file, { baseUrl: process.env.BASE_URL }) ?? submission.file?.url ?? null,
+      fileName: submission.file?.fileName ?? null,
+      submittedByUserId: submission.submittedByUserId,
+      submittedByName: this.userDisplayName(submission.submittedBy),
+      createdAt: submission.createdAt ? submission.createdAt.toISOString() : new Date().toISOString(),
+      reviewedAt: submission.reviewedAt ? submission.reviewedAt.toISOString() : null,
+      rejectReason: submission.rejectReason ?? null,
+      reviewedByUserId: submission.reviewedByUserId ?? null,
+      reviewedByName: this.userDisplayName(submission.reviewedBy),
+    };
+  }
+
   private toOrderDto(order: any, listing?: any, patent?: any): OrderDto {
     const toIso = (d?: Date | null) => (d ? d.toISOString() : undefined);
     const buyerDisplayName =
@@ -726,6 +793,7 @@ export class OrdersService {
       contractFileUrl,
       contractUploadedAt: toIso(contract?.uploadedAt) ?? null,
       contractSignedAt: toIso(contract?.signedAt) ?? null,
+      latestSignedSubmission: this.toSignedSubmissionDto(contract?.signedSubmissions?.[0] ?? null),
     };
   }
 
@@ -750,6 +818,7 @@ export class OrdersService {
       contractFileUrl: dto.contractFileUrl,
       contractUploadedAt: dto.contractUploadedAt,
       contractSignedAt: dto.contractSignedAt,
+      latestSignedSubmission: dto.latestSignedSubmission,
     };
   }
 
@@ -773,6 +842,7 @@ export class OrdersService {
       contractFileUrl: dto.contractFileUrl,
       contractUploadedAt: dto.contractUploadedAt,
       contractSignedAt: dto.contractSignedAt,
+      latestSignedSubmission: dto.latestSignedSubmission,
     };
   }
 
@@ -825,7 +895,7 @@ export class OrdersService {
           },
         },
       },
-      contract: { include: { contractFile: true } },
+      contract: { include: ORDER_CONTRACT_INCLUDE },
     };
   }
 
@@ -1023,7 +1093,7 @@ export class OrdersService {
               },
             },
           },
-          contract: { include: { contractFile: true } },
+          contract: { include: ORDER_CONTRACT_INCLUDE },
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
@@ -1077,33 +1147,7 @@ export class OrdersService {
     const [items, total] = await Promise.all([
       this.prisma.order.findMany({
         where,
-        include: {
-          buyer: {
-            select: {
-              nickname: true,
-              verifications: {
-                orderBy: { submittedAt: 'desc' },
-                take: 1,
-                select: { displayName: true },
-              },
-            },
-          },
-          listing: {
-            include: {
-              patent: true,
-              seller: {
-                select: {
-                  nickname: true,
-                  verifications: {
-                    orderBy: { submittedAt: 'desc' },
-                    take: 1,
-                    select: { displayName: true },
-                  },
-                },
-              },
-            },
-          },
-        },
+        include: this.adminOrderContextInclude(),
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -1389,7 +1433,7 @@ export class OrdersService {
             },
           },
         },
-        contract: { include: { contractFile: true } },
+        contract: { include: ORDER_CONTRACT_INCLUDE },
       },
     });
     if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
@@ -2197,7 +2241,7 @@ export class OrdersService {
             },
           },
         },
-        contract: { include: { contractFile: true } },
+        contract: { include: ORDER_CONTRACT_INCLUDE },
       },
     });
     if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
@@ -2269,28 +2313,40 @@ export class OrdersService {
 
     const now = new Date();
     const fileUrl = resolvePublicFileUrl(contractFile, { baseUrl: process.env.BASE_URL }) ?? contractFile.url;
-    const contract = await this.prisma.contract.upsert({
-      where: { orderId: normalizedOrderId },
-      create: {
-        orderId: normalizedOrderId,
-        status: 'WAIT_CONFIRM',
-        contractFileId,
-        fileUrl,
-        uploadedAt: now,
-        signedAt: null,
-        watermarkOwner: null,
-      },
-      update: {
-        status: 'WAIT_CONFIRM',
-        contractFileId,
-        fileUrl,
-        uploadedAt: now,
-        signedAt: null,
-        watermarkOwner: null,
-      },
-      include: { contractFile: true },
+    const result = await this.prisma.$transaction(async (tx) => {
+      const superseded = await tx.contractSignedSubmission.updateMany({
+        where: { orderId: normalizedOrderId, status: 'PENDING' },
+        data: { status: 'SUPERSEDED' },
+      });
+      const contract = await tx.contract.upsert({
+        where: { orderId: normalizedOrderId },
+        create: {
+          orderId: normalizedOrderId,
+          status: 'WAIT_CONFIRM',
+          contractFileId,
+          signedContractFileId: null,
+          signedSubmissionId: null,
+          fileUrl,
+          uploadedAt: now,
+          signedAt: null,
+          watermarkOwner: null,
+        },
+        update: {
+          status: 'WAIT_CONFIRM',
+          contractFileId,
+          signedContractFileId: null,
+          signedSubmissionId: null,
+          fileUrl,
+          uploadedAt: now,
+          signedAt: null,
+          watermarkOwner: null,
+        },
+        include: ORDER_CONTRACT_INCLUDE,
+      });
+      return { contract, supersededCount: superseded.count };
     });
 
+    const contract = result.contract;
     await this.audit.log({
       actorUserId: req.auth.userId,
       action: 'ORDER_CONTRACT_UPLOAD',
@@ -2301,6 +2357,7 @@ export class OrdersService {
         contractFileId,
         fileUrl,
         uploadedAt: now.toISOString(),
+        supersededSignedSubmissionCount: result.supersededCount,
       },
     });
 
@@ -2320,6 +2377,11 @@ export class OrdersService {
     }
     const remark = body?.remark ? String(body.remark).trim() : undefined;
     const signedAt = this.parseOptionalDateTime(body?.signedAt, 'signedAt');
+    const rawSignedSubmissionId = body?.signedSubmissionId ? String(body.signedSubmissionId).trim() : '';
+    if (!rawSignedSubmissionId) {
+      throw new ConflictException({ code: 'CONFLICT', message: '请先等待用户回传签署版合同' });
+    }
+    const signedSubmissionId = this.parseUuidStrict(rawSignedSubmissionId, 'signedSubmissionId');
     const assignedUserId = String(options.assignedUserId || '').trim();
     const existing = assignedUserId
       ? await this.prisma.order.findFirst({ where: { id: normalizedOrderId, assignedCsUserId: assignedUserId } })
@@ -2341,20 +2403,56 @@ export class OrdersService {
       { dealAmount: dealAmountFen || 0, depositAmount: existing.depositAmount, finalAmount: finalAmountFen },
       rules,
     );
-    const order = await this.prisma.order.update({
-      where: { id: normalizedOrderId },
-      data: {
-        dealAmount: dealAmountFen || undefined,
-        finalAmount: finalAmountFen,
-        commissionAmount: settlementAmounts.commissionAmount,
-        status: 'WAIT_FINAL_PAYMENT',
-      },
+    let signedSubmission: any | null = null;
+    const order = await this.prisma.$transaction(async (tx) => {
+      const pendingSubmission = await tx.contractSignedSubmission.findFirst({
+        where: { id: signedSubmissionId, orderId: normalizedOrderId, status: 'PENDING' },
+        include: SIGNED_SUBMISSION_INCLUDE,
+      });
+      if (!pendingSubmission) {
+        throw new ConflictException({ code: 'CONFLICT', message: '签署版合同回传记录不存在或状态不可确认' });
+      }
+
+      const updatedOrder = await tx.order.update({
+        where: { id: normalizedOrderId },
+        data: {
+          dealAmount: dealAmountFen || undefined,
+          finalAmount: finalAmountFen,
+          commissionAmount: settlementAmounts.commissionAmount,
+          status: 'WAIT_FINAL_PAYMENT',
+        },
+      });
+      const csCase = await this.ensureCaseForOrder(updatedOrder, tx);
+      await this.markCaseMilestone(csCase.id, 'CONTRACT_SIGNED', tx);
+      await tx.contractSignedSubmission.update({
+        where: { id: pendingSubmission.id },
+        data: { status: 'ACCEPTED', reviewedByUserId: req.auth.userId, reviewedAt: confirmedAt },
+      });
+      await tx.contract.update({
+        where: { orderId: normalizedOrderId },
+        data: {
+          status: 'AVAILABLE',
+          signedAt: confirmedAt,
+          signedSubmissionId: pendingSubmission.id,
+          signedContractFileId: pendingSubmission.fileId,
+        },
+      });
+      signedSubmission = pendingSubmission;
+      return updatedOrder;
     });
-    const csCase = await this.ensureCaseForOrder(order);
-    await this.markCaseMilestone(csCase.id, 'CONTRACT_SIGNED');
-    await this.prisma.contract.update({
-      where: { orderId: normalizedOrderId },
-      data: { status: 'AVAILABLE', signedAt: confirmedAt },
+    if (!signedSubmission) throw new Error('empty signed submission');
+    await this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'CONTRACT_SIGNED_SUBMISSION_ACCEPT',
+      targetType: 'CONTRACT_SIGNED_SUBMISSION',
+      targetId: signedSubmission.id,
+      afterJson: {
+        orderId: normalizedOrderId,
+        contractId: `${CONTRACT_ID_PREFIX}${normalizedOrderId}`,
+        fileId: signedSubmission.fileId,
+        status: 'ACCEPTED',
+        reviewedAt: confirmedAt.toISOString(),
+      },
     });
     await this.audit.log({
       actorUserId: req.auth.userId,
@@ -2367,6 +2465,8 @@ export class OrdersService {
         finalAmount: order.finalAmount,
         signedAt: confirmedAt.toISOString(),
         contractFileId: existingContract.contractFileId,
+        signedSubmissionId: signedSubmission?.id ?? null,
+        signedContractFileId: signedSubmission?.fileId ?? null,
         remark,
       },
     });
@@ -2388,6 +2488,78 @@ export class OrdersService {
     return this.toOrderDto(order);
   }
 
+  async rejectSignedSubmission(req: any, orderId: string, submissionId: string, body: any, options: ContractSignedOptions = {}) {
+    this.ensureAdmin(req);
+    const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
+    const normalizedSubmissionId = this.parseUuidStrict(submissionId, 'submissionId');
+    const reason = String(body?.reason || '').trim();
+    if (!reason) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'reason is required' });
+    }
+    if (reason.length > 500) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'reason is too long' });
+    }
+
+    const assignedUserId = String(options.assignedUserId || '').trim();
+    const order = assignedUserId
+      ? await this.prisma.order.findFirst({
+          where: { id: normalizedOrderId, assignedCsUserId: assignedUserId },
+          include: this.adminOrderContextInclude(),
+        })
+      : await this.prisma.order.findUnique({
+          where: { id: normalizedOrderId },
+          include: this.adminOrderContextInclude(),
+        });
+    if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
+
+    const submission = await this.prisma.contractSignedSubmission.findFirst({
+      where: { id: normalizedSubmissionId, orderId: normalizedOrderId, status: 'PENDING' },
+      include: SIGNED_SUBMISSION_INCLUDE,
+    });
+    if (!submission) {
+      throw new ConflictException({ code: 'CONFLICT', message: '签署版合同回传记录不存在或状态不可驳回' });
+    }
+
+    const reviewedAt = new Date();
+    const updated = await this.prisma.contractSignedSubmission.update({
+      where: { id: normalizedSubmissionId },
+      data: {
+        status: 'REJECTED',
+        rejectReason: reason,
+        reviewedByUserId: req.auth.userId,
+        reviewedAt,
+      },
+      include: SIGNED_SUBMISSION_INCLUDE,
+    });
+
+    await this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'CONTRACT_SIGNED_SUBMISSION_REJECT',
+      targetType: 'CONTRACT_SIGNED_SUBMISSION',
+      targetId: updated.id,
+      afterJson: {
+        orderId: normalizedOrderId,
+        contractId: `${CONTRACT_ID_PREFIX}${normalizedOrderId}`,
+        fileId: updated.fileId,
+        status: updated.status,
+        rejectReason: reason,
+        reviewedAt: reviewedAt.toISOString(),
+      },
+      requestId: req?.headers?.['x-request-id'] || req?.headers?.['x-requestid'],
+      ip: req?.ip,
+      userAgent: req?.headers?.['user-agent'],
+    });
+
+    await this.notifyUser(
+      updated.submittedByUserId,
+      '签署版合同被驳回',
+      `${normalizeDisplayText(order?.listing?.title) || '交易标的待确认'} 的签署版合同被驳回：${reason}`,
+      '交易通知',
+    );
+
+    return { ok: true, submission: this.toSignedSubmissionDto(updated) };
+  }
+
   async assignedContractSigned(req: any, orderId: string, body: any): Promise<AssignedOrderDto> {
     this.ensureAdmin(req);
     requirePermission(req, 'order.assigned.contract.confirm');
@@ -2395,6 +2567,14 @@ export class OrdersService {
     if (!userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
     const dto = await this.adminContractSigned(req, orderId, body, { assignedUserId: userId });
     return this.toAssignedOrderDtoFromOrderDto(dto);
+  }
+
+  async assignedRejectSignedSubmission(req: any, orderId: string, submissionId: string, body: any) {
+    this.ensureAdmin(req);
+    requirePermission(req, 'order.assigned.contract.confirm');
+    const userId = String(req?.auth?.userId || '').trim();
+    if (!userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
+    return await this.rejectSignedSubmission(req, orderId, submissionId, body, { assignedUserId: userId });
   }
 
   async assignedUploadContract(req: any, orderId: string, body: any): Promise<AssignedOrderDto> {

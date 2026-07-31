@@ -1,4 +1,4 @@
-import { Button, Card, Input, Select, Space, Table, Tag, Typography, Upload, message } from 'antd';
+import { Button, Card, Input, Modal, Select, Space, Table, Tag, Typography, Upload, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -7,7 +7,6 @@ import { fenToYuan, formatTimeSmart } from '../lib/format';
 import { orderStatusLabel } from '../lib/labels';
 import { displayAdminInfo } from '../lib/userFacingText';
 import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
-import { confirmActionWithReason } from '../ui/confirm';
 
 type PayoutStatus = 'PENDING' | 'SUCCEEDED' | 'FAILED';
 
@@ -100,6 +99,8 @@ export function SettlementsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [active, setActive] = useState<Settlement | null>(null);
+  const [payoutModalOpen, setPayoutModalOpen] = useState(false);
+  const [payoutSubmitting, setPayoutSubmitting] = useState(false);
   const [payoutEvidenceFile, setPayoutEvidenceFile] = useState<FileObject | null>(null);
   const [payoutRef, setPayoutRef] = useState('');
   const [remark, setRemark] = useState('');
@@ -162,6 +163,44 @@ export function SettlementsPage() {
 
   const rows = useMemo(() => data?.items || [], [data?.items]);
   const payoutDisabled = !active || active.payoutStatus === 'SUCCEEDED' || !payoutEvidenceFile?.id;
+
+  const closePayoutModal = useCallback(() => {
+    setPayoutModalOpen(false);
+    resetPayoutForm();
+  }, [resetPayoutForm]);
+
+  const submitPayout = useCallback(async () => {
+    if (!active) return;
+    if (!payoutEvidenceFile?.id) {
+      message.warning(TEXT.uploadFirst);
+      return;
+    }
+    const targetOrderId = active.orderId;
+    const seq = ++payoutSeqRef.current;
+    setPayoutSubmitting(true);
+    try {
+      await apiPost<Settlement>(
+        `/admin/orders/${targetOrderId}/payouts/manual`,
+        {
+          payoutEvidenceFileId: payoutEvidenceFile.id,
+          payoutRef: payoutRef || undefined,
+          payoutAt: new Date().toISOString(),
+          remark: remark.trim() || undefined,
+        },
+        { idempotencyKey: `payout-${targetOrderId}` },
+      );
+      if (seq !== payoutSeqRef.current) return;
+      message.success(TEXT.payoutSuccess);
+      setPayoutModalOpen(false);
+      resetPayoutForm();
+      void load({ page: data?.page.page || page, pageSize: data?.page.pageSize || pageSize });
+    } catch (e: any) {
+      if (seq !== payoutSeqRef.current) return;
+      message.error(e?.message || TEXT.actionFailed);
+    } finally {
+      if (seq === payoutSeqRef.current) setPayoutSubmitting(false);
+    }
+  }, [active, data?.page.page, data?.page.pageSize, load, page, pageSize, payoutEvidenceFile?.id, payoutRef, remark, resetPayoutForm]);
 
   return (
     <Card className="admin-settlements-page">
@@ -255,6 +294,7 @@ export function SettlementsPage() {
                     onClick={() => {
                       setActive(row);
                       resetPayoutForm();
+                      setPayoutModalOpen(true);
                     }}
                   >
                     处理放款
@@ -264,88 +304,56 @@ export function SettlementsPage() {
             },
           ]}
         />
-
-        <Card size="small" style={{ background: '#fff7ed' }}>
-          <Space direction="vertical" size={12} style={{ width: '100%' }}>
-            <Typography.Text strong>
-              财务放款确认：{active ? `${displayAdminInfo(active.order?.listingTitle, '交易标的待确认')} / ${moneyText(active.payoutAmountFen)}` : '请选择待放款订单'}
-            </Typography.Text>
-
-            <Space wrap>
-              <Upload
-                maxCount={1}
-                showUploadList={false}
-                disabled={!active || active.payoutStatus === 'SUCCEEDED'}
-                customRequest={async (options) => {
-                  const targetOrderId = active?.orderId || '';
-                  const requestSeq = ++uploadSeqRef.current;
-                  try {
-                    const uploaded = await apiUploadFile(options.file as File, 'PAYOUT_EVIDENCE');
-                    if (uploadSeqRef.current !== requestSeq || active?.orderId !== targetOrderId) return;
-                    setPayoutEvidenceFile(uploaded);
-                    options.onSuccess?.(uploaded as any);
-                  } catch (e: any) {
-                    if (uploadSeqRef.current !== requestSeq || active?.orderId !== targetOrderId) return;
-                    options.onError?.(e);
-                    message.error(e?.message || TEXT.uploadFailed);
-                  }
-                }}
-              >
-                <Button disabled={!active || active.payoutStatus === 'SUCCEEDED'}>{TEXT.uploadEvidence}</Button>
-              </Upload>
-              <Typography.Text type="secondary">{payoutEvidenceFile ? TEXT.uploadedPrefix : TEXT.noUploadedFile}</Typography.Text>
-            </Space>
-
-            <Space wrap>
-              <Input value={payoutRef} onChange={(e) => setPayoutRef(e.target.value)} style={{ width: 320 }} placeholder={TEXT.payoutRefPlaceholder} />
-              <Input value={remark} onChange={(e) => setRemark(e.target.value)} style={{ width: 420 }} placeholder={TEXT.remarkPlaceholder} />
-              <Button
-                type="primary"
-                disabled={payoutDisabled}
-                onClick={async () => {
-                  if (!active) return;
-                  if (!payoutEvidenceFile?.id) {
-                    message.warning(TEXT.uploadFirst);
-                    return;
-                  }
-                  const { ok, reason } = await confirmActionWithReason({
-                    title: TEXT.payoutTitle,
-                    content: TEXT.payoutContent,
-                    okText: TEXT.payoutOk,
-                    defaultReason: remark || '',
-                    reasonLabel: TEXT.payoutReasonLabel,
-                    reasonHint: TEXT.payoutReasonHint,
-                  });
-                  if (!ok) return;
-                  const seq = ++payoutSeqRef.current;
-                  try {
-                    const finalRemark = (remark || reason || '').trim() || undefined;
-                    await apiPost<Settlement>(
-                      `/admin/orders/${active.orderId}/payouts/manual`,
-                      {
-                        payoutEvidenceFileId: payoutEvidenceFile.id,
-                        payoutRef: payoutRef || undefined,
-                        payoutAt: new Date().toISOString(),
-                        remark: finalRemark,
-                      },
-                      { idempotencyKey: `payout-${active.orderId}` },
-                    );
-                    if (seq !== payoutSeqRef.current) return;
-                    message.success(TEXT.payoutSuccess);
-                    resetPayoutForm();
-                    void load({ page: data?.page.page || page, pageSize: data?.page.pageSize || pageSize });
-                  } catch (e: any) {
-                    if (seq !== payoutSeqRef.current) return;
-                    message.error(e?.message || TEXT.actionFailed);
-                  }
-                }}
-              >
-                确认放款
-              </Button>
-            </Space>
-          </Space>
-        </Card>
       </Space>
+
+      <Modal
+        open={payoutModalOpen}
+        title={TEXT.payoutTitle}
+        okText={TEXT.payoutOk}
+        cancelText="取消"
+        okButtonProps={{ disabled: payoutDisabled, loading: payoutSubmitting }}
+        onCancel={closePayoutModal}
+        onOk={() => void submitPayout()}
+        destroyOnClose
+      >
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <Typography.Text strong>
+            财务放款确认：{active ? `${displayAdminInfo(active.order?.listingTitle, '交易标的待确认')} / ${moneyText(active.payoutAmountFen)}` : '请选择待放款订单'}
+          </Typography.Text>
+          <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+            {TEXT.payoutContent}
+          </Typography.Paragraph>
+
+          <Space wrap>
+            <Upload
+              maxCount={1}
+              showUploadList={false}
+              disabled={!active || active.payoutStatus === 'SUCCEEDED' || payoutSubmitting}
+              customRequest={async (options) => {
+                const targetOrderId = active?.orderId || '';
+                const requestSeq = ++uploadSeqRef.current;
+                try {
+                  const uploaded = await apiUploadFile(options.file as File, 'PAYOUT_EVIDENCE');
+                  if (uploadSeqRef.current !== requestSeq || active?.orderId !== targetOrderId) return;
+                  setPayoutEvidenceFile(uploaded);
+                  options.onSuccess?.(uploaded as any);
+                } catch (e: any) {
+                  if (uploadSeqRef.current !== requestSeq || active?.orderId !== targetOrderId) return;
+                  options.onError?.(e);
+                  message.error(e?.message || TEXT.uploadFailed);
+                }
+              }}
+            >
+              <Button disabled={!active || active.payoutStatus === 'SUCCEEDED' || payoutSubmitting}>{TEXT.uploadEvidence}</Button>
+            </Upload>
+            <Typography.Text type="secondary">{payoutEvidenceFile ? TEXT.uploadedPrefix : TEXT.noUploadedFile}</Typography.Text>
+          </Space>
+
+          <Input value={payoutRef} onChange={(e) => setPayoutRef(e.target.value)} placeholder={TEXT.payoutRefPlaceholder} />
+          <Input value={remark} onChange={(e) => setRemark(e.target.value)} placeholder={TEXT.remarkPlaceholder} />
+          <Typography.Text type="secondary">{TEXT.payoutReasonHint}</Typography.Text>
+        </Space>
+      </Modal>
     </Card>
   );
 }

@@ -1639,6 +1639,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/contracts/{contractId}/signed-submissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit signed contract PDF
+         * @description Buyer or seller uploads the signed PDF while the platform contract is in `WAIT_CONFIRM`.
+         *     The platform must review the latest pending submission before confirming the contract.
+         */
+        post: operations["createContractSignedSubmission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/config/recommendation": {
         parameters: {
             query?: never;
@@ -3170,6 +3191,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/orders/{orderId}/contract/signed-submissions/{submissionId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject signed contract submission */
+        post: operations["adminRejectContractSignedSubmission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/orders/{orderId}/contract/upload": {
         parameters: {
             query?: never;
@@ -3388,6 +3426,23 @@ export interface paths {
         put?: never;
         /** Confirm contract signed for assigned order */
         post: operations["adminConfirmAssignedOrderContractSigned"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/orders/assigned/{orderId}/contract/signed-submissions/{submissionId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject signed contract submission for assigned order */
+        post: operations["adminRejectAssignedContractSignedSubmission"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4174,11 +4229,46 @@ export interface components {
          */
         ContractStatus: "WAIT_UPLOAD" | "WAIT_CONFIRM" | "AVAILABLE";
         /**
+         * @description Review status for a user-uploaded signed contract PDF.
+         * @enum {string}
+         */
+        ContractSignedSubmissionStatus: "PENDING" | "ACCEPTED" | "REJECTED" | "SUPERSEDED";
+        /**
          * @description 閸氬牆鎮撴稉濠佺炊鐠囬攱鐪伴敍鍫滅矌閸楁牕顔嶉崣顖濈殶閻㈩煉绱氶妴?        `contractFileId` 瀵ら缚顔呴弶銉ㄥ殰 `POST /files`閿涘潉purpose=CONTRACT_EVIDENCE`閿涘绱濇稉鏂剧矌閸忎浇顔?PDF閵?      properties:
          *     contractFileId:
          *       $ref: "#/components/schemas/Uuid"
          */
         ContractUploadRequest: Record<string, never>;
+        ContractSignedSubmission: {
+            id: components["schemas"]["Uuid"];
+            orderId: components["schemas"]["Uuid"];
+            /** @description Contract center id, usually `contract-{orderId}`. */
+            contractId: string;
+            status: components["schemas"]["ContractSignedSubmissionStatus"];
+            fileId: components["schemas"]["Uuid"];
+            /** Format: uri */
+            fileUrl?: string | null;
+            fileName?: string | null;
+            submittedByUserId: components["schemas"]["Uuid"];
+            submittedByName?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            reviewedAt?: string | null;
+            rejectReason?: string | null;
+            reviewedByUserId?: components["schemas"]["Uuid"];
+            reviewedByName?: string | null;
+        };
+        CreateContractSignedSubmissionRequest: {
+            fileId: components["schemas"]["Uuid"];
+        };
+        RejectContractSignedSubmissionRequest: {
+            reason: string;
+        };
+        RejectContractSignedSubmissionResponse: {
+            ok: boolean;
+            submission: components["schemas"]["ContractSignedSubmission"];
+        };
         ContractItem: {
             /** @description 閸氬牆鎮?ID閿涘牆缍嬮崜宥呯杽閻滈璐?`contract-{orderId}`閿? */
             id: string;
@@ -4201,6 +4291,7 @@ export interface components {
             watermarkOwner?: string | null;
             /** @description 閺勵垰鎯侀崗浣筋啅娑撳﹣绱堕敍鍫滅矌閸楁牕顔嶆稉?true閿? */
             canUpload?: boolean;
+            latestSignedSubmission?: components["schemas"]["ContractSignedSubmission"];
         };
         PagedContract: {
             items: components["schemas"]["ContractItem"][];
@@ -5572,6 +5663,14 @@ export interface components {
             invoiceFileId?: components["schemas"]["Uuid"];
             /** Format: date-time */
             invoiceIssuedAt?: string | null;
+            contractStatus?: components["schemas"]["ContractStatus"];
+            /** Format: uri */
+            contractFileUrl?: string | null;
+            /** Format: date-time */
+            contractUploadedAt?: string | null;
+            /** Format: date-time */
+            contractSignedAt?: string | null;
+            latestSignedSubmission?: components["schemas"]["ContractSignedSubmission"];
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -10362,6 +10461,41 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    createContractSignedSubmission: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                /** @description Contract center id, usually `contract-{orderId}`. */
+                contractId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateContractSignedSubmissionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractSignedSubmission"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
     adminGetRecommendationConfig: {
         parameters: {
             query?: never;
@@ -13426,6 +13560,8 @@ export interface operations {
                     evidenceFileId?: components["schemas"]["Uuid"];
                     /** Format: date-time */
                     signedAt?: string;
+                    /** @description Pending signed contract submission reviewed by the platform. */
+                    signedSubmissionId: components["schemas"]["Uuid"];
                     remark?: string;
                 };
             };
@@ -13440,6 +13576,41 @@ export interface operations {
                     "application/json": components["schemas"]["Order"];
                 };
             };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminRejectContractSignedSubmission: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                orderId: components["parameters"]["OrderId"];
+                submissionId: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectContractSignedSubmissionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RejectContractSignedSubmissionResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
@@ -13925,6 +14096,8 @@ export interface operations {
                     evidenceFileId?: components["schemas"]["Uuid"];
                     /** Format: date-time */
                     signedAt?: string;
+                    /** @description Pending signed contract submission reviewed by the assigned operator. */
+                    signedSubmissionId: components["schemas"]["Uuid"];
                     remark?: string;
                 };
             };
@@ -13937,6 +14110,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Order"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminRejectAssignedContractSignedSubmission: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                orderId: components["parameters"]["OrderId"];
+                submissionId: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectContractSignedSubmissionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RejectContractSignedSubmissionResponse"];
                 };
             };
             400: components["responses"]["BadRequest"];

@@ -16,6 +16,7 @@ import {
 } from '../../lib/auth';
 import { DEMO_LOGIN_ENABLED } from '../../constants';
 import { apiGet, apiPost } from '../../lib/api';
+import { clearClientBadges, getClientBadgeState, onClientBadgesChanged, refreshClientBadges } from '../../lib/clientBadges';
 import { getDetailCache, setDetailCache } from '../../lib/detailCache';
 import { displayInitial, displayUserName } from '../../lib/displayText';
 import { ensurePrivacyAuthorizationOrThrow } from '../../lib/privacyAuthorization';
@@ -60,7 +61,7 @@ type AuthTokenResponse = components['schemas']['AuthTokenResponse'];
 type VerificationStatus = components['schemas']['VerificationStatus'];
 type VerificationType = components['schemas']['VerificationType'];
 
-type IconItem = { key: string; label: string; icon: string; onClick: () => void };
+type IconItem = { key: string; label: string; icon: string; badge?: boolean; onClick: () => void };
 type ToolItem = { key: string; label: string; icon: string; value?: string; onClick: () => void };
 type AuthState = {
   token: string | null;
@@ -114,6 +115,7 @@ export default function MePage() {
   const canWechatLogin = env === Taro.ENV_TYPE.WEAPP;
   const showDemoLogin = DEMO_LOGIN_ENABLED && !canWechatLogin;
   const [auth, setAuth] = useState<AuthState>(() => readAuthState());
+  const [clientBadges, setClientBadges] = useState(() => getClientBadgeState());
   const syncAuthState = useCallback(() => {
     const next = readAuthState();
     setAuth((prev) => {
@@ -133,6 +135,7 @@ export default function MePage() {
     pageVisibleRef.current = true;
     phoneAuthPromptActiveRef.current = false;
     syncAuthState();
+    void refreshClientBadges();
     if (authTokenRef.current) {
       void loadMeRef.current?.({ silent: true });
     }
@@ -164,6 +167,12 @@ export default function MePage() {
     });
     return () => off();
   }, [syncAuthState]);
+
+  useEffect(() => onClientBadgesChanged(setClientBadges), []);
+
+  useEffect(() => {
+    void refreshClientBadges();
+  }, [auth.token]);
 
   const initialCachedMe = getDetailCache<Me>(ME_PROFILE_CACHE_SCOPE, ME_PROFILE_CACHE_KEY);
   const [, setMeLoading] = useState(Boolean(auth.token) && !initialCachedMe);
@@ -294,7 +303,7 @@ export default function MePage() {
     if (refreshing) return;
     setRefreshing(true);
     try {
-      await Promise.all([loadMe({ silent: true }), syncVerification()]);
+      await Promise.all([loadMe({ silent: true }), syncVerification(), refreshClientBadges()]);
     } finally {
       setRefreshing(false);
     }
@@ -501,10 +510,16 @@ export default function MePage() {
     () => [
       { key: 'buyer', label: '意向订单', icon: iconOrderBuyer, onClick: () => Taro.navigateTo({ url: buildOrderUrl('BUYER') }) },
       { key: 'seller', label: '权利方订单', icon: iconOrderSeller, onClick: () => Taro.navigateTo({ url: buildOrderUrl('SELLER') }) },
-      { key: 'contract', label: '合同中心', icon: iconContractCenter, onClick: () => Taro.navigateTo({ url: '/subpackages/contracts/index' }) },
+      {
+        key: 'contract',
+        label: '合同中心',
+        icon: iconContractCenter,
+        badge: clientBadges.hasUnsignedContracts,
+        onClick: () => Taro.navigateTo({ url: '/subpackages/contracts/index' }),
+      },
       { key: 'invoice', label: '发票管理', icon: iconInvoiceCenter, onClick: () => Taro.navigateTo({ url: '/subpackages/invoices/index' }) },
     ],
-    [buildOrderUrl],
+    [buildOrderUrl, clientBadges.hasUnsignedContracts],
   );
 
   const publishItems = useMemo<IconItem[]>(
@@ -790,6 +805,7 @@ export default function MePage() {
                 <View key={item.key} className="me-order-item" onClick={item.onClick}>
                   <View className="me-order-icon">
                     <Image className="me-order-icon-img" src={item.icon} svg mode="aspectFit" />
+                    {item.badge ? <View className="me-order-badge-dot" /> : null}
                   </View>
                   <Text className="me-order-label">{item.label}</Text>
                 </View>
@@ -869,6 +885,7 @@ export default function MePage() {
               onClick={() => {
                 const seq = ++logoutSeqRef.current;
                 clearToken();
+                clearClientBadges();
                 toast('已退出登录', { icon: 'success' });
                 setTimeout(() => {
                   if (seq !== logoutSeqRef.current || !pageVisibleRef.current) return;

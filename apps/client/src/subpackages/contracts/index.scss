@@ -50,6 +50,33 @@
   background: #ff8500;
 }
 
+.contract-focus-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  margin: 0 calc(0rpx - var(--page-padding)) 28rpx;
+  padding: 22rpx var(--page-padding);
+  background: #ffffff;
+  border-bottom: 1rpx solid #eeeeee;
+}
+
+.contract-focus-title {
+  color: #1f2933;
+  font-size: 28rpx;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.contract-focus-order {
+  color: #ff6b00;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-size: 24rpx;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0;
+}
+
 .contract-list {
   display: flex;
   flex-direction: column;
@@ -156,9 +183,56 @@
 .contract-info-value {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8rpx;
   color: #1f2933;
   font-size: 26rpx;
   line-height: 38rpx;
+  word-break: break-all;
+}
+
+.contract-signed-submission {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10rpx 14rpx;
+  min-width: 0;
+}
+
+.contract-signed-submission-status {
+  flex: 0 0 auto;
+  color: #0ea5e9;
+  font-weight: 600;
+}
+
+.contract-signed-submission-status.is-accepted {
+  color: #10b981;
+}
+
+.contract-signed-submission-status.is-rejected {
+  color: #ef4444;
+}
+
+.contract-signed-submission-status.is-superseded {
+  color: #6b7280;
+}
+
+.contract-signed-submission-time {
+  flex: 0 0 auto;
+  color: #9aa0a6;
+}
+
+.contract-signed-submission-link {
+  flex: 0 0 auto;
+  color: #ff6b00;
+  font-weight: 500;
+}
+
+.contract-signed-submission-reason {
+  flex: 1 0 100%;
+  color: #ef4444;
   word-break: break-all;
 }
 
@@ -170,17 +244,60 @@
 .contract-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 24rpx;
   padding: 6rpx 28rpx 28rpx;
 }
 
 .contract-actions .contract-action-btn.nut-button {
   flex: 1;
-  min-width: 0;
-  height: 80rpx;
-  border-radius: 24rpx;
-  font-size: 28rpx;
+  min-width: 190rpx;
+  min-height: 80rpx;
+  height: auto;
+  padding: 10rpx 18rpx;
+  border-radius: 22rpx;
+  overflow: hidden;
+  font-size: 26rpx;
   font-weight: 600;
+  line-height: 1.25;
+  box-sizing: border-box;
+}
+
+.contract-actions .contract-action-btn.nut-button::before,
+.contract-actions .contract-action-btn.nut-button::after {
+  border: 0;
+  background: transparent;
+}
+
+.contract-actions .contract-action-btn.nut-button .nut-button__wrap,
+.contract-actions .contract-action-btn.nut-button .nut-button__text,
+.contract-actions .contract-action-btn.nut-button .nut-button-children,
+.contract-actions .contract-action-btn.nut-button .nut-button-wrap,
+.contract-actions .contract-action-btn.nut-button .nut-button-text,
+.contract-actions .contract-action-btn.nut-button .nut-button-primary-solid,
+.contract-actions .contract-action-btn.nut-button .nut-button-primary-outline {
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+}
+
+.contract-actions .contract-action-btn.nut-button .nut-button__wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.contract-actions .contract-action-btn.nut-button .nut-button__text,
+.contract-actions .contract-action-btn.nut-button .nut-button-children,
+.contract-actions .contract-action-btn.nut-button .nut-button-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: normal;
+  text-align: center;
 }
 
 .contract-actions .contract-action-btn-outline.nut-button {

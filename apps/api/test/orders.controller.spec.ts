@@ -17,9 +17,11 @@ describe('OrdersController delegation suite', () => {
       getAdminOrderDetail: vi.fn(),
       getAssignedOrderDetail: vi.fn(),
       assignedContractSigned: vi.fn(),
+      assignedRejectSignedSubmission: vi.fn(),
       assignedUploadContract: vi.fn(),
       adminManualConfirmPayment: vi.fn(),
       adminContractSigned: vi.fn(),
+      rejectSignedSubmission: vi.fn(),
       adminUploadContract: vi.fn(),
       adminDeleteOrderInvoice: vi.fn(),
       adminRejectRefundRequest: vi.fn(),
@@ -132,6 +134,27 @@ describe('OrdersController delegation suite', () => {
     expect(orders.assignedUploadContract).not.toHaveBeenCalled();
   });
 
+  it('delegates assigned signed submission reject with assigned contract permission', async () => {
+    const req: any = { auth: { permissions: new Set(['order.assigned.contract.confirm']) } };
+    orders.assignedRejectSignedSubmission.mockResolvedValueOnce({ ok: true });
+
+    await expect(controller.assignedRejectSignedSubmission(req, VALID_UUID, VALID_UUID, null as any)).resolves.toEqual({
+      ok: true,
+    });
+
+    expect(orders.assignedRejectSignedSubmission).toHaveBeenCalledWith(req, VALID_UUID, VALID_UUID, {});
+  });
+
+  it('rejects assigned signed submission reject when permission is absent', async () => {
+    const req: any = { auth: { permissions: new Set(['order.assigned.read']) } };
+
+    await expect(controller.assignedRejectSignedSubmission(req, VALID_UUID, VALID_UUID, {})).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+
+    expect(orders.assignedRejectSignedSubmission).not.toHaveBeenCalled();
+  });
+
   it('delegates adminManualPayment with fallback empty body', async () => {
     const req: any = { auth: { permissions: new Set(['payment.manual.confirm']) } };
     orders.adminManualConfirmPayment.mockResolvedValueOnce({ ok: true });
@@ -159,6 +182,27 @@ describe('OrdersController delegation suite', () => {
     await expect(controller.adminUploadContract(req, VALID_UUID, {})).rejects.toBeInstanceOf(ForbiddenException);
 
     expect(orders.adminUploadContract).not.toHaveBeenCalled();
+  });
+
+  it('delegates admin signed submission reject with broad contract milestone permission', async () => {
+    const req: any = { auth: { permissions: new Set(['milestone.contractSigned.confirm']) } };
+    orders.rejectSignedSubmission.mockResolvedValueOnce({ ok: true });
+
+    await expect(controller.adminRejectSignedSubmission(req, VALID_UUID, VALID_UUID, undefined as any)).resolves.toEqual({
+      ok: true,
+    });
+
+    expect(orders.rejectSignedSubmission).toHaveBeenCalledWith(req, VALID_UUID, VALID_UUID, {});
+  });
+
+  it('rejects admin signed submission reject when permission is absent', async () => {
+    const req: any = { auth: { permissions: new Set(['order.read']) } };
+
+    await expect(controller.adminRejectSignedSubmission(req, VALID_UUID, VALID_UUID, {})).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+
+    expect(orders.rejectSignedSubmission).not.toHaveBeenCalled();
   });
 
   it('rejects adminManualPayment when permission is absent', async () => {

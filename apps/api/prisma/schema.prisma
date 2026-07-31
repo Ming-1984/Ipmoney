@@ -214,6 +214,13 @@ enum ContractStatus {
   AVAILABLE
 }
 
+enum ContractSignedSubmissionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  SUPERSEDED
+}
+
 enum NotificationKind {
   system
 }
@@ -570,6 +577,8 @@ model User {
   dealRecordsUpdated           DealRecord[]                  @relation("DealRecord_UpdatedBy")
   dealRecordsVoided            DealRecord[]                  @relation("DealRecord_VoidedBy")
   dealRecordImportJobs         DealRecordImportJob[]         @relation("DealRecordImportJob_Operator")
+  contractSignedSubmissions    ContractSignedSubmission[]    @relation("ContractSignedSubmission_SubmittedBy")
+  reviewedSignedSubmissions    ContractSignedSubmission[]    @relation("ContractSignedSubmission_ReviewedBy")
 
   @@map("users")
 }
@@ -873,17 +882,19 @@ model File {
   caseEvidences                  CsCaseEvidence[]
   settlementEvidence             Settlement[]
   invoiceOrders                  Order[]
-  contractFiles                  Contract[]               @relation("Contract_File")
-  maintenanceEvidenceTasks       PatentMaintenanceTask[]  @relation("PatentMaintenanceTask_Evidence")
-  maintenanceReceiptOrders       PatentMaintenanceOrder[] @relation("PatentMaintenanceOrder_ReceiptFile")
-  verificationLogos              UserVerification[]       @relation("UserVerification_LogoFile")
-  listingBatchJobErrorFiles      ListingBatchJob[]        @relation("ListingBatchJob_ErrorFile")
-  listingImportJobSourceFiles    ListingImportJob[]       @relation("ListingImportJob_SourceFile")
-  listingImportJobErrorFiles     ListingImportJob[]       @relation("ListingImportJob_ErrorFile")
-  patentImportJobSourceFiles     PatentImportJob[]        @relation("PatentImportJob_SourceFile")
-  patentImportJobErrorFiles      PatentImportJob[]        @relation("PatentImportJob_ErrorFile")
-  achievementCovers              Achievement[]            @relation("Achievement_CoverFile")
-  dealRecordImportJobSourceFiles DealRecordImportJob[]    @relation("DealRecordImportJob_SourceFile")
+  contractFiles                  Contract[]                 @relation("Contract_File")
+  signedContractFiles            Contract[]                 @relation("Contract_SignedFile")
+  contractSignedSubmissionFiles  ContractSignedSubmission[] @relation("ContractSignedSubmission_File")
+  maintenanceEvidenceTasks       PatentMaintenanceTask[]    @relation("PatentMaintenanceTask_Evidence")
+  maintenanceReceiptOrders       PatentMaintenanceOrder[]   @relation("PatentMaintenanceOrder_ReceiptFile")
+  verificationLogos              UserVerification[]         @relation("UserVerification_LogoFile")
+  listingBatchJobErrorFiles      ListingBatchJob[]          @relation("ListingBatchJob_ErrorFile")
+  listingImportJobSourceFiles    ListingImportJob[]         @relation("ListingImportJob_SourceFile")
+  listingImportJobErrorFiles     ListingImportJob[]         @relation("ListingImportJob_ErrorFile")
+  patentImportJobSourceFiles     PatentImportJob[]          @relation("PatentImportJob_SourceFile")
+  patentImportJobErrorFiles      PatentImportJob[]          @relation("PatentImportJob_ErrorFile")
+  achievementCovers              Achievement[]              @relation("Achievement_CoverFile")
+  dealRecordImportJobSourceFiles DealRecordImportJob[]      @relation("DealRecordImportJob_SourceFile")
 
   @@index([ownerScope, ownerId])
   @@index([moderationStatus, createdAt])
@@ -1243,34 +1254,66 @@ model Order {
   assignedCs  User?   @relation("Order_AssignedCs", fields: [assignedCsUserId], references: [id])
   invoiceFile File?   @relation(fields: [invoiceFileId], references: [id])
 
-  payments             Payment[]
-  paymentWebhookEvents PaymentWebhookEvent[]
-  refundRequests       RefundRequest[]
-  csCases              CsCase[]
-  settlement           Settlement?
-  conversations        Conversation[]
-  contract             Contract?
-  dealRecord           DealRecord?
+  payments                  Payment[]
+  paymentWebhookEvents      PaymentWebhookEvent[]
+  refundRequests            RefundRequest[]
+  csCases                   CsCase[]
+  settlement                Settlement?
+  conversations             Conversation[]
+  contract                  Contract?
+  dealRecord                DealRecord?
+  contractSignedSubmissions ContractSignedSubmission[]
 
   @@index([status, createdAt])
   @@map("orders")
 }
 
 model Contract {
-  orderId        String         @id @map("order_id") @db.Uuid
-  status         ContractStatus @default(WAIT_UPLOAD)
-  contractFileId String?        @map("contract_file_id") @db.Uuid
-  fileUrl        String?        @map("file_url")
-  uploadedAt     DateTime?      @map("uploaded_at")
-  signedAt       DateTime?      @map("signed_at")
-  watermarkOwner String?        @map("watermark_owner")
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
+  orderId              String         @id @map("order_id") @db.Uuid
+  status               ContractStatus @default(WAIT_UPLOAD)
+  contractFileId       String?        @map("contract_file_id") @db.Uuid
+  signedContractFileId String?        @map("signed_contract_file_id") @db.Uuid
+  signedSubmissionId   String?        @unique @map("signed_submission_id") @db.Uuid
+  fileUrl              String?        @map("file_url")
+  uploadedAt           DateTime?      @map("uploaded_at")
+  signedAt             DateTime?      @map("signed_at")
+  watermarkOwner       String?        @map("watermark_owner")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
 
-  order        Order @relation(fields: [orderId], references: [id])
-  contractFile File? @relation("Contract_File", fields: [contractFileId], references: [id])
+  order              Order                      @relation(fields: [orderId], references: [id])
+  contractFile       File?                      @relation("Contract_File", fields: [contractFileId], references: [id])
+  signedContractFile File?                      @relation("Contract_SignedFile", fields: [signedContractFileId], references: [id])
+  signedSubmission   ContractSignedSubmission?  @relation("Contract_AcceptedSignedSubmission", fields: [signedSubmissionId], references: [id])
+  signedSubmissions  ContractSignedSubmission[] @relation("Contract_SignedSubmissions")
 
   @@map("contracts")
+}
+
+model ContractSignedSubmission {
+  id                String                         @id @default(uuid()) @db.Uuid
+  orderId           String                         @map("order_id") @db.Uuid
+  contractOrderId   String                         @map("contract_order_id") @db.Uuid
+  fileId            String                         @map("file_id") @db.Uuid
+  submittedByUserId String                         @map("submitted_by_user_id") @db.Uuid
+  status            ContractSignedSubmissionStatus @default(PENDING)
+  rejectReason      String?                        @map("reject_reason")
+  reviewedByUserId  String?                        @map("reviewed_by_user_id") @db.Uuid
+  reviewedAt        DateTime?                      @map("reviewed_at")
+  createdAt         DateTime                       @default(now()) @map("created_at")
+  updatedAt         DateTime                       @updatedAt @map("updated_at")
+
+  order               Order      @relation(fields: [orderId], references: [id])
+  contract            Contract   @relation("Contract_SignedSubmissions", fields: [contractOrderId], references: [orderId])
+  file                File       @relation("ContractSignedSubmission_File", fields: [fileId], references: [id])
+  submittedBy         User       @relation("ContractSignedSubmission_SubmittedBy", fields: [submittedByUserId], references: [id])
+  reviewedBy          User?      @relation("ContractSignedSubmission_ReviewedBy", fields: [reviewedByUserId], references: [id])
+  acceptedByContracts Contract[] @relation("Contract_AcceptedSignedSubmission")
+
+  @@index([orderId, status, createdAt])
+  @@index([contractOrderId, status, createdAt])
+  @@index([submittedByUserId, createdAt])
+  @@map("contract_signed_submissions")
 }
 
 model Conversation {

@@ -1,14 +1,17 @@
 import { View, Text } from '@tarojs/components';
-import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
+import Taro, { useDidHide, useDidShow, useUnload } from '@tarojs/taro';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import './index.scss';
 
 import { API_BASE_URL } from '../../constants';
 import { apiGet, apiPost } from '../../lib/api';
 import { getToken } from '../../lib/auth';
+import { refreshClientBadges } from '../../lib/clientBadges';
+import { previewContractFile } from '../../lib/contractFiles';
 import { displayTitleOrFallback, normalizeDisplayText } from '../../lib/displayText';
 import { formatTimeSmart } from '../../lib/format';
 import { ensureApproved, usePageAccess } from '../../lib/guard';
+import { useRouteUuidParam } from '../../lib/routeParams';
 import { chooseMessageFiles, uploadFileToApi } from '../../lib/upload';
 import { usePagedList } from '../../lib/usePagedList';
 import { PageState } from '../../ui/PageState';
@@ -17,6 +20,17 @@ import { PageHeader, Surface } from '../../ui/layout';
 import { Button, PullToRefresh, toast } from '../../ui/nutui';
 
 type ContractStatus = 'WAIT_UPLOAD' | 'WAIT_CONFIRM' | 'AVAILABLE';
+type ContractSignedSubmissionStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'SUPERSEDED';
+
+type ContractSignedSubmission = {
+  id: string;
+  status: ContractSignedSubmissionStatus;
+  fileUrl?: string | null;
+  fileName?: string | null;
+  createdAt: string;
+  reviewedAt?: string | null;
+  rejectReason?: string | null;
+};
 
 type ContractItem = {
   id: string;
@@ -30,6 +44,7 @@ type ContractItem = {
   fileUrl?: string | null;
   watermarkOwner?: string | null;
   canUpload?: boolean;
+  latestSignedSubmission?: ContractSignedSubmission | null;
 };
 
 type ContractListResponse = {
@@ -55,8 +70,13 @@ const TEXT = {
   uploadPdfFirst: '\u8bf7\u5148\u4e0a\u4f20\u5408\u540c PDF',
   uploadSuccess: '\u5df2\u63d0\u4ea4\u5408\u540c',
   noLink: '\u6682\u65e0\u53ef\u7528\u5408\u540c\u94fe\u63a5',
-  copied: '\u5df2\u590d\u5236\u5408\u540c\u94fe\u63a5',
-  copiedAndNotify: '\u5df2\u590d\u5236\u5408\u540c\u94fe\u63a5\uff0c\u8bf7\u53d1\u9001\u7ed9\u5bf9\u65b9\u786e\u8ba4',
+  previewFailed: '\u5408\u540c\u9884\u89c8\u5931\u8d25',
+  signedSubmissionPending: '\u5df2\u56de\u4f20\uff0c\u5f85\u5e73\u53f0\u786e\u8ba4',
+  signedSubmissionAccepted: '\u5df2\u786e\u8ba4',
+  signedSubmissionRejected: '\u5df2\u9a73\u56de',
+  signedSubmissionSuperseded: '\u5df2\u88ab\u66ff\u6362',
+  uploadSignedContract: '\u4e0a\u4f20\u7b7e\u7f72\u7248\u5408\u540c',
+  reuploadSignedContract: '\u91cd\u65b0\u4e0a\u4f20\u7b7e\u7f72\u7248',
   contractPrefix: '\u5408\u540c\u5f85\u786e\u8ba4',
   listingPrefix: '\u4ea4\u6613\u6807\u7684\uff1a',
   counterpartPrefix: '\u5bf9\u65b9\uff1a',
@@ -67,10 +87,10 @@ const TEXT = {
   watermarkPrefix: '\u6c34\u5370\u5f52\u5c5e\uff1a',
   watermarkFallback: '\u5e73\u53f0\u5904\u7406',
   orderDetail: '\u8ba2\u5355\u8be6\u60c5',
+  focusedOrderTitle: '当前订单合同',
   waitingSeller: '\u7b49\u5f85\u5356\u5bb6\u4e0a\u4f20',
   uploadPdf: '\u4e0a\u4f20\u5408\u540c PDF',
-  viewContract: '\u67e5\u770b\u5408\u540c',
-  remindConfirm: '\u63d0\u9192\u5bf9\u65b9\u786e\u8ba4',
+  viewContract: '\u9884\u89c8\u5408\u540c',
 } as const;
 
 const TABS: Array<{ id: ContractStatus; label: string }> = [
@@ -99,6 +119,13 @@ function contractCardTitle(item: Pick<ContractItem, 'listingTitle' | 'counterpar
   return '待确认合同';
 }
 
+function signedSubmissionStatusLabel(status?: ContractSignedSubmissionStatus | null): string {
+  if (status === 'ACCEPTED') return TEXT.signedSubmissionAccepted;
+  if (status === 'REJECTED') return TEXT.signedSubmissionRejected;
+  if (status === 'SUPERSEDED') return TEXT.signedSubmissionSuperseded;
+  return TEXT.signedSubmissionPending;
+}
+
 function formatOrderNo(orderId?: string | null): string {
   const compact = String(orderId || '').replace(/-/g, '').trim().toUpperCase();
   return compact ? compact.slice(0, 8) : '待确认';
@@ -108,37 +135,50 @@ function ContractInfoRow(props: { label: string; value: React.ReactNode; valueCl
   return (
     <View className="contract-info-row" onClick={props.onClick}>
       <Text className="contract-info-label">{props.label}</Text>
-      <Text className={`contract-info-value ${props.valueClassName || ''}`}>{props.value}</Text>
+      <View className={`contract-info-value ${props.valueClassName || ''}`}>{props.value}</View>
     </View>
   );
 }
 
 export default function ContractCenterPage() {
   const loadedOnceRef = useRef(false);
-  const tabKeyRef = useRef<ContractStatus>('WAIT_UPLOAD');
+  const listKeyRef = useRef('WAIT_UPLOAD:');
   const pageVisibleRef = useRef(true);
+  const uploadPickerActiveRef = useRef(false);
   const uploadSeqRef = useRef(0);
   const activeTabRef = useRef<ContractStatus>('WAIT_UPLOAD');
+  const focusOrderId = useRouteUuidParam('orderId');
   const [activeTab, setActiveTab] = useState<ContractStatus>('WAIT_UPLOAD');
   const [uploadingContractId, setUploadingContractId] = useState('');
 
   useDidShow(() => {
     pageVisibleRef.current = true;
+    void refreshClientBadges();
   });
 
   useDidHide(() => {
+    if (uploadPickerActiveRef.current) return;
     pageVisibleRef.current = false;
     uploadSeqRef.current += 1;
     setUploadingContractId('');
   });
 
+  useUnload(() => {
+    pageVisibleRef.current = false;
+    uploadPickerActiveRef.current = false;
+    uploadSeqRef.current += 1;
+  });
+
   const fetcher = useCallback(
     async ({ page, pageSize }: { page: number; pageSize: number }) =>
-      apiGet<ContractListResponse>('/contracts', { status: activeTab, page, pageSize }),
-    [activeTab],
+      apiGet<ContractListResponse>(
+        '/contracts',
+        focusOrderId ? { orderId: focusOrderId, page, pageSize } : { status: activeTab, page, pageSize },
+      ),
+    [activeTab, focusOrderId],
   );
 
-  const { items, loading, error, refreshing, loadingMore, hasMore, reload, refresh, loadMore, reset } =
+  const { items, setItems, loading, error, refreshing, loadingMore, hasMore, reload, refresh, loadMore, reset } =
     usePagedList<ContractItem>(fetcher, {
       pageSize: 20,
       onError: (message, ctx) => {
@@ -158,13 +198,14 @@ export default function ContractCenterPage() {
   });
 
   useEffect(() => {
-    if (tabKeyRef.current === activeTab) return;
-    tabKeyRef.current = activeTab;
+    const nextKey = `${activeTab}:${focusOrderId || ''}`;
+    if (listKeyRef.current === nextKey) return;
+    listKeyRef.current = nextKey;
     activeTabRef.current = activeTab;
     uploadSeqRef.current += 1;
     setUploadingContractId('');
     reset();
-  }, [activeTab, reset]);
+  }, [activeTab, focusOrderId, reset]);
 
   useEffect(() => {
     activeTabRef.current = activeTab;
@@ -174,7 +215,7 @@ export default function ContractCenterPage() {
     if (access.state !== 'ok') return;
     loadedOnceRef.current = true;
     void reload();
-  }, [access.state, activeTab, reload]);
+  }, [access.state, activeTab, focusOrderId, reload]);
 
   useEffect(() => {
     if (access.state === 'ok') return;
@@ -183,6 +224,25 @@ export default function ContractCenterPage() {
   }, [access.state]);
 
   const showInitialLoading = loading && items.length === 0;
+
+  const renderSubmissionSummary = useCallback((submission?: ContractSignedSubmission | null) => {
+    if (!submission) return '暂无回传';
+
+    return (
+      <View className="contract-signed-submission">
+        <Text className={`contract-signed-submission-status is-${submission.status.toLowerCase()}`}>
+          {signedSubmissionStatusLabel(submission.status)}
+        </Text>
+        <Text className="contract-signed-submission-time">{formatTimeSmart(submission.createdAt)}</Text>
+        {submission.fileUrl ? (
+          <Text className="contract-signed-submission-link" onClick={() => void previewContractFile(submission.fileUrl)}>
+            预览
+          </Text>
+        ) : null}
+        {submission.rejectReason ? <Text className="contract-signed-submission-reason">{submission.rejectReason}</Text> : null}
+      </View>
+    );
+  }, []);
 
   const uploadContract = useCallback(
     async (item: ContractItem) => {
@@ -202,10 +262,13 @@ export default function ContractCenterPage() {
       const seq = ++uploadSeqRef.current;
       setUploadingContractId(item.id);
       try {
+        uploadPickerActiveRef.current = true;
         const res = await chooseMessageFiles({
           count: 1,
           type: 'file',
           extension: ['pdf'],
+        }).finally(() => {
+          uploadPickerActiveRef.current = false;
         });
         const tempPath = String(res[0]?.path || '').trim();
         if (!tempPath) {
@@ -216,6 +279,7 @@ export default function ContractCenterPage() {
           return;
         }
 
+        pageVisibleRef.current = true;
         const token = getToken();
         const { data: parsed } = await uploadFileToApi<{ id?: string }>({
           url: `${API_BASE_URL}/files`,
@@ -230,8 +294,11 @@ export default function ContractCenterPage() {
         if (seq !== uploadSeqRef.current || !pageVisibleRef.current || activeTabRef.current !== targetTab) return;
         setUploadingContractId('');
         const errMsg = String(e?.errMsg || '').toLowerCase();
-        if (errMsg.includes('cancel')) return;
-        toast(TEXT.uploadFailed);
+        if (errMsg.includes('cancel')) {
+          toast(TEXT.noFile);
+          return;
+        }
+        toast(e?.message || TEXT.uploadFailed);
         return;
       }
 
@@ -250,6 +317,7 @@ export default function ContractCenterPage() {
         );
         if (seq !== uploadSeqRef.current || !pageVisibleRef.current || activeTabRef.current !== targetTab) return;
         toast(TEXT.uploadSuccess, { icon: 'success' });
+        void refreshClientBadges();
         void reload();
       } catch (e: any) {
         if (seq !== uploadSeqRef.current || !pageVisibleRef.current || activeTabRef.current !== targetTab) return;
@@ -263,15 +331,90 @@ export default function ContractCenterPage() {
     [reload, uploadingContractId],
   );
 
-  const copyContractLink = useCallback((item: ContractItem, successMessage: string) => {
-    const url = String(item.fileUrl || '').trim();
-    if (!url) {
-      toast(TEXT.noLink);
-      return;
-    }
-    Taro.setClipboardData({ data: url });
-    toast(successMessage, { icon: 'success' });
-  }, []);
+  const uploadSignedContract = useCallback(
+    async (item: ContractItem) => {
+      if (!ensureApproved()) return;
+      if (uploadingContractId) return;
+      if (process.env.TARO_ENV !== 'weapp') {
+        toast(TEXT.weappOnly);
+        return;
+      }
+
+      let signedFileId = '';
+      const targetTab = activeTabRef.current;
+      const seq = ++uploadSeqRef.current;
+      setUploadingContractId(item.id);
+      try {
+        uploadPickerActiveRef.current = true;
+        const res = await chooseMessageFiles({
+          count: 1,
+          type: 'file',
+          extension: ['pdf'],
+        }).finally(() => {
+          uploadPickerActiveRef.current = false;
+        });
+        const tempPath = String(res[0]?.path || '').trim();
+        if (!tempPath) {
+          if (seq === uploadSeqRef.current && pageVisibleRef.current && activeTabRef.current === targetTab) {
+            setUploadingContractId('');
+          }
+          toast(TEXT.noFile);
+          return;
+        }
+
+        pageVisibleRef.current = true;
+        const token = getToken();
+        const { data: parsed } = await uploadFileToApi<{ id?: string }>({
+          url: `${API_BASE_URL}/files`,
+          filePath: tempPath,
+          name: 'file',
+          formData: { purpose: 'CONTRACT_EVIDENCE' },
+          header: token ? { Authorization: `Bearer ${token}` } : {},
+          retry: 1,
+        });
+        signedFileId = String(parsed?.id || '').trim();
+      } catch (e: any) {
+        if (seq !== uploadSeqRef.current || !pageVisibleRef.current || activeTabRef.current !== targetTab) return;
+        setUploadingContractId('');
+        const errMsg = String(e?.errMsg || '').toLowerCase();
+        if (errMsg.includes('cancel')) {
+          toast(TEXT.noFile);
+          return;
+        }
+        toast(e?.message || TEXT.uploadFailed);
+        return;
+      }
+
+      if (!signedFileId) {
+        if (seq !== uploadSeqRef.current || !pageVisibleRef.current || activeTabRef.current !== targetTab) return;
+        setUploadingContractId('');
+        toast(TEXT.uploadPdfFirst);
+        return;
+      }
+
+      try {
+        const submission = await apiPost<ContractSignedSubmission>(
+          `/contracts/${item.id}/signed-submissions`,
+          { fileId: signedFileId },
+          { idempotencyKey: `contract-signed-${item.id}-${signedFileId}` },
+        );
+        if (seq !== uploadSeqRef.current || !pageVisibleRef.current || activeTabRef.current !== targetTab) return;
+        setUploadingContractId('');
+        toast(TEXT.uploadSuccess, { icon: 'success' });
+        setItems((prev) => prev.map((row) => (row.id === item.id ? { ...row, latestSignedSubmission: submission } : row)));
+        void refreshClientBadges();
+        void reload();
+      } catch (e: any) {
+        if (seq !== uploadSeqRef.current || !pageVisibleRef.current || activeTabRef.current !== targetTab) return;
+        toast(e?.message || TEXT.uploadFailed);
+      } finally {
+        if (seq === uploadSeqRef.current && pageVisibleRef.current && activeTabRef.current === targetTab) {
+          setUploadingContractId('');
+        }
+      }
+    },
+    [reload, setItems, uploadingContractId],
+  );
 
   const navigateToOrderDetail = useCallback((orderId: string) => {
     Taro.navigateTo({ url: `/subpackages/orders/detail/index?orderId=${orderId}` });
@@ -281,18 +424,25 @@ export default function ContractCenterPage() {
     <View className="container contracts-page">
       <PageHeader weapp title={TEXT.title} subtitle={TEXT.subtitle} />
 
-      <View className="contract-tabs">
-        {TABS.map((tab) => (
-          <View
-            key={tab.id}
-            className={`contract-tab ${activeTab === tab.id ? 'is-active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            <Text>{tab.label}</Text>
-            {activeTab === tab.id ? <View className="contract-tab-underline" /> : null}
-          </View>
-        ))}
-      </View>
+      {focusOrderId ? (
+        <View className="contract-focus-banner">
+          <Text className="contract-focus-title">{TEXT.focusedOrderTitle}</Text>
+          <Text className="contract-focus-order">{formatOrderNo(focusOrderId)}</Text>
+        </View>
+      ) : (
+        <View className="contract-tabs">
+          {TABS.map((tab) => (
+            <View
+              key={tab.id}
+              className={`contract-tab ${activeTab === tab.id ? 'is-active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              <Text>{tab.label}</Text>
+              {activeTab === tab.id ? <View className="contract-tab-underline" /> : null}
+            </View>
+          ))}
+        </View>
+      )}
 
       <PageState
         access={access}
@@ -327,6 +477,12 @@ export default function ContractCenterPage() {
                   <ContractInfoRow label="水印归属" value={item.watermarkOwner || TEXT.watermarkFallback} />
                   {item.uploadedAt ? <ContractInfoRow label="上传时间" value={formatTimeSmart(item.uploadedAt)} /> : null}
                   {item.signedAt ? <ContractInfoRow label="确认时间" value={formatTimeSmart(item.signedAt)} /> : null}
+                  {item.latestSignedSubmission ? (
+                    <ContractInfoRow
+                      label="回传签署版"
+                      value={renderSubmissionSummary(item.latestSignedSubmission)}
+                    />
+                  ) : null}
                 </View>
 
                 <View className="contract-actions">
@@ -355,7 +511,7 @@ export default function ContractCenterPage() {
                         className="contract-action-btn contract-action-btn-outline"
                         size="small"
                         variant="ghost"
-                        onClick={() => copyContractLink(item, TEXT.copied)}
+                        onClick={() => void previewContractFile(item.fileUrl)}
                       >
                         {TEXT.viewContract}
                       </Button>
@@ -363,9 +519,9 @@ export default function ContractCenterPage() {
                         className="contract-action-btn contract-action-btn-primary"
                         size="small"
                         variant="primary"
-                        onClick={() => copyContractLink(item, TEXT.copiedAndNotify)}
+                        onClick={() => void uploadSignedContract(item)}
                       >
-                        {TEXT.remindConfirm}
+                        {item.latestSignedSubmission ? TEXT.reuploadSignedContract : TEXT.uploadSignedContract}
                       </Button>
                     </>
                   ) : (
@@ -373,7 +529,7 @@ export default function ContractCenterPage() {
                       className="contract-action-btn contract-action-btn-primary"
                       size="small"
                       variant="primary"
-                      onClick={() => copyContractLink(item, TEXT.copied)}
+                      onClick={() => void previewContractFile(item.fileUrl)}
                     >
                       {TEXT.viewContract}
                     </Button>

@@ -158,10 +158,34 @@ export class OrdersController {
   }
 
   @UseGuards(BearerAuthGuard)
+  @Post('/admin/orders/:orderId/contract/signed-submissions/:submissionId/reject')
+  async adminRejectSignedSubmission(
+    @Req() req: any,
+    @Param('orderId') orderId: string,
+    @Param('submissionId') submissionId: string,
+    @Body() body: any,
+  ) {
+    requirePermission(req, 'milestone.contractSigned.confirm');
+    return await this.orders.rejectSignedSubmission(req, orderId, submissionId, body || {});
+  }
+
+  @UseGuards(BearerAuthGuard)
   @Post('/admin/orders/:orderId/contract/upload')
   async adminUploadContract(@Req() req: any, @Param('orderId') orderId: string, @Body() body: any) {
     requirePermission(req, 'milestone.contractSigned.confirm');
     return await this.orders.adminUploadContract(req, orderId, body || {});
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Post('/admin/orders/assigned/:orderId/contract/signed-submissions/:submissionId/reject')
+  async assignedRejectSignedSubmission(
+    @Req() req: any,
+    @Param('orderId') orderId: string,
+    @Param('submissionId') submissionId: string,
+    @Body() body: any,
+  ) {
+    requirePermission(req, 'order.assigned.contract.confirm');
+    return await this.orders.assignedRejectSignedSubmission(req, orderId, submissionId, body || {});
   }
 
   @UseGuards(BearerAuthGuard)

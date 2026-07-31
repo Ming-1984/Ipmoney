@@ -287,13 +287,20 @@ export class FilesService {
     if (!file) return false;
     if (String(file.ownerId || '') === String(userId)) return true;
 
-    const [contractHit, invoiceHit] = await Promise.all([
+    const [contractHit, signedSubmissionHit, invoiceHit] = await Promise.all([
       this.prisma.contract.findFirst({
         where: {
-          contractFileId: fileId,
+          OR: [{ contractFileId: fileId }, { signedContractFileId: fileId }],
           order: { OR: [{ buyerUserId: userId }, { listing: { sellerUserId: userId } }] },
         },
         select: { orderId: true },
+      }),
+      this.prisma.contractSignedSubmission.findFirst({
+        where: {
+          fileId,
+          order: { OR: [{ buyerUserId: userId }, { listing: { sellerUserId: userId } }] },
+        },
+        select: { id: true },
       }),
       this.prisma.order.findFirst({
         where: {
@@ -304,7 +311,7 @@ export class FilesService {
       }),
     ]);
 
-    if (contractHit || invoiceHit) return true;
+    if (contractHit || signedSubmissionHit || invoiceHit) return true;
 
     const [listingHit, achievementHit, orgLogoHit, messageHit, caseEvidenceHit] = await Promise.all([
       this.prisma.listing.findFirst({

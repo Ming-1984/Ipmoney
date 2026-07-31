@@ -114,6 +114,10 @@ function moneyDisplay(fen?: number | null): string {
   return `¥${decimal ? `${formatted}.${decimal}` : formatted}`;
 }
 
+function hasViewableContract(order: Order): boolean {
+  return Boolean(order.contractFileUrl && (order.contractStatus === 'WAIT_CONFIRM' || order.contractStatus === 'AVAILABLE'));
+}
+
 export default function OrdersPage() {
   const loadedOnceRef = useRef(false);
   const filterKeyRef = useRef('');
@@ -224,6 +228,9 @@ export default function OrdersPage() {
   const navigateToOrderDetail = useCallback((orderId: string) => {
     Taro.navigateTo({ url: `/subpackages/orders/detail/index?orderId=${orderId}` });
   }, []);
+  const navigateToOrderContract = useCallback((orderId: string) => {
+    Taro.navigateTo({ url: `/subpackages/contracts/index?orderId=${orderId}` });
+  }, []);
 
   if (access.state === 'need-login') {
     return (
@@ -323,6 +330,7 @@ export default function OrdersPage() {
               (() => {
                 const counterparty = counterpartyName(it, asRole);
                 const toneClass = orderStatusToneClass(it.status);
+                const canViewContract = hasViewableContract(it);
                 return (
                   <Surface
                     key={it.id}
@@ -378,7 +386,20 @@ export default function OrdersPage() {
                         <View className="order-card-clock" />
                         <Text className="order-card-time">{formatTimeSmart(it.updatedAt || it.createdAt)}</Text>
                       </View>
-                      <Text className="order-card-detail-link">查看详情 ›</Text>
+                      <View className="order-card-actions">
+                        {canViewContract ? (
+                          <View
+                            className="order-card-contract-link"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              navigateToOrderContract(it.id);
+                            }}
+                          >
+                            <Text>查看合同</Text>
+                          </View>
+                        ) : null}
+                        <Text className="order-card-detail-link">查看详情 ›</Text>
+                      </View>
                     </View>
                   </Surface>
                 );

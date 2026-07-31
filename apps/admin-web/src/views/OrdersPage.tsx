@@ -1,4 +1,5 @@
 import { Button, Card, Form, Input, InputNumber, Modal, Space, Table, Tag, Typography, message } from 'antd';
+import { CloseCircleOutlined } from '@ant-design/icons';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -23,6 +24,19 @@ type OrderStatus =
   | 'REFUNDED';
 
 type ContractStatus = 'WAIT_UPLOAD' | 'WAIT_CONFIRM' | 'AVAILABLE';
+type ContractSignedSubmissionStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'SUPERSEDED';
+
+type ContractSignedSubmission = {
+  id: string;
+  status: ContractSignedSubmissionStatus;
+  fileUrl?: string | null;
+  fileName?: string | null;
+  createdAt: string;
+  reviewedAt?: string | null;
+  rejectReason?: string | null;
+  reviewedByUserId?: string | null;
+  reviewedByName?: string | null;
+};
 
 type Order = {
   id: string;
@@ -43,6 +57,7 @@ type Order = {
   contractFileUrl?: string | null;
   contractUploadedAt?: string | null;
   contractSignedAt?: string | null;
+  latestSignedSubmission?: ContractSignedSubmission | null;
 };
 
 type PagedOrder = {
@@ -53,6 +68,11 @@ type PagedOrder = {
 type ContractFormValues = {
   dealAmountYuan?: number;
   remark?: string;
+};
+
+type RejectSignedSubmissionResponse = {
+  ok?: boolean;
+  submission?: ContractSignedSubmission | null;
 };
 
 const TEXT = {
@@ -72,12 +92,25 @@ const TEXT = {
   detail: '\u8be6\u60c5',
   contractStatus: '合同',
   contractUpload: '上传合同',
-  contractReplace: '替换合同',
+  contractReplace: '重传/更换合同',
   contractConfirm: '\u5408\u540c\u786e\u8ba4',
+  contractUploaded: '合同已上传',
   contractWaitUpload: '待上传',
   contractWaitConfirm: '待签署确认',
   contractAvailable: '可查看',
   contractPreview: '预览合同',
+  signedSubmissionPending: '用户已回传签署版',
+  signedSubmissionRejected: '签署版已驳回',
+  signedSubmissionAccepted: '签署版已确认',
+  signedSubmissionSuperseded: '签署版已覆盖',
+  signedSubmissionPreview: '预览回传版',
+  signedSubmissionReject: '驳回签署版',
+  signedSubmissionRejectTitle: '驳回用户回传的签署版合同？',
+  signedSubmissionRejectContent: '驳回后用户可在合同中心重新上传签署版 PDF。',
+  signedSubmissionRejectOk: '确认驳回',
+  signedSubmissionRejectReasonLabel: '驳回原因',
+  signedSubmissionRejectReasonPlaceholder: '例如：签章主体不一致、签署页缺失或文件不清晰。',
+  signedSubmissionRejectSuccess: '已驳回签署版合同',
   transferCompleted: '\u53d8\u66f4\u5b8c\u6210',
   transferTitle: '\u786e\u8ba4\u6743\u5c5e\u53d8\u66f4\u5df2\u5b8c\u6210\uff1f',
   transferContent:
@@ -91,8 +124,11 @@ const TEXT = {
   actionFailed: '\u64cd\u4f5c\u5931\u8d25',
   refresh: '\u5237\u65b0',
   contractUploadModalTitle: '上传合同',
+  contractReplaceModalTitle: '更换合同',
   contractUploadOk: '保存合同',
+  contractReplaceOk: '保存新合同',
   contractUploadSuccess: '合同上传成功',
+  contractReplaceSuccess: '合同更换成功',
   contractUploadFirst: '请先上传合同 PDF',
   contractModalTitle: '\u5408\u540c\u786e\u8ba4',
   contractOk: '\u786e\u8ba4\u5408\u540c',
@@ -117,20 +153,45 @@ function hasUploadedContract(order?: Pick<Order, 'contractStatus' | 'contractFil
   return Boolean(order?.contractFileUrl || order?.contractStatus === 'WAIT_CONFIRM' || order?.contractStatus === 'AVAILABLE');
 }
 
+function signedSubmissionStatusLabel(status?: ContractSignedSubmissionStatus | null): string {
+  if (status === 'ACCEPTED') return TEXT.signedSubmissionAccepted;
+  if (status === 'REJECTED') return TEXT.signedSubmissionRejected;
+  if (status === 'SUPERSEDED') return TEXT.signedSubmissionSuperseded;
+  return TEXT.signedSubmissionPending;
+}
+
 function contractStatusTag(order: Order) {
-  const tag =
-    order.contractStatus === 'AVAILABLE' ? (
-      <Tag color="green">{TEXT.contractAvailable}</Tag>
-    ) : hasUploadedContract(order) ? (
-      <Tag color="blue">{TEXT.contractWaitConfirm}</Tag>
-    ) : (
-      <Tag>{TEXT.contractWaitUpload}</Tag>
-    );
-  if (!order.contractFileUrl) return tag;
+  const tags =
+    order.contractStatus === 'AVAILABLE'
+      ? [<Tag color="green" key="available">{TEXT.contractAvailable}</Tag>]
+      : hasUploadedContract(order)
+        ? [
+            <Tag color="blue" key="uploaded">
+              {TEXT.contractUploaded}
+            </Tag>,
+            <Tag color="gold" key="wait-confirm">
+              {TEXT.contractWaitConfirm}
+            </Tag>,
+          ]
+        : [<Tag key="wait-upload">{TEXT.contractWaitUpload}</Tag>];
+  const latestSignedSubmission = order.latestSignedSubmission ?? null;
+  if (!order.contractFileUrl && !latestSignedSubmission) return <Space size={4} wrap>{tags}</Space>;
   return (
-    <Space size={4} wrap>
-      {tag}
-      <ContractPreviewLink fileUrl={order.contractFileUrl}>{TEXT.contractPreview}</ContractPreviewLink>
+    <Space direction="vertical" size={4}>
+      <Space size={4} wrap>
+        {tags}
+        {order.contractFileUrl ? <ContractPreviewLink fileUrl={order.contractFileUrl}>{TEXT.contractPreview}</ContractPreviewLink> : null}
+      </Space>
+      {latestSignedSubmission ? (
+        <Space size={4} wrap>
+          <Typography.Text type={latestSignedSubmission.status === 'REJECTED' ? 'danger' : 'secondary'}>
+            {signedSubmissionStatusLabel(latestSignedSubmission.status)}
+          </Typography.Text>
+          {latestSignedSubmission.fileUrl ? (
+            <ContractPreviewLink fileUrl={latestSignedSubmission.fileUrl}>{TEXT.signedSubmissionPreview}</ContractPreviewLink>
+          ) : null}
+        </Space>
+      ) : null}
     </Space>
   );
 }
@@ -153,6 +214,7 @@ export function OrdersPage() {
   const loadSeqRef = useRef(0);
   const transferActionSeqRef = useRef(0);
   const contractActionSeqRef = useRef(0);
+  const rejectActionSeqRef = useRef(0);
   const uploadActionSeqRef = useRef(0);
   const contractTargetIdRef = useRef<string | null>(null);
 
@@ -189,6 +251,55 @@ export function OrdersPage() {
   }, [load]);
 
   const rows = useMemo(() => data?.items || [], [data?.items]);
+
+  const rejectSignedSubmission = useCallback(
+    async (order: Order) => {
+      const submission = order.latestSignedSubmission;
+      if (!submission || submission.status !== 'PENDING') return;
+      const { ok, reason } = await confirmActionWithReason({
+        title: TEXT.signedSubmissionRejectTitle,
+        content: TEXT.signedSubmissionRejectContent,
+        okText: TEXT.signedSubmissionRejectOk,
+        danger: true,
+        reasonRequired: true,
+        reasonLabel: TEXT.signedSubmissionRejectReasonLabel,
+        reasonPlaceholder: TEXT.signedSubmissionRejectReasonPlaceholder,
+      });
+      if (!ok) return;
+
+      const requestSeq = ++rejectActionSeqRef.current;
+      try {
+        const resp = await apiPost<RejectSignedSubmissionResponse>(
+          `/admin/orders/${order.id}/contract/signed-submissions/${submission.id}/reject`,
+          { reason },
+          { idempotencyKey: `contract-signed-reject-${order.id}-${submission.id}-${Date.now()}` },
+        );
+        if (requestSeq !== rejectActionSeqRef.current) return;
+        const rejectedSubmission: ContractSignedSubmission = resp?.submission ?? {
+          ...submission,
+          status: 'REJECTED',
+          rejectReason: reason ?? null,
+          reviewedAt: new Date().toISOString(),
+        };
+        setData((prev) =>
+          prev
+            ? {
+                ...prev,
+                items: prev.items.map((item) =>
+                  item.id === order.id ? { ...item, latestSignedSubmission: rejectedSubmission } : item,
+                ),
+              }
+            : prev,
+        );
+        message.success(TEXT.signedSubmissionRejectSuccess);
+        void load();
+      } catch (e: any) {
+        if (requestSeq !== rejectActionSeqRef.current) return;
+        message.error(e?.message || TEXT.actionFailed);
+      }
+    },
+    [load],
+  );
 
   return (
     <Card className="admin-orders-page">
@@ -289,7 +400,7 @@ export function OrdersPage() {
                   </Button>
                   <Button
                     type="primary"
-                    disabled={row.status !== 'DEPOSIT_PAID' || !hasUploadedContract(row)}
+                    disabled={row.status !== 'DEPOSIT_PAID' || !hasUploadedContract(row) || row.latestSignedSubmission?.status !== 'PENDING'}
                     onClick={() => {
                       setContractTarget(row);
                       contractForm.resetFields();
@@ -301,6 +412,14 @@ export function OrdersPage() {
                     }}
                   >
                     {TEXT.contractConfirm}
+                  </Button>
+                  <Button
+                    danger
+                    icon={<CloseCircleOutlined />}
+                    disabled={row.status !== 'DEPOSIT_PAID' || row.latestSignedSubmission?.status !== 'PENDING'}
+                    onClick={() => void rejectSignedSubmission(row)}
+                  >
+                    {TEXT.signedSubmissionReject}
                   </Button>
                   <Button
                     disabled={row.status !== 'FINAL_PAID_ESCROW'}
@@ -347,8 +466,8 @@ export function OrdersPage() {
 
       <Modal
         open={uploadModalOpen}
-        title={TEXT.contractUploadModalTitle}
-        okText={TEXT.contractUploadOk}
+        title={hasUploadedContract(uploadTarget) ? TEXT.contractReplaceModalTitle : TEXT.contractUploadModalTitle}
+        okText={hasUploadedContract(uploadTarget) ? TEXT.contractReplaceOk : TEXT.contractUploadOk}
         okButtonProps={{ loading: uploadSubmitting }}
         onCancel={() => {
           setUploadModalOpen(false);
@@ -365,6 +484,7 @@ export function OrdersPage() {
             return;
           }
           const targetOrderId = uploadTarget.id;
+          const replacingContract = hasUploadedContract(uploadTarget);
           const requestSeq = ++uploadActionSeqRef.current;
           setUploadSubmitting(true);
           try {
@@ -388,7 +508,7 @@ export function OrdersPage() {
                   }
                 : prev,
             );
-            message.success(TEXT.contractUploadSuccess);
+            message.success(replacingContract ? TEXT.contractReplaceSuccess : TEXT.contractUploadSuccess);
             setUploadModalOpen(false);
             setUploadTarget(null);
             setUploadFile(null);
@@ -410,7 +530,7 @@ export function OrdersPage() {
             savedFileUrl={uploadTarget?.contractFileUrl}
           />
           {uploadTarget ? (
-            <Typography.Text type="secondary">{TEXT.currentDepositPrefix}\u00a5{fenToYuan(uploadTarget.depositAmountFen)}</Typography.Text>
+            <Typography.Text type="secondary">{`${TEXT.currentDepositPrefix}¥${fenToYuan(uploadTarget.depositAmountFen)}`}</Typography.Text>
           ) : null}
         </Space>
       </Modal>
@@ -447,6 +567,10 @@ export function OrdersPage() {
               {
                 dealAmountFen: Math.round(dealAmountYuan * 100),
                 signedAt: new Date().toISOString(),
+                signedSubmissionId:
+                  contractTarget?.latestSignedSubmission?.status === 'PENDING'
+                    ? contractTarget.latestSignedSubmission.id
+                    : undefined,
                 remark: values?.remark ? String(values.remark).trim() : undefined,
               },
               { idempotencyKey: `contract-signed-${targetOrderId}` },

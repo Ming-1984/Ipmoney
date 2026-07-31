@@ -16,7 +16,7 @@ import {
   message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { EyeOutlined, FileDoneOutlined, ReloadOutlined, UploadOutlined } from '@ant-design/icons';
+import { CloseCircleOutlined, EyeOutlined, FileDoneOutlined, ReloadOutlined, UploadOutlined } from '@ant-design/icons';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { apiGet, apiPost, type FileObject } from '../lib/api';
@@ -26,6 +26,7 @@ import { normalizeUserFacingText } from '../lib/userFacingText';
 import { ContractFileUploadField } from '../ui/ContractFileUploadField';
 import { ContractPreviewLink } from '../ui/ContractPreviewLink';
 import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
+import { confirmActionWithReason } from '../ui/confirm';
 
 type OrderStatus =
   | 'DEPOSIT_PENDING'
@@ -40,6 +41,19 @@ type OrderStatus =
 
 type MilestoneStatus = 'PENDING' | 'DONE' | 'SKIPPED' | 'IN_PROGRESS' | 'FAILED';
 type ContractStatus = 'WAIT_UPLOAD' | 'WAIT_CONFIRM' | 'AVAILABLE';
+type ContractSignedSubmissionStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'SUPERSEDED';
+
+type ContractSignedSubmission = {
+  id: string;
+  status: ContractSignedSubmissionStatus;
+  fileUrl?: string | null;
+  fileName?: string | null;
+  createdAt: string;
+  reviewedAt?: string | null;
+  rejectReason?: string | null;
+  reviewedByUserId?: string | null;
+  reviewedByName?: string | null;
+};
 
 type AssignedOrder = {
   id: string;
@@ -60,6 +74,7 @@ type AssignedOrder = {
   contractFileUrl?: string | null;
   contractUploadedAt?: string | null;
   contractSignedAt?: string | null;
+  latestSignedSubmission?: ContractSignedSubmission | null;
 };
 
 type AssignedOrderDetail = AssignedOrder & {
@@ -81,6 +96,11 @@ type ContractFormValues = {
   remark?: string;
 };
 
+type RejectSignedSubmissionResponse = {
+  ok?: boolean;
+  submission?: ContractSignedSubmission | null;
+};
+
 const TEXT = {
   title: '我的订单跟进',
   subtitle: '只显示当前账号负责的订单。',
@@ -100,16 +120,28 @@ const TEXT = {
   detail: '详情',
   contractStatus: '合同',
   contractUpload: '上传合同',
-  contractReplace: '替换合同',
+  contractReplace: '重传/更换合同',
   contractConfirm: '确认合同',
+  contractUploaded: '合同已上传',
   contractWaitUpload: '待上传',
   contractWaitConfirm: '待签署确认',
   contractAvailable: '可查看',
   contractPreview: '预览合同',
+  signedSubmission: '用户已回传签署版',
+  signedSubmissionPending: '待平台确认',
+  signedSubmissionRejected: '已驳回',
+  signedSubmissionAccepted: '已确认',
+  signedSubmissionSuperseded: '已覆盖',
+  signedSubmissionPreview: '预览回传版',
+  signedSubmissionTime: '回传时间',
+  signedSubmissionReason: '驳回原因',
   contractUploadModalTitle: '上传合同',
+  contractReplaceModalTitle: '更换合同',
   contractUploadOk: '保存合同',
+  contractReplaceOk: '保存新合同',
   contractUploadFirst: '请先上传合同 PDF',
   contractUploadSuccess: '合同上传成功',
+  contractReplaceSuccess: '合同更换成功',
   contractModalTitle: '确认合同并填写成交金额',
   contractOk: '确认合同',
   amountRequired: '成交金额必须大于 0',
@@ -143,6 +175,16 @@ const TEXT = {
   inProgress: '进行中',
   failed: '失败',
   pending: '待处理',
+} as const;
+
+const SIGNED_SUBMISSION_REJECT_TEXT = {
+  action: '驳回签署版',
+  title: '驳回用户回传的签署版合同？',
+  content: '驳回后用户可在合同中心重新上传签署版 PDF。',
+  ok: '确认驳回',
+  reasonLabel: '驳回原因',
+  reasonPlaceholder: '例如：签章主体不一致、签署页缺失或文件不清晰。',
+  success: '已驳回签署版合同',
 } as const;
 
 const STATUS_OPTIONS: Array<{ value: '' | OrderStatus; label: string }> = [
@@ -183,20 +225,68 @@ function hasUploadedContract(order?: Pick<AssignedOrder, 'contractStatus' | 'con
   return Boolean(order?.contractFileUrl || order?.contractStatus === 'WAIT_CONFIRM' || order?.contractStatus === 'AVAILABLE');
 }
 
-function contractStatusTag(order?: Pick<AssignedOrder, 'contractStatus' | 'contractFileUrl'> | null) {
-  const tag =
-    order?.contractStatus === 'AVAILABLE' ? (
-      <Tag color="green">{TEXT.contractAvailable}</Tag>
-    ) : hasUploadedContract(order) ? (
-      <Tag color="blue">{TEXT.contractWaitConfirm}</Tag>
-    ) : (
-      <Tag>{TEXT.contractWaitUpload}</Tag>
-    );
-  if (!order?.contractFileUrl) return tag;
+function signedSubmissionStatusLabel(status?: ContractSignedSubmissionStatus | null): string {
+  if (status === 'ACCEPTED') return TEXT.signedSubmissionAccepted;
+  if (status === 'REJECTED') return TEXT.signedSubmissionRejected;
+  if (status === 'SUPERSEDED') return TEXT.signedSubmissionSuperseded;
+  return TEXT.signedSubmissionPending;
+}
+
+function contractStatusTag(order?: Pick<AssignedOrder, 'contractStatus' | 'contractFileUrl' | 'latestSignedSubmission'> | null) {
+  const tags =
+    order?.contractStatus === 'AVAILABLE'
+      ? [<Tag color="green" key="available">{TEXT.contractAvailable}</Tag>]
+      : hasUploadedContract(order)
+        ? [
+            <Tag color="blue" key="uploaded">
+              {TEXT.contractUploaded}
+            </Tag>,
+            <Tag color="gold" key="wait-confirm">
+              {TEXT.contractWaitConfirm}
+            </Tag>,
+          ]
+        : [<Tag key="wait-upload">{TEXT.contractWaitUpload}</Tag>];
+  const latestSignedSubmission = order?.latestSignedSubmission ?? null;
+  if (!order?.contractFileUrl && !latestSignedSubmission) return <Space size={4} wrap>{tags}</Space>;
   return (
-    <Space size={4} wrap>
-      {tag}
-      <ContractPreviewLink fileUrl={order.contractFileUrl}>{TEXT.contractPreview}</ContractPreviewLink>
+    <Space direction="vertical" size={4}>
+      <Space size={4} wrap>
+        {tags}
+        {order?.contractFileUrl ? <ContractPreviewLink fileUrl={order.contractFileUrl}>{TEXT.contractPreview}</ContractPreviewLink> : null}
+      </Space>
+      {latestSignedSubmission ? (
+        <Space size={4} wrap>
+          <Typography.Text type={latestSignedSubmission.status === 'REJECTED' ? 'danger' : 'secondary'}>
+            {TEXT.signedSubmission}：{signedSubmissionStatusLabel(latestSignedSubmission.status)}
+          </Typography.Text>
+          {latestSignedSubmission.fileUrl ? (
+            <ContractPreviewLink fileUrl={latestSignedSubmission.fileUrl}>{TEXT.signedSubmissionPreview}</ContractPreviewLink>
+          ) : null}
+        </Space>
+      ) : null}
+    </Space>
+  );
+}
+
+function signedSubmissionSummary(submission?: ContractSignedSubmission | null) {
+  if (!submission) return '-';
+  return (
+    <Space direction="vertical" size={4}>
+      <Space size={4} wrap>
+        <Tag color={submission.status === 'REJECTED' ? 'red' : submission.status === 'ACCEPTED' ? 'green' : 'blue'}>
+          {signedSubmissionStatusLabel(submission.status)}
+        </Tag>
+        {submission.fileUrl ? <ContractPreviewLink fileUrl={submission.fileUrl}>{TEXT.signedSubmissionPreview}</ContractPreviewLink> : null}
+      </Space>
+      <Typography.Text type="secondary">
+        {TEXT.signedSubmissionTime}
+        {formatTimeSmart(submission.createdAt)}
+      </Typography.Text>
+      {submission.rejectReason ? (
+        <Typography.Text type="danger">
+          {TEXT.signedSubmissionReason}：{submission.rejectReason}
+        </Typography.Text>
+      ) : null}
     </Space>
   );
 }
@@ -248,6 +338,7 @@ export function AssignedOrdersPage() {
   const loadSeqRef = useRef(0);
   const detailSeqRef = useRef(0);
   const contractSeqRef = useRef(0);
+  const rejectSeqRef = useRef(0);
   const uploadSeqRef = useRef(0);
 
   const load = useCallback(
@@ -338,6 +429,8 @@ export function AssignedOrdersPage() {
         {
           dealAmountFen: yuanToFen(dealAmountYuan),
           signedAt: new Date().toISOString(),
+          signedSubmissionId:
+            contractTarget?.latestSignedSubmission?.status === 'PENDING' ? contractTarget.latestSignedSubmission.id : undefined,
           remark: values?.remark ? String(values.remark).trim() : undefined,
         },
         { idempotencyKey: `assigned-contract-signed-${targetOrderId}` },
@@ -360,8 +453,67 @@ export function AssignedOrdersPage() {
     }
   }, [contractForm, contractTarget, detail?.id, detailOpen, load, loadDetail]);
 
+  const rejectSignedSubmission = useCallback(
+    async (order: AssignedOrder) => {
+      const submission = order.latestSignedSubmission;
+      if (!submission || submission.status !== 'PENDING') return;
+      const { ok, reason } = await confirmActionWithReason({
+        title: SIGNED_SUBMISSION_REJECT_TEXT.title,
+        content: SIGNED_SUBMISSION_REJECT_TEXT.content,
+        okText: SIGNED_SUBMISSION_REJECT_TEXT.ok,
+        danger: true,
+        reasonRequired: true,
+        reasonLabel: SIGNED_SUBMISSION_REJECT_TEXT.reasonLabel,
+        reasonPlaceholder: SIGNED_SUBMISSION_REJECT_TEXT.reasonPlaceholder,
+      });
+      if (!ok) return;
+
+      const targetOrderId = order.id;
+      const requestSeq = ++rejectSeqRef.current;
+      try {
+        const resp = await apiPost<RejectSignedSubmissionResponse>(
+          `/admin/orders/assigned/${targetOrderId}/contract/signed-submissions/${submission.id}/reject`,
+          { reason },
+          { idempotencyKey: `assigned-contract-signed-reject-${targetOrderId}-${submission.id}-${Date.now()}` },
+        );
+        if (requestSeq !== rejectSeqRef.current) return;
+        const rejectedSubmission: ContractSignedSubmission = resp?.submission ?? {
+          ...submission,
+          status: 'REJECTED',
+          rejectReason: reason ?? null,
+          reviewedAt: new Date().toISOString(),
+        };
+        setData((prev) =>
+          prev
+            ? {
+                ...prev,
+                items: prev.items.map((item) =>
+                  item.id === targetOrderId ? { ...item, latestSignedSubmission: rejectedSubmission } : item,
+                ),
+              }
+            : prev,
+        );
+        setDetail((prev) => (prev?.id === targetOrderId ? { ...prev, latestSignedSubmission: rejectedSubmission } : prev));
+        message.success(SIGNED_SUBMISSION_REJECT_TEXT.success);
+        await load();
+        if (detailOpen && detail?.id === targetOrderId) {
+          await loadDetail(targetOrderId);
+        }
+      } catch (e: any) {
+        if (requestSeq !== rejectSeqRef.current) return;
+        message.error(e?.message || TEXT.actionFailed);
+      }
+    },
+    [detail?.id, detailOpen, load, loadDetail],
+  );
+
   const rows = useMemo(() => data?.items || [], [data?.items]);
   const milestones = useMemo(() => detail?.milestones || [], [detail?.milestones]);
+  const canConfirmContract =
+    detail?.status === 'DEPOSIT_PAID' &&
+    hasUploadedContract(detail) &&
+    detail?.latestSignedSubmission?.status === 'PENDING';
+  const canRejectSignedSubmission = detail?.status === 'DEPOSIT_PAID' && detail?.latestSignedSubmission?.status === 'PENDING';
 
   const columns = useMemo<ColumnsType<AssignedOrder>>(
     () => [
@@ -405,7 +557,7 @@ export function AssignedOrdersPage() {
       {
         title: TEXT.contractStatus,
         key: 'contractStatus',
-        width: 130,
+        width: 190,
         render: (_, row) => contractStatusTag(row),
       },
       {
@@ -423,7 +575,7 @@ export function AssignedOrdersPage() {
       {
         title: TEXT.actions,
         key: 'actions',
-        width: 320,
+        width: 430,
         fixed: 'right',
         render: (_, row) => (
           <Space wrap>
@@ -444,16 +596,24 @@ export function AssignedOrdersPage() {
             <Button
               type="primary"
               icon={<FileDoneOutlined />}
-              disabled={row.status !== 'DEPOSIT_PAID' || !hasUploadedContract(row)}
+              disabled={row.status !== 'DEPOSIT_PAID' || !hasUploadedContract(row) || row.latestSignedSubmission?.status !== 'PENDING'}
               onClick={() => openContractModal(row)}
             >
               {TEXT.contractConfirm}
+            </Button>
+            <Button
+              danger
+              icon={<CloseCircleOutlined />}
+              disabled={row.status !== 'DEPOSIT_PAID' || row.latestSignedSubmission?.status !== 'PENDING'}
+              onClick={() => void rejectSignedSubmission(row)}
+            >
+              {SIGNED_SUBMISSION_REJECT_TEXT.action}
             </Button>
           </Space>
         ),
       },
     ],
-    [loadDetail, openContractModal],
+    [loadDetail, openContractModal, rejectSignedSubmission],
   );
 
   return (
@@ -493,7 +653,7 @@ export function AssignedOrdersPage() {
           columns={columns}
           dataSource={rows}
           locale={{ emptyText: <Empty description={TEXT.empty} /> }}
-          scroll={{ x: 1240 }}
+          scroll={{ x: 1630 }}
           pagination={{
             current: data?.page.page || page,
             pageSize: data?.page.pageSize || pageSize,
@@ -545,6 +705,7 @@ export function AssignedOrdersPage() {
             <Descriptions.Item label={TEXT.dealAmount}>{formatMoney(detail?.dealAmountFen)}</Descriptions.Item>
             <Descriptions.Item label={TEXT.finalAmount}>{formatMoney(detail?.finalAmountFen)}</Descriptions.Item>
             <Descriptions.Item label={TEXT.contractStatus}>{contractStatusTag(detail)}</Descriptions.Item>
+            <Descriptions.Item label={TEXT.signedSubmission}>{signedSubmissionSummary(detail?.latestSignedSubmission)}</Descriptions.Item>
             <Descriptions.Item label={TEXT.createdAt}>{formatTimeSmart(detail?.createdAt)}</Descriptions.Item>
             <Descriptions.Item label={TEXT.updatedAt}>{formatTimeSmart(detail?.updatedAt)}</Descriptions.Item>
           </Descriptions>
@@ -565,10 +726,18 @@ export function AssignedOrdersPage() {
             <Button
               type="primary"
               icon={<FileDoneOutlined />}
-              disabled={detail?.status !== 'DEPOSIT_PAID' || !hasUploadedContract(detail)}
+              disabled={!canConfirmContract}
               onClick={() => detail && openContractModal(detail)}
             >
               {TEXT.contractConfirm}
+            </Button>
+            <Button
+              danger
+              icon={<CloseCircleOutlined />}
+              disabled={!canRejectSignedSubmission}
+              onClick={() => detail && void rejectSignedSubmission(detail)}
+            >
+              {SIGNED_SUBMISSION_REJECT_TEXT.action}
             </Button>
           </Space>
         </Card>
@@ -599,8 +768,8 @@ export function AssignedOrdersPage() {
 
       <Modal
         open={uploadModalOpen}
-        title={TEXT.contractUploadModalTitle}
-        okText={TEXT.contractUploadOk}
+        title={hasUploadedContract(uploadTarget) ? TEXT.contractReplaceModalTitle : TEXT.contractUploadModalTitle}
+        okText={hasUploadedContract(uploadTarget) ? TEXT.contractReplaceOk : TEXT.contractUploadOk}
         okButtonProps={{ loading: uploadSubmitting }}
         onCancel={() => {
           setUploadModalOpen(false);
@@ -617,6 +786,7 @@ export function AssignedOrdersPage() {
             return;
           }
           const targetOrderId = uploadTarget.id;
+          const replacingContract = hasUploadedContract(uploadTarget);
           const requestSeq = ++uploadSeqRef.current;
           setUploadSubmitting(true);
           try {
@@ -641,7 +811,7 @@ export function AssignedOrdersPage() {
                 : prev,
             );
             setDetail((prev) => (prev?.id === targetOrderId ? { ...prev, ...savedOrder } : prev));
-            message.success(TEXT.contractUploadSuccess);
+            message.success(replacingContract ? TEXT.contractReplaceSuccess : TEXT.contractUploadSuccess);
             setUploadModalOpen(false);
             setUploadTarget(null);
             setUploadFile(null);

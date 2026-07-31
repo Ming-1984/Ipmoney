@@ -18,4 +18,10 @@ export class ContractsController {
   async upload(@Req() req: any, @Param('contractId') contractId: string, @Body() body: any) {
     return await this.contracts.upload(req, contractId, body || {});
   }
+
+  @UseGuards(BearerAuthGuard)
+  @Post('/contracts/:contractId/signed-submissions')
+  async submitSignedContract(@Req() req: any, @Param('contractId') contractId: string, @Body() body: any) {
+    return await this.contracts.submitSignedContract(req, contractId, body || {});
+  }
 }

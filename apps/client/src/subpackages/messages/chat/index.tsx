@@ -10,6 +10,7 @@ import folderIcon from '../../../assets/icons/icon-folder-gray.svg';
 import emptyChat from '../../../assets/illustrations/empty-chat-symbol.svg';
 import { getToken, getVerificationStatus, isOnboardingDone, onAuthChanged } from '../../../lib/auth';
 import { apiGet, apiPost } from '../../../lib/api';
+import { refreshClientBadges } from '../../../lib/clientBadges';
 import { resolveConversationEntityDisplayName } from '../../../lib/conversationDisplay';
 import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { displayInitial, displayTitleOrFallback, displayUserName, normalizeDisplayText } from '../../../lib/displayText';
@@ -366,6 +367,7 @@ export default function ChatPage() {
       scrollToBottom();
       try {
         await apiPost(`/conversations/${targetConversationId}/read`, {}, { idempotencyKey: `read-${targetConversationId}` });
+        void refreshClientBadges();
       } catch {
         // ignore read marker failures
       }

@@ -11,6 +11,7 @@ import iconBroomOrange from '../../assets/icons/icon-broom-orange.svg';
 import iconBellWhite from '../../assets/icons/icon-bell-white.svg';
 import { apiGet, apiPost } from '../../lib/api';
 import { getToken } from '../../lib/auth';
+import { refreshClientBadges } from '../../lib/clientBadges';
 import { resolveConversationEntityDisplayName } from '../../lib/conversationDisplay';
 import { displayInitial, displayUserName, normalizeDisplayText } from '../../lib/displayText';
 import { usePagedList } from '../../lib/usePagedList';
@@ -119,12 +120,14 @@ export default function MessagesPage() {
     await convoList.reload();
     loadedOnceRef.current = true;
     void loadNotifications();
+    void refreshClientBadges();
   }, [convoList.reload, loadNotifications]);
 
   const refreshData = useCallback(async () => {
     await convoList.refresh();
     loadedOnceRef.current = true;
     void loadNotifications();
+    void refreshClientBadges();
   }, [convoList.refresh, loadNotifications]);
 
   useEffect(() => {
@@ -148,6 +151,7 @@ export default function MessagesPage() {
 
   useDidShow(() => {
     setPageVisible(true);
+    void refreshClientBadges();
   });
 
   useDidHide(() => {
@@ -281,6 +285,7 @@ export default function MessagesPage() {
       } else {
         toast('已全部标为已读', { icon: 'success' });
       }
+      void refreshClientBadges();
     } catch (e: any) {
       toast(e?.message || '操作失败', { icon: 'fail' });
     }

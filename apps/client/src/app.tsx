@@ -4,7 +4,7 @@ import './app.scss';
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import { configure as configureNutuiIcons } from '@nutui/icons-react-taro/dist/es/icons/configure';
-import { useLaunch } from '@tarojs/taro';
+import { useDidShow, useLaunch } from '@tarojs/taro';
 import { ErrorBoundary } from './ui/ErrorBoundary';
 import { AppOverlays, OVERLAY_IDS, toast } from './ui/nutui';
 import { installH5DomGuard } from './lib/h5DomGuard';
@@ -16,6 +16,7 @@ import { goLogin, getCurrentPageUrl } from './lib/guard';
 import { STATE_COPY } from './ui/copy';
 import { apiPost } from './lib/api';
 import { DEMO_AUTH_ENABLED, IS_PROD_DEPLOY } from './constants';
+import { installClientBadgeSync, refreshClientBadges } from './lib/clientBadges';
 
 type AuthTokenResponse = components['schemas']['AuthTokenResponse'];
 type VerificationStatus = components['schemas']['VerificationStatus'];
@@ -60,6 +61,7 @@ if (process.env.TARO_ENV === 'weapp') {
 export default function App(props: { children: ReactNode }) {
   useLaunch(() => {
     scheduleRegionWarmup();
+    void refreshClientBadges();
     if (process.env.TARO_ENV !== 'h5') return;
     if (typeof window === 'undefined') return;
     const hash = window.location.hash || '';
@@ -113,6 +115,10 @@ export default function App(props: { children: ReactNode }) {
     }
   });
 
+  useDidShow(() => {
+    void refreshClientBadges();
+  });
+
   useEffect(() => {
     if (process.env.TARO_ENV !== 'h5' || typeof window === 'undefined') return;
     syncH5RouteShell();
@@ -142,6 +148,8 @@ export default function App(props: { children: ReactNode }) {
     });
     return () => off();
   }, []);
+
+  useEffect(() => installClientBadgeSync(), []);
 
   return (
     <ErrorBoundary>

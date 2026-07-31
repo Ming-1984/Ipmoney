@@ -13,6 +13,8 @@ const LISTING_ID = '77777777-7777-4777-8777-777777777777';
 const ORDER_ID = '88888888-8888-4888-8888-888888888888';
 const REFUND_ID = '99999999-9999-4999-8999-999999999999';
 const FILE_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const SIGNED_FILE_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+const SIGNED_SUBMISSION_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const USER_ID = 'user-1';
 const SELLER_ID = 'seller-1';
 const ADMIN_ID = 'admin-1';
@@ -69,6 +71,11 @@ describe('OrdersService write-first suite', () => {
       settlement: { upsert: vi.fn() },
       file: { findUnique: vi.fn() },
       contract: { findUnique: vi.fn(), upsert: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+      contractSignedSubmission: {
+        findFirst: vi.fn(),
+        update: vi.fn(),
+        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+      },
       idempotencyKey: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
       user: { findFirst: vi.fn(), upsert: vi.fn(), findUnique: vi.fn() },
       csCase: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
@@ -1008,10 +1015,44 @@ describe('OrdersService write-first suite', () => {
     expect(notifications.create).toHaveBeenCalledTimes(2);
   });
 
-  it('moves order to WAIT_FINAL_PAYMENT on adminContractSigned and marks milestone', async () => {
+  it('rejects adminContractSigned before a signed submission is returned', async () => {
+    prisma.contract.findUnique.mockResolvedValueOnce({ orderId: ORDER_ID, contractFileId: FILE_ID, status: 'WAIT_CONFIRM' });
+    prisma.order.findUnique.mockResolvedValueOnce(makeOrder({ status: 'DEPOSIT_PAID', depositAmount: 2000 }));
+
+    await expect(service.adminContractSigned(adminReq, ORDER_ID, { dealAmountFen: 10000, remark: 'ok' })).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+
+    expect(prisma.contractSignedSubmission.findFirst).not.toHaveBeenCalled();
+    expect(prisma.order.update).not.toHaveBeenCalled();
+    expect(prisma.contract.update).not.toHaveBeenCalled();
+  });
+
+  it('accepts pending signed submission on adminContractSigned', async () => {
     const ensureCaseSpy = vi.spyOn(service as any, 'ensureCaseForOrder').mockResolvedValue({ id: 'case-1' });
     const markCaseSpy = vi.spyOn(service as any, 'markCaseMilestone').mockResolvedValue(undefined);
-    prisma.contract.findUnique.mockResolvedValueOnce({ orderId: ORDER_ID, contractFileId: FILE_ID, status: 'WAIT_CONFIRM' });
+    prisma.contract.findUnique.mockResolvedValueOnce({
+      orderId: ORDER_ID,
+      contractFileId: FILE_ID,
+      signedSubmissionId: null,
+      signedContractFileId: null,
+      status: 'WAIT_CONFIRM',
+    });
+    prisma.contractSignedSubmission.findFirst.mockResolvedValueOnce({
+      id: SIGNED_SUBMISSION_ID,
+      orderId: ORDER_ID,
+      contractOrderId: ORDER_ID,
+      fileId: SIGNED_FILE_ID,
+      status: 'PENDING',
+      submittedByUserId: USER_ID,
+      file: { id: SIGNED_FILE_ID, url: 'https://api.example.test/files/signed.pdf' },
+      submittedBy: { nickname: 'Buyer', verifications: [] },
+      createdAt: new Date('2026-03-12T08:30:00.000Z'),
+    });
+    prisma.contractSignedSubmission.update.mockResolvedValueOnce({
+      id: SIGNED_SUBMISSION_ID,
+      status: 'ACCEPTED',
+    });
     prisma.order.findUnique
       .mockResolvedValueOnce(makeOrder({ status: 'DEPOSIT_PAID', depositAmount: 2000 }))
       .mockResolvedValueOnce(
@@ -1027,24 +1068,96 @@ describe('OrdersService write-first suite', () => {
       }),
     );
 
-    const result = await service.adminContractSigned(adminReq, ORDER_ID, { dealAmountFen: 10000, remark: 'ok' });
+    await service.adminContractSigned(adminReq, ORDER_ID, {
+      dealAmountFen: 10000,
+      signedSubmissionId: SIGNED_SUBMISSION_ID,
+    });
 
-    expect(prisma.order.update).toHaveBeenCalledWith({
-      where: { id: ORDER_ID },
-      data: {
-        dealAmount: 10000,
-        finalAmount: 8000,
-        commissionAmount: 500,
-        status: 'WAIT_FINAL_PAYMENT',
-      },
+    expect(prisma.contractSignedSubmission.findFirst).toHaveBeenCalledWith({
+      where: { id: SIGNED_SUBMISSION_ID, orderId: ORDER_ID, status: 'PENDING' },
+      include: expect.any(Object),
+    });
+    expect(prisma.contractSignedSubmission.update).toHaveBeenCalledWith({
+      where: { id: SIGNED_SUBMISSION_ID },
+      data: { status: 'ACCEPTED', reviewedByUserId: ADMIN_ID, reviewedAt: expect.any(Date) },
     });
     expect(prisma.contract.update).toHaveBeenCalledWith({
       where: { orderId: ORDER_ID },
-      data: { status: 'AVAILABLE', signedAt: expect.any(Date) },
+      data: {
+        status: 'AVAILABLE',
+        signedAt: expect.any(Date),
+        signedSubmissionId: SIGNED_SUBMISSION_ID,
+        signedContractFileId: SIGNED_FILE_ID,
+      },
     });
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'CONTRACT_SIGNED_SUBMISSION_ACCEPT',
+        targetId: SIGNED_SUBMISSION_ID,
+      }),
+    );
     expect(ensureCaseSpy).toHaveBeenCalledTimes(1);
-    expect(markCaseSpy).toHaveBeenCalledWith('case-1', 'CONTRACT_SIGNED');
-    expect(result).toMatchObject({ id: ORDER_ID, status: 'WAIT_FINAL_PAYMENT', finalAmountFen: 8000, dealAmountFen: 10000 });
+    expect(markCaseSpy).toHaveBeenCalledWith('case-1', 'CONTRACT_SIGNED', prisma);
+  });
+
+  it('rejects pending signed submission with reason and notifies submitter', async () => {
+    prisma.order.findUnique.mockResolvedValueOnce(
+      makeOrder({ status: 'DEPOSIT_PAID', listing: { sellerUserId: SELLER_ID, title: 'Patent Listing', patent: null } }),
+    );
+    prisma.contractSignedSubmission.findFirst.mockResolvedValueOnce({
+      id: SIGNED_SUBMISSION_ID,
+      orderId: ORDER_ID,
+      contractOrderId: ORDER_ID,
+      fileId: SIGNED_FILE_ID,
+      status: 'PENDING',
+      submittedByUserId: USER_ID,
+      file: { id: SIGNED_FILE_ID, url: 'https://api.example.test/files/signed.pdf' },
+      submittedBy: { nickname: 'Buyer', verifications: [] },
+      createdAt: new Date('2026-03-12T08:30:00.000Z'),
+    });
+    prisma.contractSignedSubmission.update.mockResolvedValueOnce({
+      id: SIGNED_SUBMISSION_ID,
+      orderId: ORDER_ID,
+      contractOrderId: ORDER_ID,
+      fileId: SIGNED_FILE_ID,
+      status: 'REJECTED',
+      rejectReason: '签章主体不一致',
+      submittedByUserId: USER_ID,
+      reviewedByUserId: ADMIN_ID,
+      file: { id: SIGNED_FILE_ID, url: 'https://api.example.test/files/signed.pdf' },
+      submittedBy: { nickname: 'Buyer', verifications: [] },
+      reviewedBy: { nickname: 'Admin', verifications: [] },
+      createdAt: new Date('2026-03-12T08:30:00.000Z'),
+      reviewedAt: new Date('2026-03-12T09:00:00.000Z'),
+    });
+
+    const result = await service.rejectSignedSubmission(adminReq, ORDER_ID, SIGNED_SUBMISSION_ID, {
+      reason: '签章主体不一致',
+    });
+
+    expect(prisma.contractSignedSubmission.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: SIGNED_SUBMISSION_ID },
+        data: expect.objectContaining({
+          status: 'REJECTED',
+          rejectReason: '签章主体不一致',
+          reviewedByUserId: ADMIN_ID,
+        }),
+      }),
+    );
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'CONTRACT_SIGNED_SUBMISSION_REJECT',
+        targetId: SIGNED_SUBMISSION_ID,
+      }),
+    );
+    expect(notifications.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: USER_ID,
+        title: '签署版合同被驳回',
+      }),
+    );
+    expect(result).toMatchObject({ ok: true, submission: { id: SIGNED_SUBMISSION_ID, status: 'REJECTED' } });
   });
 
   it('uploads PDF contract before contract confirmation without advancing order status', async () => {
@@ -1086,20 +1199,32 @@ describe('OrdersService write-first suite', () => {
           orderId: ORDER_ID,
           status: 'WAIT_CONFIRM',
           contractFileId: FILE_ID,
+          signedContractFileId: null,
+          signedSubmissionId: null,
           signedAt: null,
         }),
         update: expect.objectContaining({
           status: 'WAIT_CONFIRM',
           contractFileId: FILE_ID,
+          signedContractFileId: null,
+          signedSubmissionId: null,
           signedAt: null,
         }),
       }),
     );
+    expect(prisma.contractSignedSubmission.updateMany).toHaveBeenCalledWith({
+      where: { orderId: ORDER_ID, status: 'PENDING' },
+      data: { status: 'SUPERSEDED' },
+    });
     expect(prisma.order.update).not.toHaveBeenCalled();
     expect(audit.log).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'ORDER_CONTRACT_UPLOAD',
-        afterJson: expect.objectContaining({ contractFileId: FILE_ID, status: 'WAIT_CONFIRM' }),
+        afterJson: expect.objectContaining({
+          contractFileId: FILE_ID,
+          status: 'WAIT_CONFIRM',
+          supersededSignedSubmissionCount: 0,
+        }),
       }),
     );
     expect(result).toMatchObject({ id: ORDER_ID, status: 'DEPOSIT_PAID', contractStatus: 'WAIT_CONFIRM' });
@@ -1131,7 +1256,7 @@ describe('OrdersService write-first suite', () => {
     prisma.contract.findUnique.mockResolvedValueOnce(null);
 
     await expect(
-      service.adminContractSigned(adminReq, ORDER_ID, { dealAmountFen: 10000 }),
+      service.adminContractSigned(adminReq, ORDER_ID, { dealAmountFen: 10000, signedSubmissionId: SIGNED_SUBMISSION_ID }),
     ).rejects.toBeInstanceOf(ConflictException);
     expect(prisma.order.update).not.toHaveBeenCalled();
   });
@@ -1146,6 +1271,17 @@ describe('OrdersService write-first suite', () => {
     const ensureCaseSpy = vi.spyOn(service as any, 'ensureCaseForOrder').mockResolvedValue({ id: 'case-1' });
     const markCaseSpy = vi.spyOn(service as any, 'markCaseMilestone').mockResolvedValue(undefined);
     prisma.contract.findUnique.mockResolvedValueOnce({ orderId: ORDER_ID, contractFileId: FILE_ID, status: 'WAIT_CONFIRM' });
+    prisma.contractSignedSubmission.findFirst.mockResolvedValueOnce({
+      id: SIGNED_SUBMISSION_ID,
+      orderId: ORDER_ID,
+      contractOrderId: ORDER_ID,
+      fileId: SIGNED_FILE_ID,
+      status: 'PENDING',
+      submittedByUserId: USER_ID,
+      file: { id: SIGNED_FILE_ID, url: 'https://api.example.test/files/signed.pdf' },
+      submittedBy: { nickname: 'Buyer', verifications: [] },
+      createdAt: new Date('2026-03-12T08:30:00.000Z'),
+    });
     prisma.order.findFirst.mockResolvedValueOnce(
       makeOrder({ status: 'DEPOSIT_PAID', assignedCsUserId: 'cs-1', depositAmount: 2000 }),
     );
@@ -1168,6 +1304,7 @@ describe('OrdersService write-first suite', () => {
 
     const result = await service.assignedContractSigned(assignedReq, ORDER_ID, {
       dealAmountFen: 10000,
+      signedSubmissionId: SIGNED_SUBMISSION_ID,
       remark: 'ok',
     });
 
@@ -1183,8 +1320,21 @@ describe('OrdersService write-first suite', () => {
         status: 'WAIT_FINAL_PAYMENT',
       },
     });
+    expect(prisma.contractSignedSubmission.update).toHaveBeenCalledWith({
+      where: { id: SIGNED_SUBMISSION_ID },
+      data: { status: 'ACCEPTED', reviewedByUserId: 'cs-1', reviewedAt: expect.any(Date) },
+    });
+    expect(prisma.contract.update).toHaveBeenCalledWith({
+      where: { orderId: ORDER_ID },
+      data: {
+        status: 'AVAILABLE',
+        signedAt: expect.any(Date),
+        signedSubmissionId: SIGNED_SUBMISSION_ID,
+        signedContractFileId: SIGNED_FILE_ID,
+      },
+    });
     expect(ensureCaseSpy).toHaveBeenCalledTimes(1);
-    expect(markCaseSpy).toHaveBeenCalledWith('case-1', 'CONTRACT_SIGNED');
+    expect(markCaseSpy).toHaveBeenCalledWith('case-1', 'CONTRACT_SIGNED', prisma);
     expect(result).toMatchObject({
       id: ORDER_ID,
       status: 'WAIT_FINAL_PAYMENT',
@@ -1211,7 +1361,7 @@ describe('OrdersService write-first suite', () => {
     prisma.order.findFirst.mockResolvedValueOnce(null);
 
     await expect(
-      service.assignedContractSigned(assignedReq, ORDER_ID, { dealAmountFen: 10000 }),
+      service.assignedContractSigned(assignedReq, ORDER_ID, { dealAmountFen: 10000, signedSubmissionId: SIGNED_SUBMISSION_ID }),
     ).rejects.toBeInstanceOf(NotFoundException);
     expect(prisma.order.findFirst).toHaveBeenCalledWith({
       where: { id: ORDER_ID, assignedCsUserId: 'cs-1' },
@@ -1225,7 +1375,7 @@ describe('OrdersService write-first suite', () => {
     );
 
     await expect(
-      service.assignedContractSigned(assignedReq, ORDER_ID, { dealAmountFen: 10000 }),
+      service.assignedContractSigned(assignedReq, ORDER_ID, { dealAmountFen: 10000, signedSubmissionId: SIGNED_SUBMISSION_ID }),
     ).rejects.toBeInstanceOf(ConflictException);
     expect(prisma.order.update).not.toHaveBeenCalled();
   });

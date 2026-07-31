@@ -12,6 +12,7 @@ describe('ContractsController delegation suite', () => {
     contracts = {
       list: vi.fn(),
       upload: vi.fn(),
+      submitSignedContract: vi.fn(),
     };
     controller = new ContractsController(contracts);
   });
@@ -32,5 +33,17 @@ describe('ContractsController delegation suite', () => {
     await expect(controller.upload(req, VALID_UUID, undefined as any)).resolves.toEqual({ ok: true });
 
     expect(contracts.upload).toHaveBeenCalledWith(req, VALID_UUID, {});
+  });
+
+  it('delegates signed contract submission with fallback empty body', async () => {
+    const req: any = { auth: { userId: 'user-1' } };
+    contracts.submitSignedContract.mockResolvedValueOnce({ id: VALID_UUID, status: 'PENDING' });
+
+    await expect(controller.submitSignedContract(req, VALID_UUID, undefined as any)).resolves.toEqual({
+      id: VALID_UUID,
+      status: 'PENDING',
+    });
+
+    expect(contracts.submitSignedContract).toHaveBeenCalledWith(req, VALID_UUID, {});
   });
 });

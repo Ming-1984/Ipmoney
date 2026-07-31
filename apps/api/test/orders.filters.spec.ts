@@ -205,38 +205,94 @@ describe('OrdersService list filter strictness suite', () => {
 
     expect(prisma.order.findMany).toHaveBeenCalledWith({
       where: { status: { in: ['DEPOSIT_PAID', 'FINAL_PAID_ESCROW', 'READY_TO_SETTLE'] } },
-      include: {
-        buyer: {
-          select: {
-            nickname: true,
-            verifications: {
-              orderBy: { submittedAt: 'desc' },
-              take: 1,
-              select: { displayName: true },
-            },
-          },
-        },
-        listing: {
-          include: {
-            patent: true,
-            seller: {
-              select: {
-                nickname: true,
-                verifications: {
-                  orderBy: { submittedAt: 'desc' },
-                  take: 1,
-                  select: { displayName: true },
-                },
-              },
-            },
-          },
-        },
-      },
+      include: expect.objectContaining({
+        buyer: expect.any(Object),
+        listing: expect.any(Object),
+        contract: expect.objectContaining({
+          include: expect.objectContaining({
+            contractFile: true,
+            signedSubmissions: expect.any(Object),
+          }),
+        }),
+      }),
       orderBy: { createdAt: 'desc' },
       skip: 50,
       take: 50,
     });
     expect(result.page).toEqual({ page: 2, pageSize: 50, total: 0 });
+  });
+
+  it('maps admin order list contract and latest signed submission fields', async () => {
+    const req = { auth: { userId: 'admin-1', isAdmin: true } };
+    prisma.order.findMany.mockResolvedValueOnce([
+      {
+        id: '98888888-8888-4888-8888-888888888888',
+        listingId: '97777777-7777-4777-8777-777777777777',
+        buyerUserId: 'buyer-1',
+        status: 'DEPOSIT_PAID',
+        depositAmount: 2000,
+        dealAmount: 10000,
+        finalAmount: 8000,
+        createdAt: new Date('2026-03-13T00:00:00.000Z'),
+        updatedAt: new Date('2026-03-13T01:00:00.000Z'),
+        buyer: { nickname: 'buyer nick', verifications: [{ displayName: 'Buyer Co' }] },
+        listing: {
+          title: 'Patent Contract',
+          sellerUserId: 'seller-1',
+          patent: { applicationNoDisplay: 'CNCONTRACT' },
+          seller: { nickname: 'seller nick', verifications: [{ displayName: 'Seller Co' }] },
+        },
+        contract: {
+          status: 'WAIT_CONFIRM',
+          fileUrl: null,
+          uploadedAt: new Date('2026-03-13T02:00:00.000Z'),
+          signedAt: null,
+          contractFile: {
+            id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            url: 'https://api.example.test/files/contract.pdf',
+          },
+          signedSubmissions: [
+            {
+              id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+              orderId: '98888888-8888-4888-8888-888888888888',
+              contractOrderId: '98888888-8888-4888-8888-888888888888',
+              fileId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+              status: 'PENDING',
+              submittedByUserId: 'buyer-1',
+              file: {
+                id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+                url: 'https://api.example.test/files/signed.pdf',
+              },
+              submittedBy: { nickname: 'Buyer Co', verifications: [] },
+              reviewedBy: null,
+              createdAt: new Date('2026-03-13T03:00:00.000Z'),
+              reviewedAt: null,
+              rejectReason: null,
+            },
+          ],
+        },
+      },
+    ]);
+    prisma.order.count.mockResolvedValueOnce(1);
+
+    const result = await service.listAdminOrders(req, {});
+
+    expect(prisma.order.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({ contract: expect.any(Object) }),
+      }),
+    );
+    expect(result.items[0]).toMatchObject({
+      id: '98888888-8888-4888-8888-888888888888',
+      contractStatus: 'WAIT_CONFIRM',
+      contractFileUrl: 'https://api.example.test/files/contract.pdf',
+      contractUploadedAt: '2026-03-13T02:00:00.000Z',
+      latestSignedSubmission: {
+        id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        status: 'PENDING',
+        fileUrl: 'https://api.example.test/files/signed.pdf',
+      },
+    });
   });
 
   it('requires assigned order permission and narrows list to current customer service user', async () => {

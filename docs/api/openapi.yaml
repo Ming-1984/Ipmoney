@@ -3104,6 +3104,48 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /contracts/{contractId}/signed-submissions:
+    post:
+      tags:
+        - Contracts
+      summary: Submit signed contract PDF
+      description: |
+        Buyer or seller uploads the signed PDF while the platform contract is in `WAIT_CONFIRM`.
+        The platform must review the latest pending submission before confirming the contract.
+      operationId: createContractSignedSubmission
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: contractId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Contract center id, usually `contract-{orderId}`.
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContractSignedSubmissionRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractSignedSubmission'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /admin/config/recommendation:
     get:
       tags:
@@ -6397,6 +6439,7 @@ paths:
               type: object
               required:
                 - dealAmountFen
+                - signedSubmissionId
               properties:
                 dealAmountFen:
                   $ref: '#/components/schemas/MoneyFen'
@@ -6405,6 +6448,9 @@ paths:
                 signedAt:
                   type: string
                   format: date-time
+                signedSubmissionId:
+                  $ref: '#/components/schemas/Uuid'
+                  description: Pending signed contract submission reviewed by the platform.
                 remark:
                   type: string
       responses:
@@ -6415,6 +6461,46 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Order'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /admin/orders/{orderId}/contract/signed-submissions/{submissionId}/reject:
+    post:
+      tags:
+        - Admin
+        - Orders
+      summary: Reject signed contract submission
+      operationId: adminRejectContractSignedSubmission
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+        - name: submissionId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RejectContractSignedSubmissionRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RejectContractSignedSubmissionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -6965,6 +7051,7 @@ paths:
               type: object
               required:
                 - dealAmountFen
+                - signedSubmissionId
               properties:
                 dealAmountFen:
                   $ref: '#/components/schemas/MoneyFen'
@@ -6973,6 +7060,9 @@ paths:
                 signedAt:
                   type: string
                   format: date-time
+                signedSubmissionId:
+                  $ref: '#/components/schemas/Uuid'
+                  description: Pending signed contract submission reviewed by the assigned operator.
                 remark:
                   type: string
       responses:
@@ -6982,6 +7072,46 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /admin/orders/assigned/{orderId}/contract/signed-submissions/{submissionId}/reject:
+    post:
+      tags:
+        - Admin
+        - Orders
+      summary: Reject signed contract submission for assigned order
+      operationId: adminRejectAssignedContractSignedSubmission
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+        - name: submissionId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RejectContractSignedSubmissionRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RejectContractSignedSubmissionResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -9462,12 +9592,97 @@ components:
         - AVAILABLE
       description: 閸氬牆鎮撴稉顓炵妇閻樿埖鈧緤绱欓崡鏍ь啀娑撳﹣绱?PDF 閳?娑旀澘顔嶇涵顔款吇 閳?閸欘垱鐓￠梼鍜冪礆
 
+    ContractSignedSubmissionStatus:
+      type: string
+      enum:
+        - PENDING
+        - ACCEPTED
+        - REJECTED
+        - SUPERSEDED
+      description: Review status for a user-uploaded signed contract PDF.
+
     ContractUploadRequest:
       type: object
       description: |
         閸氬牆鎮撴稉濠佺炊鐠囬攱鐪伴敍鍫滅矌閸楁牕顔嶉崣顖濈殶閻㈩煉绱氶妴?        `contractFileId` 瀵ら缚顔呴弶銉ㄥ殰 `POST /files`閿涘潉purpose=CONTRACT_EVIDENCE`閿涘绱濇稉鏂剧矌閸忎浇顔?PDF閵?      properties:
         contractFileId:
           $ref: "#/components/schemas/Uuid"
+    ContractSignedSubmission:
+      type: object
+      required:
+        - id
+        - orderId
+        - contractId
+        - status
+        - fileId
+        - submittedByUserId
+        - createdAt
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        orderId:
+          $ref: '#/components/schemas/Uuid'
+        contractId:
+          type: string
+          description: Contract center id, usually `contract-{orderId}`.
+        status:
+          $ref: '#/components/schemas/ContractSignedSubmissionStatus'
+        fileId:
+          $ref: '#/components/schemas/Uuid'
+        fileUrl:
+          type: string
+          format: uri
+          nullable: true
+        fileName:
+          type: string
+          nullable: true
+        submittedByUserId:
+          $ref: '#/components/schemas/Uuid'
+        submittedByName:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+        rejectReason:
+          type: string
+          nullable: true
+        reviewedByUserId:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+        reviewedByName:
+          type: string
+          nullable: true
+    CreateContractSignedSubmissionRequest:
+      type: object
+      required:
+        - fileId
+      properties:
+        fileId:
+          $ref: '#/components/schemas/Uuid'
+    RejectContractSignedSubmissionRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+    RejectContractSignedSubmissionResponse:
+      type: object
+      required:
+        - ok
+        - submission
+      properties:
+        ok:
+          type: boolean
+        submission:
+          $ref: '#/components/schemas/ContractSignedSubmission'
     ContractItem:
       type: object
       required:
@@ -9515,6 +9730,9 @@ components:
         canUpload:
           type: boolean
           description: 閺勵垰鎯侀崗浣筋啅娑撳﹣绱堕敍鍫滅矌閸楁牕顔嶆稉?true閿?
+        latestSignedSubmission:
+          $ref: '#/components/schemas/ContractSignedSubmission'
+          nullable: true
 
     PagedContract:
       type: object
@@ -13035,6 +13253,24 @@ components:
         invoiceIssuedAt:
           type: string
           format: date-time
+          nullable: true
+        contractStatus:
+          $ref: '#/components/schemas/ContractStatus'
+          nullable: true
+        contractFileUrl:
+          type: string
+          format: uri
+          nullable: true
+        contractUploadedAt:
+          type: string
+          format: date-time
+          nullable: true
+        contractSignedAt:
+          type: string
+          format: date-time
+          nullable: true
+        latestSignedSubmission:
+          $ref: '#/components/schemas/ContractSignedSubmission'
           nullable: true
         createdAt:
           type: string

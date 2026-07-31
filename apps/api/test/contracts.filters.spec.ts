@@ -14,7 +14,7 @@ describe('ContractsService list filter strictness suite', () => {
         count: vi.fn(),
       },
     };
-    service = new ContractsService(prisma);
+    service = new ContractsService(prisma, { log: vi.fn() } as any, { create: vi.fn() } as any);
   });
 
   it('requires auth for list', async () => {
@@ -106,6 +106,26 @@ describe('ContractsService list filter strictness suite', () => {
         }),
       }),
     );
+  });
+
+  it('filters by orderId within user scope without applying status clauses', async () => {
+    const req = { auth: { userId: 'user-1' } };
+    const orderId = '44444444-4444-4444-8444-444444444444';
+    prisma.order.findMany.mockResolvedValueOnce([]);
+    prisma.order.count.mockResolvedValueOnce(0);
+
+    await service.list(req, { orderId, status: 'wait_confirm' });
+
+    const expectedWhere = {
+      OR: [{ buyerUserId: 'user-1' }, { listing: { sellerUserId: 'user-1' } }],
+      id: orderId,
+    };
+    expect(prisma.order.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expectedWhere,
+      }),
+    );
+    expect(prisma.order.count).toHaveBeenCalledWith({ where: expectedWhere });
   });
 
   it('uses default pagination and maps buyer-side counterpart/file-url fallback', async () => {
