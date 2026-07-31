@@ -512,12 +512,19 @@ export function OrderDetailPage() {
           const requestSeq = ++uploadActionSeqRef.current;
           setUploadSubmitting(true);
           try {
-            await apiPost(
+            const updated = await apiPost<Partial<OrderDetail>>(
               `/admin/orders/${targetOrderId}/contract/upload`,
               { contractFileId: uploadFile.id },
               { idempotencyKey: `contract-upload-${targetOrderId}-${uploadFile.id}` },
             );
             if (uploadActionSeqRef.current !== requestSeq || orderIdRef.current !== targetOrderId) return;
+            const savedOrder: Partial<OrderDetail> = {
+              ...updated,
+              contractStatus: updated.contractStatus ?? 'WAIT_CONFIRM',
+              contractFileUrl: updated.contractFileUrl ?? uploadFile.url ?? null,
+              contractUploadedAt: updated.contractUploadedAt ?? new Date().toISOString(),
+            };
+            setData((prev) => (prev?.id === targetOrderId ? { ...prev, ...savedOrder } : prev));
             message.success(TEXT.contractUploadSuccess);
             setUploadModalOpen(false);
             setUploadFile(null);
@@ -532,7 +539,12 @@ export function OrderDetailPage() {
         }}
       >
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
-          <ContractFileUploadField value={uploadFile} onChange={setUploadFile} disabled={uploadSubmitting} />
+          <ContractFileUploadField
+            value={uploadFile}
+            onChange={setUploadFile}
+            disabled={uploadSubmitting}
+            savedFileUrl={data?.contractFileUrl}
+          />
           {data ? <Typography.Text type="secondary">{TEXT.currentDepositPrefix}\u00a5{fenToYuan(data.depositAmountFen || 0)}</Typography.Text> : null}
         </Space>
       </Modal>

@@ -606,12 +606,27 @@ export function AssignedOrdersPage() {
           const requestSeq = ++uploadSeqRef.current;
           setUploadSubmitting(true);
           try {
-            await apiPost(
+            const updated = await apiPost<Partial<AssignedOrder>>(
               `/admin/orders/assigned/${targetOrderId}/contract/upload`,
               { contractFileId: uploadFile.id },
               { idempotencyKey: `assigned-contract-upload-${targetOrderId}-${uploadFile.id}` },
             );
             if (requestSeq !== uploadSeqRef.current) return;
+            const savedOrder: Partial<AssignedOrder> = {
+              ...updated,
+              contractStatus: updated.contractStatus ?? 'WAIT_CONFIRM',
+              contractFileUrl: updated.contractFileUrl ?? uploadFile.url ?? null,
+              contractUploadedAt: updated.contractUploadedAt ?? new Date().toISOString(),
+            };
+            setData((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    items: prev.items.map((item) => (item.id === targetOrderId ? { ...item, ...savedOrder } : item)),
+                  }
+                : prev,
+            );
+            setDetail((prev) => (prev?.id === targetOrderId ? { ...prev, ...savedOrder } : prev));
             message.success(TEXT.contractUploadSuccess);
             setUploadModalOpen(false);
             setUploadTarget(null);
@@ -629,7 +644,12 @@ export function AssignedOrdersPage() {
         }}
       >
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
-          <ContractFileUploadField value={uploadFile} onChange={setUploadFile} disabled={uploadSubmitting} />
+          <ContractFileUploadField
+            value={uploadFile}
+            onChange={setUploadFile}
+            disabled={uploadSubmitting}
+            savedFileUrl={uploadTarget?.contractFileUrl}
+          />
           {uploadTarget ? (
             <Typography.Text type="secondary">
               {TEXT.currentDepositPrefix}

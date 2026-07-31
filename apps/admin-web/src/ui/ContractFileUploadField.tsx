@@ -8,15 +8,18 @@ type ContractFileUploadFieldProps = {
   value?: FileObject | null;
   onChange?: (file: FileObject | null) => void;
   disabled?: boolean;
+  savedFileUrl?: string | null;
 };
 
 const TEXT = {
-  upload: '上传合同 PDF',
-  uploaded: '已上传合同文件',
-  empty: '未上传合同 PDF',
+  upload: '选择合同 PDF',
+  uploaded: '待保存合同文件',
+  saved: '已保存合同文件',
+  viewSaved: '查看',
+  empty: '未选择合同 PDF',
   invalidType: '仅支持上传 PDF 合同',
   invalidSize: '合同文件请控制在 30MB 以内',
-  success: '合同文件上传成功',
+  success: '合同文件已上传，请点击保存合同完成绑定',
   failed: '合同文件上传失败',
 } as const;
 
@@ -27,7 +30,7 @@ function isPdfFile(file: File) {
 }
 
 export function ContractFileUploadField(props: ContractFileUploadFieldProps) {
-  const { value, onChange, disabled = false } = props;
+  const { value, onChange, disabled = false, savedFileUrl } = props;
   const [uploading, setUploading] = useState(false);
 
   const handleUpload = useCallback(
@@ -77,9 +80,18 @@ export function ContractFileUploadField(props: ContractFileUploadFieldProps) {
           {TEXT.upload}
         </Button>
       </Upload>
-      <Typography.Text type="secondary">
-        {value?.id ? `${TEXT.uploaded}：${value.fileName || value.id}` : TEXT.empty}
-      </Typography.Text>
+      {value?.id ? (
+        <Typography.Text type="secondary">{`${TEXT.uploaded}：${value.fileName || value.id}`}</Typography.Text>
+      ) : savedFileUrl ? (
+        <Space size={8}>
+          <Typography.Text type="secondary">{TEXT.saved}</Typography.Text>
+          <Typography.Link href={savedFileUrl} target="_blank" rel="noreferrer">
+            {TEXT.viewSaved}
+          </Typography.Link>
+        </Space>
+      ) : (
+        <Typography.Text type="secondary">{TEXT.empty}</Typography.Text>
+      )}
     </Space>
   );
 }
