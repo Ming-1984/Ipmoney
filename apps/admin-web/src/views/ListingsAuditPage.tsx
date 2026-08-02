@@ -31,7 +31,7 @@ import {
 } from '../lib/homeLandingConfig';
 import { auditStatusLabel, listingStatusLabel, tradeModeLabel } from '../lib/labels';
 import { RequestErrorAlert } from '../ui/RequestState';
-import { confirmActionWithReason } from '../ui/confirm';
+import { confirmAction, confirmActionWithReason } from '../ui/confirm';
 
 type AuditStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 type ListingStatus = 'DRAFT' | 'ACTIVE' | 'OFF_SHELF' | 'SOLD';
@@ -657,7 +657,35 @@ export function ListingsAuditPage() {
         message.error('选中的挂牌包含草稿或未审核通过项，不能直接上架');
         return;
       }
-      const reason = window.prompt('可选：请输入批量操作备注（可留空）')?.trim();
+
+      const label = actionLabel(action);
+      const isReject = action === 'REJECT';
+      const isOffShelf = action === 'OFF_SHELF';
+      const { ok, reason } = await confirmActionWithReason({
+        title: `确认${label}？`,
+        content: (
+          <Space direction="vertical" size={4}>
+            <Typography.Text>已选择 {selectedListingIds.length} 条挂牌记录。</Typography.Text>
+            {action === 'PUBLISH' ? (
+              <Typography.Text type="secondary">系统将创建批量上架任务，已上架记录会自动跳过。</Typography.Text>
+            ) : null}
+            {isOffShelf ? (
+              <Typography.Text type="secondary">下架后，相关挂牌将不再在用户端展示。</Typography.Text>
+            ) : null}
+          </Space>
+        ),
+        okText: label.replace('批量', ''),
+        danger: isReject || isOffShelf,
+        reasonRequired: isReject,
+        reasonLabel: isReject ? '驳回原因' : '批量操作备注（可选）',
+        reasonPlaceholder: isReject ? '请填写驳回原因，便于用户修改后重新提交。' : '可填写本次批量操作说明，便于审计追踪。',
+      });
+      if (!ok) return;
+      if (isReject && !reason) {
+        message.error('批量驳回必须填写原因');
+        return;
+      }
+
       try {
         await apiPost<BatchJob>(
           '/admin/listings/jobs/batch',
@@ -678,6 +706,64 @@ export function ListingsAuditPage() {
       }
     },
     [loadBatchJobs, loadListings, selectedListingIds, selectedPublishBlocked],
+  );
+
+  const publishListing = useCallback(
+    async (row: Listing) => {
+      const title = normalizeUserFacingText(row.title) || row.id;
+      const ok = await confirmAction({
+        title: '确认上架该挂牌？',
+        content: `挂牌：${title}`,
+        okText: '上架',
+      });
+      if (!ok) return;
+      try {
+        const updated = await apiPost<Listing>(
+          `/admin/listings/${row.id}/publish`,
+          undefined,
+          { idempotencyKey: `admin-listing-publish-${row.id}-${Date.now()}` },
+        );
+        message.success('挂牌已上架');
+        setSelectedRowKeys((prev) => prev.filter((key) => String(key) !== row.id));
+        if (activeListing?.id === row.id) setActiveListing(updated);
+        await loadListings();
+      } catch (e: any) {
+        message.error(translateApiMessage(e?.message || '上架失败'));
+      }
+    },
+    [activeListing?.id, loadListings],
+  );
+
+  const offShelfListing = useCallback(
+    async (row: Listing) => {
+      const title = normalizeUserFacingText(row.title) || row.id;
+      const ok = await confirmAction({
+        title: '确认下架该挂牌？',
+        content: (
+          <Space direction="vertical" size={4}>
+            <Typography.Text>挂牌：{title}</Typography.Text>
+            <Typography.Text type="secondary">下架后，该挂牌将不再在用户端展示。</Typography.Text>
+          </Space>
+        ),
+        okText: '下架',
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        const updated = await apiPost<Listing>(
+          `/admin/listings/${row.id}/off-shelf`,
+          undefined,
+          { idempotencyKey: `admin-listing-off-shelf-${row.id}-${Date.now()}` },
+        );
+        message.success('挂牌已下架');
+        setSelectedRowKeys((prev) => prev.filter((key) => String(key) !== row.id));
+        if (activeListing?.id === row.id) setActiveListing(updated);
+        await loadListings();
+      } catch (e: any) {
+        message.error(translateApiMessage(e?.message || '下架失败'));
+      }
+    },
+    [activeListing?.id, loadListings],
   );
 
   const approveListing = useCallback(
@@ -1154,7 +1240,17 @@ export function ListingsAuditPage() {
                       <Button size="small" onClick={() => void openListingDetail(row)}>
                         详情
                       </Button>
-                      <Typography.Text type="secondary">已处理</Typography.Text>
+                      {row.auditStatus === 'APPROVED' && row.status === 'ACTIVE' ? (
+                        <Button size="small" danger onClick={() => void offShelfListing(row)}>
+                          下架
+                        </Button>
+                      ) : row.auditStatus === 'APPROVED' && row.status === 'OFF_SHELF' ? (
+                        <Button size="small" type="primary" onClick={() => void publishListing(row)}>
+                          上架
+                        </Button>
+                      ) : (
+                        <Typography.Text type="secondary">已处理</Typography.Text>
+                      )}
                     </Space>
                   ),
               },
@@ -1439,6 +1535,16 @@ export function ListingsAuditPage() {
                   </Button>
                 </>
               ) : null}
+              {activeListing.auditStatus === 'APPROVED' && activeListing.status === 'ACTIVE' ? (
+                <Button danger onClick={() => void offShelfListing(activeListing)}>
+                  下架
+                </Button>
+              ) : null}
+              {activeListing.auditStatus === 'APPROVED' && activeListing.status === 'OFF_SHELF' ? (
+                <Button type="primary" onClick={() => void publishListing(activeListing)}>
+                  上架
+                </Button>
+              ) : null}
               <Button onClick={openListingEdit}>编辑价格/保证金</Button>
             </Space>
           ) : null
@@ -1458,6 +1564,16 @@ export function ListingsAuditPage() {
                     通过
                   </Button>
                 </>
+              ) : null}
+              {activeListing.auditStatus === 'APPROVED' && activeListing.status === 'ACTIVE' ? (
+                <Button danger onClick={() => void offShelfListing(activeListing)}>
+                  下架
+                </Button>
+              ) : null}
+              {activeListing.auditStatus === 'APPROVED' && activeListing.status === 'OFF_SHELF' ? (
+                <Button type="primary" onClick={() => void publishListing(activeListing)}>
+                  上架
+                </Button>
               ) : null}
               <Button onClick={openListingEdit}>编辑价格/保证金</Button>
             </Space>
