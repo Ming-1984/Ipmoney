@@ -325,37 +325,6 @@ enum AiParseFeedbackActorType {
   ADMIN
 }
 
-enum AlertSeverity {
-  LOW
-  MEDIUM
-  HIGH
-}
-
-enum AlertChannel {
-  SMS
-  EMAIL
-  IN_APP
-}
-
-enum AlertStatus {
-  PENDING
-  SENT
-  ACKED
-  SUPPRESSED
-}
-
-enum AlertTargetType {
-  PATENT
-  ORDER
-  LISTING
-  ACHIEVEMENT
-  AI_PARSE
-  IMPORT
-  PAYMENT
-  REFUND
-  SYSTEM
-}
-
 enum PatentMaintenanceStatus {
   DUE
   PAID
@@ -1851,24 +1820,6 @@ model AiParseFeedback {
 
   @@index([parseResultId, createdAt])
   @@map("ai_parse_feedbacks")
-}
-
-model AlertEvent {
-  id          String           @id @default(uuid()) @db.Uuid
-  type        String
-  severity    AlertSeverity
-  channel     AlertChannel
-  status      AlertStatus
-  targetType  AlertTargetType? @map("target_type")
-  targetId    String?          @map("target_id") @db.Uuid
-  message     String?
-  triggeredAt DateTime         @map("triggered_at")
-  sentAt      DateTime?        @map("sent_at")
-  createdAt   DateTime         @default(now()) @map("created_at")
-
-  @@index([status, triggeredAt])
-  @@index([targetType, targetId])
-  @@map("alert_events")
 }
 
 model PatentMaintenanceSchedule {

@@ -86,5 +86,5 @@ Backend:
 - Run `pnpm check:prod-env` in staging/prod to validate env flags
 - Env variables layered and injected
 - Mock tools disabled in client/admin
-- Observability wired (logs/metrics/alerts)
+- Observability wired (logs/metrics)
 - Gray release plan + rollback ready

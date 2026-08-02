@@ -857,13 +857,6 @@ try {
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
-      name = "admin-alerts"; path = "/alerts"; base = $adminBase
-      width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
-      expectedUrlContains = "/alerts"; minElements = 100
-      selectorsAll = @(".admin-alerts-page", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-pagination")
-      textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
-    },
-    @{
       name = "admin-maintenance"; path = "/maintenance"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/maintenance"; minElements = 100

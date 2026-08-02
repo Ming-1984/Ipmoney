@@ -18,7 +18,7 @@ flowchart LR
     AuthUser["身份与权限域<br/>auth / users / rbac / addresses"]
     Trading["交易主域<br/>patents / listings / orders / contracts / files"]
     ServiceDesk["客服与运营域<br/>conversations / cases / comments / notifications"]
-    OpsDomain["运营扩展域<br/>reports / regions / config / patent-map / patent-maintenance / alerts / ai"]
+    OpsDomain["运营扩展域<br/>reports / regions / config / patent-map / patent-maintenance / ai"]
     Common["通用支撑<br/>audit-log / idempotency / content-event / webhook"]
   end
 
@@ -68,5 +68,4 @@ flowchart LR
   Trading --> WxPay
   ServiceDesk --> MsgProvider
   OpsDomain -.能力预留.-> AIProvider
-
 

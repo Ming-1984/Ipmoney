@@ -71,10 +71,6 @@ const CommentsPage = lazy(async () => {
   const mod = await import('./views/CommentsPage');
   return { default: mod.CommentsPage };
 });
-const AlertsPage = lazy(async () => {
-  const mod = await import('./views/AlertsPage');
-  return { default: mod.AlertsPage };
-});
 const AuditLogsPage = lazy(async () => {
   const mod = await import('./views/AuditLogsPage');
   return { default: mod.AuditLogsPage };
@@ -158,7 +154,6 @@ export const router = createBrowserRouter([
       { path: 'invoices', element: <InvoicesPage /> },
       { path: 'reports', element: <ReportsPage /> },
       { path: 'comments', element: <CommentsPage /> },
-      { path: 'alerts', element: <AlertsPage /> },
       { path: 'audit-logs', element: <AuditLogsPage /> },
       { path: 'rbac', element: <RbacPage /> },
       { path: 'config', element: <ConfigPage /> },

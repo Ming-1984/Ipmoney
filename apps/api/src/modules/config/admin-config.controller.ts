@@ -4,7 +4,6 @@ import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
 import { AuditLogService } from '../../common/audit-log.service';
 import { requirePermission } from '../../common/permissions';
 import {
-  type AlertConfig,
   ConfigService,
   type BannerConfig,
   type CustomerServiceConfig,
@@ -29,7 +28,6 @@ const SYSTEM_CONFIG_AUDIT_TARGET_IDS = {
   taxonomy: 'f9f67fd8-cf25-4da4-8517-72510ed6eb6f',
   sensitiveWords: '0aca260f-4c11-42e6-ad9b-c7a7ca45f6a1',
   hotSearch: '8dd52cb6-7fae-492d-8c8f-8a6ca6f74f42',
-  alerts: 'e92da947-d8e6-4648-a550-6f2fc0e933f3',
   homeLanding: 'c1b9ce6a-5fe2-4d64-a770-0e5cabff8a0d',
   homeAnnouncements: '3c5b1f79-bf5a-4e4e-8b9a-2a520e9fd80e',
 } as const;
@@ -183,26 +181,6 @@ export class AdminConfigController {
       action: 'CONFIG_HOT_SEARCH_UPDATE',
       targetType: 'SYSTEM_CONFIG',
       targetId: SYSTEM_CONFIG_AUDIT_TARGET_IDS.hotSearch,
-      afterJson: next,
-    });
-    return next;
-  }
-
-  @Get('/alerts')
-  async getAlertConfig(@Req() req: any): Promise<AlertConfig> {
-    requirePermission(req, 'config.manage');
-    return await this.config.getAlertConfig();
-  }
-
-  @Put('/alerts')
-  async updateAlertConfig(@Req() req: any, @Body() body: Partial<AlertConfig>): Promise<AlertConfig> {
-    requirePermission(req, 'config.manage');
-    const next = await this.config.updateAlertConfig(body || {});
-    await this.audit.log({
-      actorUserId: req.auth.userId,
-      action: 'CONFIG_ALERT_UPDATE',
-      targetType: 'SYSTEM_CONFIG',
-      targetId: SYSTEM_CONFIG_AUDIT_TARGET_IDS.alerts,
       afterJson: next,
     });
     return next;

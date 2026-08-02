@@ -85,56 +85,6 @@ describe('ConfigService behavior suite', () => {
     expect(result).toEqual({ ...next, version: 3 });
   });
 
-  it('getAlertConfig falls back when stored json is invalid', async () => {
-    prisma.systemConfig.findUnique.mockResolvedValueOnce({
-      key: 'alert_config',
-      value: '{bad-json',
-      version: 1,
-    });
-
-    const result = await service.getAlertConfig();
-
-    expect(result.enabled).toBe(false);
-    expect(result.defaultChannels).toEqual(['IN_APP']);
-    expect(Array.isArray(result.rules)).toBe(true);
-    expect(result.rules.length).toBeGreaterThan(0);
-  });
-
-  it('updateAlertConfig merges partial patch with current config', async () => {
-    const current = {
-      enabled: false,
-      defaultChannels: ['IN_APP'],
-      rules: [{ type: 'order.refund', severity: 'HIGH', channels: ['IN_APP'], enabled: true }],
-    };
-    prisma.systemConfig.findUnique.mockResolvedValue({
-      key: 'alert_config',
-      value: JSON.stringify(current),
-      version: 5,
-    });
-    prisma.systemConfig.update.mockResolvedValueOnce({ version: 6 });
-
-    const result = await service.updateAlertConfig({ enabled: true });
-
-    expect(prisma.systemConfig.update).toHaveBeenCalledWith({
-      where: { key: 'alert_config' },
-      data: {
-        valueType: 'JSON',
-        scope: 'GLOBAL',
-        value: JSON.stringify({
-          enabled: true,
-          defaultChannels: ['IN_APP'],
-          rules: [{ type: 'order.refund', severity: 'HIGH', channels: ['IN_APP'], enabled: true }],
-        }),
-        version: 6,
-      },
-    });
-    expect(result).toEqual({
-      enabled: true,
-      defaultChannels: ['IN_APP'],
-      rules: [{ type: 'order.refund', severity: 'HIGH', channels: ['IN_APP'], enabled: true }],
-    });
-  });
-
   it('creates home announcement template and persists config with version increment', async () => {
     prisma.systemConfig.findUnique.mockResolvedValueOnce({
       key: 'home_announcement_config',

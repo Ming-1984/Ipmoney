@@ -9,7 +9,6 @@ type BadgeKey =
   | 'listings'
   | 'achievements'
   | 'platform-conversations'
-  | 'alerts'
   | 'cases'
   | 'refunds'
   | 'settlements'
@@ -112,11 +111,6 @@ export class AdminNotificationsService {
                 },
               })
             : this.countAssignedUnreadPlatformConversations(req, managedConversationScope),
-      },
-      {
-        key: 'alerts',
-        permission: 'alert.manage',
-        count: () => this.prisma.alertEvent.count({ where: { status: { in: ['PENDING', 'SENT'] } } }),
       },
       {
         key: 'cases',

@@ -58,7 +58,6 @@ function inferApiDomain(name, area) {
     if (/invoices/.test(name)) return 'admin/invoices';
     if (/reports/.test(name)) return 'admin/reports';
     if (/comments/.test(name)) return 'admin/comments';
-    if (/alerts/.test(name)) return 'admin/alerts';
     if (/audit-logs/.test(name)) return 'admin/audit-logs';
     if (/rbac/.test(name)) return 'admin/rbac';
     if (/config/.test(name)) return 'admin/config';

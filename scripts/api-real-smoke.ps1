@@ -894,64 +894,6 @@ function Get-ListingDepositAmountFen {
   return 0
 }
 
-function New-SmokeAlertEventId {
-  param(
-    [string]$DatabaseUrl,
-    [string]$TargetId,
-    [string]$Message
-  )
-
-  if ([string]::IsNullOrWhiteSpace($DatabaseUrl)) {
-    throw "DatabaseUrl is required to seed smoke alert event"
-  }
-
-  $alertId = [guid]::NewGuid().ToString()
-  $normalizedTargetId = ""
-  if (-not [string]::IsNullOrWhiteSpace($TargetId)) {
-    $normalizedTargetId = [string]$TargetId
-  }
-  $normalizedMessage = [string]$Message
-  if ([string]::IsNullOrWhiteSpace($normalizedMessage)) {
-    $normalizedMessage = "smoke alert event"
-  }
-
-  $seedScript = @'
-const { PrismaClient } = require("./apps/api/node_modules/@prisma/client");
-const dbUrl = process.argv[2];
-const alertId = process.argv[3];
-const targetId = process.argv[4];
-const message = process.argv[5];
-const prisma = new PrismaClient({ datasources: { db: { url: dbUrl } } });
-(async () => {
-  await prisma.alertEvent.create({
-    data: {
-      id: alertId,
-      type: "SMOKE_ALERT_EVENT",
-      severity: "HIGH",
-      channel: "IN_APP",
-      status: "PENDING",
-      targetType: "SYSTEM",
-      targetId: targetId || null,
-      message,
-      triggeredAt: new Date(),
-    },
-  });
-  await prisma.$disconnect();
-})().catch(async (error) => {
-  console.error(String(error));
-  await prisma.$disconnect();
-  process.exit(1);
-});
-'@
-
-  $seedScript | node - $DatabaseUrl $alertId $normalizedTargetId $normalizedMessage | Out-Null
-  if ($LASTEXITCODE -ne 0) {
-    throw "Failed to seed smoke alert event"
-  }
-
-  return $alertId
-}
-
 function New-WriteHeaders {
   param(
     [string]$AuthorizationToken,
@@ -1590,7 +1532,6 @@ try {
     @{ name = "admin-config-trade-rules-get"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/config/trade-rules"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
     @{ name = "admin-config-customer-service-get"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/config/customer-service"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
     @{ name = "admin-config-recommendation-get"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/config/recommendation"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
-    @{ name = "admin-config-alerts-get"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/config/alerts"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
     @{ name = "admin-config-banner-get"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/config/banner"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
     @{ name = "admin-config-taxonomy-get"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/config/taxonomy"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
     @{ name = "admin-config-sensitive-words-get"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/config/sensitive-words"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
@@ -1685,7 +1626,6 @@ try {
   $adminTradeRulesConfig = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/config/trade-rules" -Headers @{ Authorization = $adminToken }
   $adminCustomerServiceConfig = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/config/customer-service" -Headers @{ Authorization = $adminToken }
   $adminRecommendationConfig = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/config/recommendation" -Headers @{ Authorization = $adminToken }
-  $adminAlertsConfig = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/config/alerts" -Headers @{ Authorization = $adminToken }
   $adminBannerConfig = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/config/banner" -Headers @{ Authorization = $adminToken }
   $adminTaxonomyConfig = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/config/taxonomy" -Headers @{ Authorization = $adminToken }
   $adminSensitiveWordsConfig = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/config/sensitive-words" -Headers @{ Authorization = $adminToken }
@@ -2649,7 +2589,6 @@ try {
   [void](Add-AdminConfigPutCaseResult -Results $results -Name "admin-config-trade-rules-put" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/trade-rules" -Body $adminTradeRulesConfig -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-config-trade-rules-put") -Action "CONFIG_TRADE_RULES_UPDATE" -ApiPort $resolvedApiPort -AuthorizationToken $adminToken)
   [void](Add-AdminConfigPutCaseResult -Results $results -Name "admin-config-customer-service-put" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/customer-service" -Body $adminCustomerServiceConfig -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-config-customer-service-put") -Action "CONFIG_CS_UPDATE" -ApiPort $resolvedApiPort -AuthorizationToken $adminToken)
   [void](Add-AdminConfigPutCaseResult -Results $results -Name "admin-config-recommendation-put" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/recommendation" -Body $adminRecommendationConfig -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-config-recommendation-put") -Action "CONFIG_RECOMMENDATION_UPDATE" -ApiPort $resolvedApiPort -AuthorizationToken $adminToken)
-  [void](Add-AdminConfigPutCaseResult -Results $results -Name "admin-config-alerts-put" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/alerts" -Body $adminAlertsConfig -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-config-alerts-put") -Action "CONFIG_ALERT_UPDATE" -ApiPort $resolvedApiPort -AuthorizationToken $adminToken)
   [void](Add-AdminConfigPutCaseResult -Results $results -Name "admin-config-banner-put" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/banner" -Body $adminBannerConfig -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-config-banner-put") -Action "CONFIG_BANNER_UPDATE" -ApiPort $resolvedApiPort -AuthorizationToken $adminToken)
   [void](Add-AdminConfigPutCaseResult -Results $results -Name "admin-config-taxonomy-put" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/taxonomy" -Body $adminTaxonomyConfig -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-config-taxonomy-put") -Action "CONFIG_TAXONOMY_UPDATE" -ApiPort $resolvedApiPort -AuthorizationToken $adminToken)
   [void](Add-AdminConfigPutCaseResult -Results $results -Name "admin-config-sensitive-words-put" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/sensitive-words" -Body $adminSensitiveWordsConfig -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-config-sensitive-words-put") -Action "CONFIG_SENSITIVE_UPDATE" -ApiPort $resolvedApiPort -AuthorizationToken $adminToken)
@@ -3644,28 +3583,6 @@ try {
     }
   }
 
-  $smokeAlertId = New-SmokeAlertEventId -DatabaseUrl $DatabaseUrl -TargetId $listingId -Message "smoke alert ack $ReportDate"
-  $missingAlertId = [guid]::NewGuid().ToString()
-  $adminAlertList = Add-ApiCaseResult -Results $results -Name "admin-alert-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
-  Assert-ResultJsonArrayItemFieldEquals -Result $adminAlertList -ArrayField "items" -MatchField "id" -MatchValue $smokeAlertId -TargetField "id" -ExpectedValue $smokeAlertId -Assertion "admin-alert-list-has-smoke-alert"
-  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-invalid-status" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?status=UNKNOWN" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-invalid-severity" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?severity=UNKNOWN" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-invalid-channel" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?channel=UNKNOWN" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-invalid-target-type" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?targetType=UNKNOWN" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-empty-type" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?type=" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-empty-target-id" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?targetId=" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-invalid-target-id-format" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?targetId=not-a-uuid" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-empty-triggered-from" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?triggeredFrom=" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-empty-triggered-to" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?triggeredTo=" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-invalid-page" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?page=abc" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-empty-page-size" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?pageSize=" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
-  $adminAlertAck = Add-ApiCaseResult -Results $results -Name "admin-alert-ack-existing" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts/$smokeAlertId/ack" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-alert-ack-existing") -Expected @(200, 201)
-  Assert-ResultJsonFieldEquals -Result $adminAlertAck -Field "status" -ExpectedValue "ACKED" -Assertion "admin-alert-ack-existing-status"
-  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-ack-invalid-alert-id-format" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts/not-a-uuid/ack" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-alert-ack-invalid-alert-id-format") -Expected @(400))
-  $adminAlertAckReplay = Add-ApiCaseResult -Results $results -Name "admin-alert-ack-existing-replay" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts/$smokeAlertId/ack" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-alert-ack-existing-replay") -Expected @(200, 201)
-  Assert-ResultJsonFieldEquals -Result $adminAlertAckReplay -Field "status" -ExpectedValue "ACKED" -Assertion "admin-alert-ack-replay-status"
-  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-ack-missing" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts/$missingAlertId/ack" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-alert-ack-missing") -Expected @(404))
-
   [void](Add-ApiCaseResult -Results $results -Name "admin-case-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
   [void](Add-ApiCaseResult -Results $results -Name "admin-case-list-invalid-status" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases?status=UNKNOWN" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-case-list-invalid-type" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases?type=UNKNOWN" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
@@ -3922,7 +3839,6 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-config-trade-rules-put-unauthorized" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/trade-rules" -Body $adminTradeRulesConfig -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "admin-config-customer-service-put-unauthorized" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/customer-service" -Body $adminCustomerServiceConfig -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "admin-config-recommendation-put-unauthorized" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/recommendation" -Body $adminRecommendationConfig -Headers @{} -Expected @(401))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-config-alerts-put-unauthorized" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/alerts" -Body $adminAlertsConfig -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "admin-config-banner-put-unauthorized" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/banner" -Body $adminBannerConfig -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "admin-config-taxonomy-put-unauthorized" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/taxonomy" -Body $adminTaxonomyConfig -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "admin-config-sensitive-words-put-unauthorized" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/sensitive-words" -Body $adminSensitiveWordsConfig -Headers @{} -Expected @(401))
@@ -3949,7 +3865,6 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-publish-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId/publish" -Body @{} -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-reject-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId/reject" -Body @{ reason = "smoke unauthorized reject listing" } -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "admin-comment-update-unauthorized" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/comments/$missingAdminCommentId" -Body @{ status = "HIDDEN" } -Headers @{} -Expected @(401))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-ack-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts/$missingAlertId/ack" -Body $null -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "admin-case-note-add-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases/$caseId/notes" -Body @{ note = "smoke unauthorized case note" } -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "admin-ai-parse-result-update-unauthorized" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/ai/parse-results/$missingAiParseResultId" -Body @{ status = "ACTIVE"; note = "smoke unauthorized parse update" } -Headers @{} -Expected @(401, 404))
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-create-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents" -Body $authBoundaryAdminPatentCreateBody -Headers @{} -Expected @(401))
@@ -3968,15 +3883,12 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-user-verifications-custom-rbac-role-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/user-verifications" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-comments-custom-rbac-role-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/comments" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-comment-update-custom-rbac-role-forbidden" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/comments/$missingAdminCommentId" -Body @{ status = "HIDDEN" } -Headers @{ Authorization = $userToken } -Expected @(403))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-alerts-custom-rbac-role-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-ack-custom-rbac-role-forbidden" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts/$missingAlertId/ack" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-patents-custom-rbac-role-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-tech-managers-custom-rbac-role-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/tech-managers" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-config-trade-rules-get-custom-rbac-role-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/trade-rules" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-config-trade-rules-put-custom-rbac-role-forbidden" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/trade-rules" -Body $adminTradeRulesConfig -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-config-customer-service-put-custom-rbac-role-forbidden" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/customer-service" -Body $adminCustomerServiceConfig -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-config-recommendation-put-custom-rbac-role-forbidden" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/recommendation" -Body $adminRecommendationConfig -Headers @{ Authorization = $userToken } -Expected @(403))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-config-alerts-put-custom-rbac-role-forbidden" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/alerts" -Body $adminAlertsConfig -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-config-banner-put-custom-rbac-role-forbidden" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/banner" -Body $adminBannerConfig -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-config-taxonomy-put-custom-rbac-role-forbidden" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/taxonomy" -Body $adminTaxonomyConfig -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-config-sensitive-words-put-custom-rbac-role-forbidden" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/sensitive-words" -Body $adminSensitiveWordsConfig -Headers @{ Authorization = $userToken } -Expected @(403))
@@ -4032,7 +3944,6 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-listings-after-clear-roles-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-report-summary-after-clear-roles-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/reports/finance/summary" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-comment-update-after-clear-roles-forbidden" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/comments/$missingAdminCommentId" -Body @{ status = "HIDDEN" } -Headers @{ Authorization = $userToken } -Expected @(403))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-ack-after-clear-roles-forbidden" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts/$missingAlertId/ack" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-order-manual-payment-after-clear-roles-forbidden" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/payments/manual" -Body @{ payType = "DEPOSIT" } -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-order-contract-signed-after-clear-roles-forbidden" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/milestones/contract-signed" -Body @{ dealAmountFen = 2000000 } -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-order-transfer-completed-after-clear-roles-forbidden" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/milestones/transfer-completed" -Body @{} -Headers @{ Authorization = $userToken } -Expected @(403))
@@ -4065,7 +3976,6 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-config-trade-rules-put-after-clear-roles-forbidden" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/trade-rules" -Body $adminTradeRulesConfig -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-config-customer-service-put-after-clear-roles-forbidden" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/customer-service" -Body $adminCustomerServiceConfig -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-config-recommendation-put-after-clear-roles-forbidden" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/recommendation" -Body $adminRecommendationConfig -Headers @{ Authorization = $userToken } -Expected @(403))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-config-alerts-put-after-clear-roles-forbidden" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/alerts" -Body $adminAlertsConfig -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-config-banner-put-after-clear-roles-forbidden" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/banner" -Body $adminBannerConfig -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-config-taxonomy-put-after-clear-roles-forbidden" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/taxonomy" -Body $adminTaxonomyConfig -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-config-sensitive-words-put-after-clear-roles-forbidden" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/sensitive-words" -Body $adminSensitiveWordsConfig -Headers @{ Authorization = $userToken } -Expected @(403))

@@ -54,8 +54,6 @@ tags:
     description: AI
   - name: Maintenance
     description: Maintenance
-  - name: Alerts
-    description: Alerts
   - name: System
     description: System
 paths:
@@ -3195,57 +3193,6 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-  /admin/config/alerts:
-    get:
-      tags:
-        - Admin
-        - Config
-        - Alerts
-      summary: 閼惧嘲褰囬崨濠咁劅闁板秶鐤嗛敍鍫濇倵閸欏府绱漃1閿?
-      operationId: adminGetAlertConfig
-      security:
-        - BearerAuth: []
-      responses:
-        '200':
-          description: OK
-
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AlertConfig'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-    put:
-      tags:
-        - Admin
-        - Config
-        - Alerts
-      summary: 閺囧瓨鏌婇崨濠咁劅闁板秶鐤嗛敍鍫濇倵閸欏府绱漃1閿?
-      operationId: adminUpdateAlertConfig
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AlertConfigUpdateRequest'
-      responses:
-        '200':
-          description: OK
-
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AlertConfig'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
   /admin/ai/parse-results:
     get:
       tags:
@@ -5092,83 +5039,6 @@ paths:
                 $ref: '#/components/schemas/PatentMaintenanceOrderEventList'
         '400':
           $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /admin/alerts:
-    get:
-      tags:
-        - Admin
-        - Alerts
-      summary: 閸涘﹨顒熸禍瀣╂閸掓銆冮敍鍫濇倵閸欏府绱漃1閿?
-      operationId: adminListAlertEvents
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/AlertStatus'
-        - $ref: '#/components/parameters/AlertSeverity'
-        - $ref: '#/components/parameters/AlertChannel'
-        - $ref: '#/components/parameters/AlertTargetType'
-        - name: type
-          in: query
-          required: false
-          schema:
-            type: string
-        - name: targetId
-          in: query
-          required: false
-          schema:
-            $ref: '#/components/schemas/Uuid'
-        - name: triggeredFrom
-          in: query
-          required: false
-          schema:
-            type: string
-            format: date-time
-        - name: triggeredTo
-          in: query
-          required: false
-          schema:
-            type: string
-            format: date-time
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/PageSize'
-      responses:
-        '200':
-          description: OK
-
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PagedAlertEvent'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-  /admin/alerts/{alertId}/ack:
-    post:
-      tags:
-        - Admin
-        - Alerts
-      summary: 閸涘﹨顒熺涵顔款吇閿涘牆鎮楅崣甯礉P1閿?
-      operationId: adminAcknowledgeAlertEvent
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/AlertId'
-      responses:
-        '200':
-          description: OK
-
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AlertEvent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -9234,37 +9104,6 @@ components:
         $ref: '#/components/schemas/PatentMaintenanceReconcileStatus'
       description: Maintenance order reconcile status
 
-    AlertStatus:
-      name: status
-      in: query
-      required: false
-      schema:
-        $ref: '#/components/schemas/AlertStatus'
-      description: 閸涘﹨顒熼悩鑸碘偓浣界箖濠?
-
-    AlertSeverity:
-      name: severity
-      in: query
-      required: false
-      schema:
-        $ref: '#/components/schemas/AlertSeverity'
-      description: 閸涘﹨顒熺痪褍鍩嗘潻鍥ㄦ姢
-
-    AlertChannel:
-      name: channel
-      in: query
-      required: false
-      schema:
-        $ref: '#/components/schemas/AlertChannel'
-      description: 閸涘﹨顒熷〒鐘讳壕鏉╁洦鎶?
-    AlertTargetType:
-      name: targetType
-      in: query
-      required: false
-      schema:
-        $ref: '#/components/schemas/AlertTargetType'
-      description: 閸涘﹨顒熼惄顔界垼缁鐎锋潻鍥ㄦ姢
-
     ParseResultId:
       name: parseResultId
       in: path
@@ -9285,12 +9124,6 @@ components:
         $ref: '#/components/schemas/Uuid'
     MaintenanceOrderId:
       name: orderId
-      in: path
-      required: true
-      schema:
-        $ref: '#/components/schemas/Uuid'
-    AlertId:
-      name: alertId
       in: path
       required: true
       schema:
@@ -14025,9 +13858,6 @@ components:
         platform-conversations:
           type: integer
           minimum: 0
-        alerts:
-          type: integer
-          minimum: 0
         cases:
           type: integer
           minimum: 0
@@ -15151,135 +14981,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AiParseResult'
-        page:
-          $ref: '#/components/schemas/PageMeta'
-    AlertSeverity:
-      type: string
-      enum:
-        - LOW
-        - MEDIUM
-        - HIGH
-    AlertChannel:
-      type: string
-      enum:
-        - SMS
-        - EMAIL
-        - IN_APP
-    AlertStatus:
-      type: string
-      enum:
-        - PENDING
-        - SENT
-        - ACKED
-        - SUPPRESSED
-    AlertTargetType:
-      type: string
-      enum:
-        - PATENT
-        - ORDER
-        - LISTING
-        - AI_PARSE
-        - IMPORT
-        - PAYMENT
-        - REFUND
-        - SYSTEM
-    AlertRule:
-      type: object
-      required:
-        - type
-        - severity
-        - channels
-        - enabled
-      properties:
-        type:
-          type: string
-        severity:
-          $ref: '#/components/schemas/AlertSeverity'
-        channels:
-          type: array
-          items:
-            $ref: '#/components/schemas/AlertChannel'
-        enabled:
-          type: boolean
-        threshold:
-          type: number
-          format: double
-        cooldownMinutes:
-          type: integer
-          minimum: 0
-    AlertConfig:
-      type: object
-      required:
-        - enabled
-        - rules
-      properties:
-        enabled:
-          type: boolean
-        defaultChannels:
-          type: array
-          items:
-            $ref: '#/components/schemas/AlertChannel'
-        rules:
-          type: array
-          items:
-            $ref: '#/components/schemas/AlertRule'
-    AlertConfigUpdateRequest:
-      type: object
-      properties:
-        enabled:
-          type: boolean
-        defaultChannels:
-          type: array
-          items:
-            $ref: '#/components/schemas/AlertChannel'
-        rules:
-          type: array
-          items:
-            $ref: '#/components/schemas/AlertRule'
-    AlertEvent:
-      type: object
-      required:
-        - id
-        - type
-        - severity
-        - channel
-        - status
-        - triggeredAt
-      properties:
-        id:
-          $ref: '#/components/schemas/Uuid'
-        type:
-          type: string
-        severity:
-          $ref: '#/components/schemas/AlertSeverity'
-        channel:
-          $ref: '#/components/schemas/AlertChannel'
-        status:
-          $ref: '#/components/schemas/AlertStatus'
-        targetType:
-          $ref: '#/components/schemas/AlertTargetType'
-        targetId:
-          $ref: '#/components/schemas/Uuid'
-          nullable: true
-        message:
-          type: string
-        triggeredAt:
-          type: string
-          format: date-time
-        sentAt:
-          type: string
-          format: date-time
-          nullable: true
-    PagedAlertEvent:
-      type: object
-      required:
-        - items
-        - page
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/AlertEvent'
         page:
           $ref: '#/components/schemas/PageMeta'
     PatentMaintenanceStatus:

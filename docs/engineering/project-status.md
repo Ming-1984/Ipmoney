@@ -40,7 +40,7 @@
 ### API + 数据
 - OpenAPI <-> Controllers 对齐（243/243）；fixtures 覆盖完成。
 - OpenAPI 覆盖审计：脚本修复，未使用接口剩 AI P1。
-- conversations/messages、comments、favorites、addresses、verification、cases、reports、rbac、ai、alerts、patent-maintenance。
+- conversations/messages、comments、favorites、addresses、verification、cases、reports、rbac、ai、patent-maintenance。
 - 幂等保护（下单/支付/退款/发票）；审计日志；文件访问控制；临时 URL 与水印。
 - DEMO 特性开关（生产默认关闭）。
 - 生产就绪基础项：支持 `TRUST_PROXY`、`CORS_ORIGINS`；access log 默认不记录 query（避免泄露敏感信息）。
@@ -77,7 +77,7 @@
 
 ## P1 / 可选
 - 非 H5 的独立 PC Web（如有需求）。
-- AI/告警进一步自动化。
+- AI 进一步自动化。
 
 ## 关键决策
 - H5 支付仅引导回小程序（不做 H5 内支付）。

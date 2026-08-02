@@ -10,7 +10,6 @@ function makePrisma() {
     listing: { count: vi.fn() },
     achievement: { count: vi.fn() },
     conversation: { count: vi.fn(), findMany: vi.fn() },
-    alertEvent: { count: vi.fn() },
     csCase: { count: vi.fn() },
     refundRequest: { count: vi.fn() },
     patentClaimRequest: { count: vi.fn() },
@@ -48,7 +47,6 @@ describe('AdminNotificationsService', () => {
     prisma.listing.count.mockResolvedValueOnce(4);
     prisma.achievement.count.mockResolvedValueOnce(5);
     prisma.conversation.count.mockResolvedValueOnce(6);
-    prisma.alertEvent.count.mockResolvedValueOnce(8);
     prisma.csCase.count.mockResolvedValueOnce(9);
     prisma.refundRequest.count.mockResolvedValueOnce(10);
     prisma.patentClaimRequest.count.mockResolvedValueOnce(12);
@@ -62,7 +60,6 @@ describe('AdminNotificationsService', () => {
       listings: 4,
       achievements: 5,
       'platform-conversations': 6,
-      alerts: 8,
       cases: 9,
       refunds: 10,
       settlements: 7,

@@ -24,7 +24,6 @@
 
 ## 已处理（本轮）
 - OpenAPI 覆盖审计修复：TS 泛型 `>>` 识别（maintenance/cases/rbac 等误报消除）。
-- 接入：`GET/PUT /admin/config/alerts`（配置中心 JSON 编辑）。
 - 接入：`POST /admin/orders/:param/invoice`（发票下发）。
 - 接入：`PATCH /admin/rbac/roles/:param`（角色编辑）。
 - 接入：`POST /admin/cases`（工单新建）。

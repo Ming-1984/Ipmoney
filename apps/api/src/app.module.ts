@@ -31,7 +31,6 @@ import { CasesModule } from './modules/cases/cases.module';
 import { RbacModule } from './modules/rbac/rbac.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
-import { AlertsModule } from './modules/alerts/alerts.module';
 import { PatentMaintenanceModule } from './modules/patent-maintenance/patent-maintenance.module';
 import { PatentMapModule } from './modules/patent-map/patent-map.module';
 import { BulkImportModule } from './modules/bulk-import/bulk-import.module';
@@ -69,7 +68,6 @@ import { DealRecordsModule } from './modules/deal-records/deal-records.module';
     RbacModule,
     ReportsModule,
     AuditLogsModule,
-    AlertsModule,
     PatentMaintenanceModule,
     PatentMapModule,
     BulkImportModule,

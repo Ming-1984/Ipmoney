@@ -24,8 +24,6 @@ describe('AdminConfigController permission and audit suite', () => {
       updateSensitiveWords: vi.fn(),
       getHotSearch: vi.fn(),
       updateHotSearch: vi.fn(),
-      getAlertConfig: vi.fn(),
-      updateAlertConfig: vi.fn(),
       getHomeLandingConfig: vi.fn(),
       updateHomeLandingConfig: vi.fn(),
       getHomeAnnouncementConfig: vi.fn(),
@@ -60,8 +58,6 @@ describe('AdminConfigController permission and audit suite', () => {
       () => controller.updateSensitiveWords(req, {} as any),
       () => controller.getHotSearch(req),
       () => controller.updateHotSearch(req, {} as any),
-      () => controller.getAlertConfig(req),
-      () => controller.updateAlertConfig(req, {} as any),
       () => controller.getHomeLandingConfig(req),
       () => controller.updateHomeLandingConfig(req, {} as any),
       () => controller.getHomeAnnouncementConfig(req),
@@ -89,7 +85,6 @@ describe('AdminConfigController permission and audit suite', () => {
     config.getTaxonomy.mockResolvedValueOnce({ industries: [] });
     config.getSensitiveWords.mockResolvedValueOnce({ words: [] });
     config.getHotSearch.mockResolvedValueOnce({ keywords: [] });
-    config.getAlertConfig.mockResolvedValueOnce({ enabled: false, rules: [] });
     config.getHomeLandingConfig.mockResolvedValueOnce({ schemaVersion: 1 });
     config.getHomeAnnouncementConfig.mockResolvedValueOnce({ schemaVersion: 1, templates: [], items: [] });
 
@@ -100,7 +95,6 @@ describe('AdminConfigController permission and audit suite', () => {
     await expect(controller.getTaxonomy(req)).resolves.toEqual({ industries: [] });
     await expect(controller.getSensitiveWords(req)).resolves.toEqual({ words: [] });
     await expect(controller.getHotSearch(req)).resolves.toEqual({ keywords: [] });
-    await expect(controller.getAlertConfig(req)).resolves.toEqual({ enabled: false, rules: [] });
     await expect(controller.getHomeLandingConfig(req)).resolves.toEqual({ schemaVersion: 1 });
     await expect(controller.getHomeAnnouncementConfig(req)).resolves.toEqual({ schemaVersion: 1, templates: [], items: [] });
   });
@@ -157,13 +151,6 @@ describe('AdminConfigController permission and audit suite', () => {
         mock: config.updateHotSearch,
         action: 'CONFIG_HOT_SEARCH_UPDATE',
         targetId: '8dd52cb6-7fae-492d-8c8f-8a6ca6f74f42',
-      },
-      {
-        label: 'alerts',
-        call: () => controller.updateAlertConfig(req, {} as any),
-        mock: config.updateAlertConfig,
-        action: 'CONFIG_ALERT_UPDATE',
-        targetId: 'e92da947-d8e6-4648-a550-6f2fc0e933f3',
       },
       {
         label: 'home-landing',

@@ -1678,24 +1678,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/config/alerts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 閼惧嘲褰囬崨濠咁劅闁板秶鐤嗛敍鍫濇倵閸欏府绱漃1閿? */
-        get: operations["adminGetAlertConfig"];
-        /** 閺囧瓨鏌婇崨濠咁劅闁板秶鐤嗛敍鍫濇倵閸欏府绱漃1閿? */
-        put: operations["adminUpdateAlertConfig"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/admin/ai/parse-results": {
         parameters: {
             query?: never;
@@ -2518,40 +2500,6 @@ export interface paths {
         get: operations["listMyPatentMaintenanceOrderEvents"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/alerts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 閸涘﹨顒熸禍瀣╂閸掓銆冮敍鍫濇倵閸欏府绱漃1閿? */
-        get: operations["adminListAlertEvents"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/alerts/{alertId}/ack": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 閸涘﹨顒熺涵顔款吇閿涘牆鎮楅崣甯礉P1閿? */
-        post: operations["adminAcknowledgeAlertEvent"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5954,7 +5902,6 @@ export interface components {
             listings?: number;
             achievements?: number;
             "platform-conversations"?: number;
-            alerts?: number;
             cases?: number;
             refunds?: number;
             settlements?: number;
@@ -6445,51 +6392,6 @@ export interface components {
         };
         PagedAiParseResult: {
             items: components["schemas"]["AiParseResult"][];
-            page: components["schemas"]["PageMeta"];
-        };
-        /** @enum {string} */
-        AlertSeverity: "LOW" | "MEDIUM" | "HIGH";
-        /** @enum {string} */
-        AlertChannel: "SMS" | "EMAIL" | "IN_APP";
-        /** @enum {string} */
-        AlertStatus: "PENDING" | "SENT" | "ACKED" | "SUPPRESSED";
-        /** @enum {string} */
-        AlertTargetType: "PATENT" | "ORDER" | "LISTING" | "AI_PARSE" | "IMPORT" | "PAYMENT" | "REFUND" | "SYSTEM";
-        AlertRule: {
-            type: string;
-            severity: components["schemas"]["AlertSeverity"];
-            channels: components["schemas"]["AlertChannel"][];
-            enabled: boolean;
-            /** Format: double */
-            threshold?: number;
-            cooldownMinutes?: number;
-        };
-        AlertConfig: {
-            enabled: boolean;
-            defaultChannels?: components["schemas"]["AlertChannel"][];
-            rules: components["schemas"]["AlertRule"][];
-        };
-        AlertConfigUpdateRequest: {
-            enabled?: boolean;
-            defaultChannels?: components["schemas"]["AlertChannel"][];
-            rules?: components["schemas"]["AlertRule"][];
-        };
-        AlertEvent: {
-            id: components["schemas"]["Uuid"];
-            type: string;
-            severity: components["schemas"]["AlertSeverity"];
-            channel: components["schemas"]["AlertChannel"];
-            status: components["schemas"]["AlertStatus"];
-            targetType?: components["schemas"]["AlertTargetType"];
-            targetId?: components["schemas"]["Uuid"];
-            message?: string;
-            /** Format: date-time */
-            triggeredAt: string;
-            /** Format: date-time */
-            sentAt?: string | null;
-        };
-        PagedAlertEvent: {
-            items: components["schemas"]["AlertEvent"][];
             page: components["schemas"]["PageMeta"];
         };
         /** @enum {string} */
@@ -7357,19 +7259,10 @@ export interface components {
         MaintenanceOrderStatus: components["schemas"]["PatentMaintenanceOrderStatus"];
         /** @description Maintenance order reconcile status */
         MaintenanceReconcileStatus: components["schemas"]["PatentMaintenanceReconcileStatus"];
-        /** @description 閸涘﹨顒熼悩鑸碘偓浣界箖濠? */
-        AlertStatus: components["schemas"]["AlertStatus"];
-        /** @description 閸涘﹨顒熺痪褍鍩嗘潻鍥ㄦ姢 */
-        AlertSeverity: components["schemas"]["AlertSeverity"];
-        /** @description 閸涘﹨顒熷〒鐘讳壕鏉╁洦鎶? */
-        AlertChannel: components["schemas"]["AlertChannel"];
-        /** @description 閸涘﹨顒熼惄顔界垼缁鐎锋潻鍥ㄦ姢 */
-        AlertTargetType: components["schemas"]["AlertTargetType"];
         ParseResultId: components["schemas"]["Uuid"];
         MaintenanceScheduleId: components["schemas"]["Uuid"];
         MaintenanceTaskId: components["schemas"]["Uuid"];
         MaintenanceOrderId: components["schemas"]["Uuid"];
-        AlertId: components["schemas"]["Uuid"];
         /** @description 閻ｆ瑨鈻堥幍鈧仦鐐插敶鐎瑰湱琚崹瀣箖濠? */
         CommentContentType: components["schemas"]["CommentContentType"];
         /** @description 閻ｆ瑨鈻堥幍鈧仦鐐插敶鐎?ID 鏉╁洦鎶? */
@@ -10545,55 +10438,6 @@ export interface operations {
             403: components["responses"]["Forbidden"];
         };
     };
-    adminGetAlertConfig: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AlertConfig"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    adminUpdateAlertConfig: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AlertConfigUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AlertConfig"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
     adminListAiParseResults: {
         parameters: {
             query?: {
@@ -12308,69 +12152,6 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminListAlertEvents: {
-        parameters: {
-            query?: {
-                /** @description 閸涘﹨顒熼悩鑸碘偓浣界箖濠? */
-                status?: components["parameters"]["AlertStatus"];
-                /** @description 閸涘﹨顒熺痪褍鍩嗘潻鍥ㄦ姢 */
-                severity?: components["parameters"]["AlertSeverity"];
-                /** @description 閸涘﹨顒熷〒鐘讳壕鏉╁洦鎶? */
-                channel?: components["parameters"]["AlertChannel"];
-                /** @description 閸涘﹨顒熼惄顔界垼缁鐎锋潻鍥ㄦ姢 */
-                targetType?: components["parameters"]["AlertTargetType"];
-                type?: string;
-                targetId?: components["schemas"]["Uuid"];
-                triggeredFrom?: string;
-                triggeredTo?: string;
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedAlertEvent"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    adminAcknowledgeAlertEvent: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                alertId: components["parameters"]["AlertId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AlertEvent"];
-                };
-            };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];

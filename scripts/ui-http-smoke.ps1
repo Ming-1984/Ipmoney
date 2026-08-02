@@ -313,7 +313,6 @@ try {
     @{ name = "admin-cases"; path = "/cases" },
     @{ name = "admin-reports"; path = "/reports" },
     @{ name = "admin-comments"; path = "/comments" },
-    @{ name = "admin-alerts"; path = "/alerts" },
     @{ name = "admin-verifications"; path = "/verifications" },
     @{ name = "admin-rbac"; path = "/rbac" },
     @{ name = "admin-config"; path = "/config" },

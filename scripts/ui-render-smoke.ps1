@@ -434,7 +434,6 @@ try {
       @{ name = "admin-cases"; path = "/cases"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-reports"; path = "/reports"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-comments"; path = "/comments"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
-      @{ name = "admin-alerts"; path = "/alerts"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-verifications"; path = "/verifications"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-rbac"; path = "/rbac"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-config"; path = "/config"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },

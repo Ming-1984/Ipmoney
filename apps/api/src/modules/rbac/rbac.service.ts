@@ -85,7 +85,6 @@ const PERMISSIONS: Permission[] = [
   { id: 'config.manage', name: '系统配置管理', description: '管理系统配置' },
   { id: 'report.read', name: '报表查看', description: '查看报表' },
   { id: 'report.export', name: '报表导出', description: '导出报表' },
-  { id: 'alert.manage', name: '告警管理', description: '管理告警事件与确认状态' },
   { id: 'rbac.manage', name: '账号权限管理', description: '管理用户与角色' },
   { id: 'auditLog.read', name: '审计日志查看', description: '查看审计日志' },
 ];

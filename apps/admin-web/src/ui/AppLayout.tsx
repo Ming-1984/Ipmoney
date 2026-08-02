@@ -52,7 +52,6 @@ type AdminBadgesResponse = {
 
 const menuConfig: AppMenuItem[] = [
   { key: 'dashboard', icon: <AppstoreOutlined />, label: '仪表盘', to: '/', group: 'workbench' },
-  { key: 'alerts', icon: <BellOutlined />, label: '告警中心', to: '/alerts', permission: 'alert.manage', group: 'workbench' },
   { key: 'comments', icon: <MessageOutlined />, label: '留言管理', to: '/comments', permission: 'listing.read', group: 'workbench' },
   { key: 'platform-conversations', icon: <MessageOutlined />, label: '平台咨询会话', to: '/conversations/platform', permission: 'conversation.platform.reply', group: 'workbench' },
   { key: 'verifications', icon: <FileDoneOutlined />, label: '认证审核', to: '/verifications', permission: 'verification.read', group: 'content' },

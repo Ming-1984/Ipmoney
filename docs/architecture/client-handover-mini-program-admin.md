@@ -83,7 +83,6 @@
 | ADM-011 | path（路径路由） | `invoices` | 发票 | admin/invoices（发票管理） |
 | ADM-012 | path（路径路由） | `reports` | reports（报表） | admin/reports（报表管理） |
 | ADM-013 | path（路径路由） | `comments` | comments（评论） | admin/comments（评论管理） |
-| ADM-014 | path（路径路由） | `alerts` | alerts（告警） | admin/alerts（告警管理） |
 | ADM-015 | path（路径路由） | `audit-logs` | 审计logs（审计日志） | admin/audit-logs（审计日志） |
 | ADM-016 | path（路径路由） | `rbac` | 权限 | admin/rbac（权限管理） |
 | ADM-017 | path（路径路由） | `config` | 配置 | admin/config（系统配置） |
@@ -165,7 +164,6 @@
 | ADM-011 | 发票 | 0 | 0 | 0 |
 | ADM-012 | reports（报表） | 2 | 5 | 14 |
 | ADM-013 | comments（评论） | 2 | 13 | 52 |
-| ADM-014 | alerts（告警） | 2 | 9 | 32 |
 | ADM-015 | 审计logs（审计日志） | 1 | 5 | 24 |
 | ADM-016 | 权限 | 8 | 14 | 56 |
 | ADM-017 | 配置 | 25 | 33 | 215 |
@@ -4212,25 +4210,6 @@
 | `VerificationStatus` | 0 |
 | `VerificationType` | 0 |
 
-#### ADM-014 `alerts` alerts（告警）
-
-| 方法 | 路径 | OperationId | 鉴权 | 标签 | 接口说明 |
-|---|---|---|---|---|---|
-| GET | `/admin/alerts` | `adminListAlertEvents` | Y | Admin（管理后台）, Alerts（告警） | 管理后台告警查询列表 |
-| POST | `/admin/alerts/{alertId}/ack` | `adminAcknowledgeAlertEvent` | Y | Admin（管理后台）, Alerts（告警） | 管理后台告警/确认提交 |
-
-| Schema | 字段数（全量展开） |
-|---|---|
-| `AlertChannel` | 0 |
-| `AlertEvent` | 16 |
-| `AlertSeverity` | 0 |
-| `AlertStatus` | 0 |
-| `AlertTargetType` | 0 |
-| `ErrorResponse` | 3 |
-| `PageMeta` | 3 |
-| `PagedAlertEvent` | 24 |
-| `Uuid` | 0 |
-
 #### ADM-015 `audit-logs` 审计logs（审计日志）
 
 | 方法 | 路径 | OperationId | 鉴权 | 标签 | 接口说明 |
@@ -4279,8 +4258,6 @@
 
 | 方法 | 路径 | OperationId | 鉴权 | 标签 | 接口说明 |
 |---|---|---|---|---|---|
-| GET | `/admin/config/alerts` | `adminGetAlertConfig` | Y | Admin（管理后台）, Config（配置）, Alerts（告警） | 管理后台配置/告警查询列表 |
-| PUT | `/admin/config/alerts` | `adminUpdateAlertConfig` | Y | Admin（管理后台）, Config（配置）, Alerts（告警） | 管理后台配置/告警更新 |
 | GET | `/admin/config/banner` | `adminGetBannerConfig` | Y | Admin（管理后台）, Config（配置） | 管理后台配置/横幅查询列表 |
 | PUT | `/admin/config/banner` | `adminUpdateBannerConfig` | Y | Admin（管理后台）, Config（配置） | 管理后台配置/横幅更新 |
 | GET | `/admin/config/customer-service` | `adminGetCustomerServiceConfig` | Y | Admin（管理后台）, Config（配置） | 管理后台配置/客户服务查询列表 |
@@ -4307,11 +4284,6 @@
 
 | Schema | 字段数（全量展开） |
 |---|---|
-| `AlertChannel` | 0 |
-| `AlertConfig` | 16 |
-| `AlertConfigUpdateRequest` | 16 |
-| `AlertRule` | 9 |
-| `AlertSeverity` | 0 |
 | `BannerConfig` | 9 |
 | `BannerItem` | 6 |
 | `CustomerServiceAssignStrategy` | 0 |
@@ -4635,8 +4607,6 @@
 | Admin（管理后台） | GET | `/admin/ai/parse-results` | `adminListAiParseResults` | Y | Admin（管理后台）, AI（智能解析） | AiContentType, AiParseResult, AiParseStatus, ErrorResponse, PageMeta, PagedAiParseResult, Uuid | 管理后台智能/解析结果查询列表 |
 | Admin（管理后台） | GET | `/admin/ai/parse-results/{parseResultId}` | `adminGetAiParseResult` | Y | Admin（管理后台）, AI（智能解析） | AiContentType, AiParseResult, AiParseStatus, ErrorResponse, Uuid | 管理后台智能/解析结果查询详情 |
 | Admin（管理后台） | PATCH | `/admin/ai/parse-results/{parseResultId}` | `adminUpdateAiParseResult` | Y | Admin（管理后台）, AI（智能解析） | AiContentType, AiParseResult, AiParseResultUpdateRequest, AiParseStatus, ErrorResponse, Uuid | 管理后台智能/解析结果更新 |
-| Admin（管理后台） | GET | `/admin/alerts` | `adminListAlertEvents` | Y | Admin（管理后台）, Alerts（告警） | AlertChannel, AlertEvent, AlertSeverity, AlertStatus, AlertTargetType, ErrorResponse, PageMeta, PagedAlertEvent, Uuid | 管理后台告警查询列表 |
-| Admin（管理后台） | POST | `/admin/alerts/{alertId}/ack` | `adminAcknowledgeAlertEvent` | Y | Admin（管理后台）, Alerts（告警） | AlertChannel, AlertEvent, AlertSeverity, AlertStatus, AlertTargetType, ErrorResponse, Uuid | 管理后台告警/确认提交 |
 | Admin（管理后台） | GET | `/admin/audit-logs` | `adminListAuditLogs` | Y | Admin（管理后台） | AuditLog, ErrorResponse, PageMeta, PagedAuditLog, Uuid | 管理后台审计日志查询列表 |
 | Admin（管理后台） | GET | `/admin/cases` | `adminListCases` | Y | Admin（管理后台）, Cases（工单） | CaseEvidence, CaseNote, CasePriority, CaseRecord, CaseSlaStatus, CaseStatus, CaseType, ErrorResponse, PageMeta, PagedCase, Uuid | 管理后台工单查询列表 |
 | Admin（管理后台） | POST | `/admin/cases` | `adminCreateCase` | Y | Admin（管理后台）, Cases（工单） | CaseCreateRequest, CaseEvidence, CaseNote, CasePriority, CaseRecord, CaseSlaStatus, CaseStatus, CaseType, ErrorResponse, Uuid | 管理后台工单提交 |
@@ -4648,8 +4618,6 @@
 | Admin（管理后台） | POST | `/admin/cases/{caseId}/status` | `adminUpdateCaseStatus` | Y | Admin（管理后台）, Cases（工单） | CaseEvidence, CaseNote, CasePriority, CaseRecord, CaseSlaStatus, CaseStatus, CaseType, ErrorResponse, Uuid | 管理后台工单/状态提交 |
 | Admin（管理后台） | GET | `/admin/comments` | `adminListComments` | Y | Admin（管理后台） | Comment, CommentContentType, CommentStatus, ErrorResponse, PageMeta, PagedComment, SupplyType, UserBrief, UserRole, Uuid, VerificationStatus, VerificationType | 管理后台评论查询列表 |
 | Admin（管理后台） | PATCH | `/admin/comments/{commentId}` | `adminUpdateComment` | Y | Admin（管理后台） | AdminCommentUpdateRequest, Comment, CommentContentType, CommentStatus, ErrorResponse, SupplyType, UserBrief, UserRole, Uuid, VerificationStatus, VerificationType | 管理后台评论更新 |
-| Admin（管理后台） | GET | `/admin/config/alerts` | `adminGetAlertConfig` | Y | Admin（管理后台）, Config（配置）, Alerts（告警） | AlertChannel, AlertConfig, AlertRule, AlertSeverity, ErrorResponse | 管理后台配置/告警查询列表 |
-| Admin（管理后台） | PUT | `/admin/config/alerts` | `adminUpdateAlertConfig` | Y | Admin（管理后台）, Config（配置）, Alerts（告警） | AlertChannel, AlertConfig, AlertConfigUpdateRequest, AlertRule, AlertSeverity, ErrorResponse | 管理后台配置/告警更新 |
 | Admin（管理后台） | GET | `/admin/config/banner` | `adminGetBannerConfig` | Y | Admin（管理后台）, Config（配置） | BannerConfig, BannerItem, ErrorResponse | 管理后台配置/横幅查询列表 |
 | Admin（管理后台） | PUT | `/admin/config/banner` | `adminUpdateBannerConfig` | Y | Admin（管理后台）, Config（配置） | BannerConfig, BannerItem, ErrorResponse | 管理后台配置/横幅更新 |
 | Admin（管理后台） | GET | `/admin/config/customer-service` | `adminGetCustomerServiceConfig` | Y | Admin（管理后台）, Config（配置） | CustomerServiceConfig, ErrorResponse | 管理后台配置/客户服务查询列表 |
@@ -5632,107 +5600,6 @@
 | `cooperationModes` | `array<ref:CooperationMode>` | N | - | 合作模式 |
 | `cooperationModes[]` | `ref:CooperationMode` | N | - | 合作模式 |
 | `cooperationModes[]` | `string` | N | TRANSFER/TECH_CONSULTING/COMMISSIONED_DEV/PLATFORM_CO_BUILD | 合作模式 |
-
-### 5.31 `AlertChannel`
-
-| 字段路径 | 类型 | 必填 | 枚举 | 说明 |
-|---|---|---|---|---|
-| - | - | - | - | - |
-
-### 5.32 `AlertConfig`
-
-| 字段路径 | 类型 | 必填 | 枚举 | 说明 |
-|---|---|---|---|---|
-| `enabled` | `boolean` | Y | - | 启用 |
-| `defaultChannels` | `array<ref:AlertChannel>` | N | - | 默认渠道 |
-| `defaultChannels[]` | `ref:AlertChannel` | N | - | 默认渠道 |
-| `defaultChannels[]` | `string` | N | SMS/EMAIL/IN_APP | 默认渠道 |
-| `rules` | `array<ref:AlertRule>` | Y | - | 规则 |
-| `rules[]` | `ref:AlertRule` | N | - | 规则 |
-| `rules[]` | `object` | N | - | 规则 |
-| `rules[].type` | `string` | Y | - | 类型 |
-| `rules[].severity` | `ref:AlertSeverity` | Y | - | 严重级别 |
-| `rules[].severity` | `string` | Y | LOW/MEDIUM/HIGH | 严重级别 |
-| `rules[].channels` | `array<ref:AlertChannel>` | Y | - | 渠道 |
-| `rules[].channels[]` | `ref:AlertChannel` | N | - | 渠道 |
-| `rules[].channels[]` | `string` | N | SMS/EMAIL/IN_APP | 渠道 |
-| `rules[].enabled` | `boolean` | Y | - | 启用 |
-| `rules[].threshold` | `number` | N | - | 阈值 |
-| `rules[].cooldownMinutes` | `integer` | N | - | 冷却分钟 |
-
-### 5.33 `AlertConfigUpdateRequest`
-
-| 字段路径 | 类型 | 必填 | 枚举 | 说明 |
-|---|---|---|---|---|
-| `enabled` | `boolean` | N | - | 启用 |
-| `defaultChannels` | `array<ref:AlertChannel>` | N | - | 默认渠道 |
-| `defaultChannels[]` | `ref:AlertChannel` | N | - | 默认渠道 |
-| `defaultChannels[]` | `string` | N | SMS/EMAIL/IN_APP | 默认渠道 |
-| `rules` | `array<ref:AlertRule>` | N | - | 规则 |
-| `rules[]` | `ref:AlertRule` | N | - | 规则 |
-| `rules[]` | `object` | N | - | 规则 |
-| `rules[].type` | `string` | Y | - | 类型 |
-| `rules[].severity` | `ref:AlertSeverity` | Y | - | 严重级别 |
-| `rules[].severity` | `string` | Y | LOW/MEDIUM/HIGH | 严重级别 |
-| `rules[].channels` | `array<ref:AlertChannel>` | Y | - | 渠道 |
-| `rules[].channels[]` | `ref:AlertChannel` | N | - | 渠道 |
-| `rules[].channels[]` | `string` | N | SMS/EMAIL/IN_APP | 渠道 |
-| `rules[].enabled` | `boolean` | Y | - | 启用 |
-| `rules[].threshold` | `number` | N | - | 阈值 |
-| `rules[].cooldownMinutes` | `integer` | N | - | 冷却分钟 |
-
-### 5.34 `AlertEvent`
-
-| 字段路径 | 类型 | 必填 | 枚举 | 说明 |
-|---|---|---|---|---|
-| `id` | `ref:Uuid` | Y | - | ID |
-| `id` | `string` | Y | - | ID |
-| `type` | `string` | Y | - | 类型 |
-| `severity` | `ref:AlertSeverity` | Y | - | 严重级别 |
-| `severity` | `string` | Y | LOW/MEDIUM/HIGH | 严重级别 |
-| `channel` | `ref:AlertChannel` | Y | - | 渠道 |
-| `channel` | `string` | Y | SMS/EMAIL/IN_APP | 渠道 |
-| `status` | `ref:AlertStatus` | Y | - | 状态 |
-| `status` | `string` | Y | PENDING/SENT/ACKED/SUPPRESSED | 状态 |
-| `targetType` | `ref:AlertTargetType` | N | - | 目标类型 |
-| `targetType` | `string` | N | PATENT/ORDER/LISTING/AI_PARSE/IMPORT/PAYMENT/REFUND/SYSTEM | 目标类型 |
-| `targetId` | `ref:Uuid` | N | - | 目标ID |
-| `targetId` | `string` | N | - | 目标ID |
-| `message` | `string` | N | - | 消息 |
-| `triggeredAt` | `string` | Y | - | 触发时间 |
-| `sentAt` | `string` | N | - | 已发送时间 |
-
-### 5.35 `AlertRule`
-
-| 字段路径 | 类型 | 必填 | 枚举 | 说明 |
-|---|---|---|---|---|
-| `type` | `string` | Y | - | 类型 |
-| `severity` | `ref:AlertSeverity` | Y | - | 严重级别 |
-| `severity` | `string` | Y | LOW/MEDIUM/HIGH | 严重级别 |
-| `channels` | `array<ref:AlertChannel>` | Y | - | 渠道 |
-| `channels[]` | `ref:AlertChannel` | N | - | 渠道 |
-| `channels[]` | `string` | N | SMS/EMAIL/IN_APP | 渠道 |
-| `enabled` | `boolean` | Y | - | 启用 |
-| `threshold` | `number` | N | - | 阈值 |
-| `cooldownMinutes` | `integer` | N | - | 冷却分钟 |
-
-### 5.36 `AlertSeverity`
-
-| 字段路径 | 类型 | 必填 | 枚举 | 说明 |
-|---|---|---|---|---|
-| - | - | - | - | - |
-
-### 5.37 `AlertStatus`
-
-| 字段路径 | 类型 | 必填 | 枚举 | 说明 |
-|---|---|---|---|---|
-| - | - | - | - | - |
-
-### 5.38 `AlertTargetType`
-
-| 字段路径 | 类型 | 必填 | 枚举 | 说明 |
-|---|---|---|---|---|
-| - | - | - | - | - |
 
 ### 5.39 `AuditLog`
 
@@ -7805,35 +7672,6 @@
 | `items[].status` | `string` | Y | ACTIVE/REVIEW_REQUIRED/REPLACED | 状态 |
 | `items[].createdAt` | `string` | Y | - | 创建时间 |
 | `items[].updatedAt` | `string` | N | - | 更新时间 |
-| `page` | `ref:PageMeta` | Y | - | 页码 |
-| `page` | `object` | Y | - | 页码 |
-| `page.page` | `integer` | Y | - | 页码 |
-| `page.pageSize` | `integer` | Y | - | 页码大小 |
-| `page.total` | `integer` | Y | - | 总 |
-
-### 5.164 `PagedAlertEvent`
-
-| 字段路径 | 类型 | 必填 | 枚举 | 说明 |
-|---|---|---|---|---|
-| `items` | `array<ref:AlertEvent>` | Y | - | 条目 |
-| `items[]` | `ref:AlertEvent` | N | - | 条目 |
-| `items[]` | `object` | N | - | 条目 |
-| `items[].id` | `ref:Uuid` | Y | - | ID |
-| `items[].id` | `string` | Y | - | ID |
-| `items[].type` | `string` | Y | - | 类型 |
-| `items[].severity` | `ref:AlertSeverity` | Y | - | 严重级别 |
-| `items[].severity` | `string` | Y | LOW/MEDIUM/HIGH | 严重级别 |
-| `items[].channel` | `ref:AlertChannel` | Y | - | 渠道 |
-| `items[].channel` | `string` | Y | SMS/EMAIL/IN_APP | 渠道 |
-| `items[].status` | `ref:AlertStatus` | Y | - | 状态 |
-| `items[].status` | `string` | Y | PENDING/SENT/ACKED/SUPPRESSED | 状态 |
-| `items[].targetType` | `ref:AlertTargetType` | N | - | 目标类型 |
-| `items[].targetType` | `string` | N | PATENT/ORDER/LISTING/AI_PARSE/IMPORT/PAYMENT/REFUND/SYSTEM | 目标类型 |
-| `items[].targetId` | `ref:Uuid` | N | - | 目标ID |
-| `items[].targetId` | `string` | N | - | 目标ID |
-| `items[].message` | `string` | N | - | 消息 |
-| `items[].triggeredAt` | `string` | Y | - | 触发时间 |
-| `items[].sentAt` | `string` | N | - | 已发送时间 |
 | `page` | `ref:PageMeta` | Y | - | 页码 |
 | `page` | `object` | Y | - | 页码 |
 | `page.page` | `integer` | Y | - | 页码 |
@@ -11097,27 +10935,6 @@
 | `createdAt` | `DateTime` | Y | - | `@default(now()) @map("created_at")` | 创建时间 |
 | `updatedAt` | `DateTime` | Y | - | `@updatedAt @map("updated_at")` | 更新时间 |
 | `feedbacks` | `AiParseFeedback[]` | Y | - | `-` | 反馈 |
-
-### 6.8 `AlertEvent`
-
-表级属性：
-- `@@index([status, triggeredAt])`
-- `@@index([targetType, targetId])`
-- `@@map("alert_events")`
-
-| 字段 | 类型 | 必填 | 枚举 | Prisma 属性 | 字段说明 |
-|---|---|---|---|---|---|
-| `id` | `String` | Y | - | `@id @default(uuid()) @db.Uuid` | ID |
-| `type` | `String` | Y | - | `-` | 类型 |
-| `severity` | `AlertSeverity` | Y | LOW/MEDIUM/HIGH | `-` | 严重级别 |
-| `channel` | `AlertChannel` | Y | SMS/EMAIL/IN_APP | `-` | 渠道 |
-| `status` | `AlertStatus` | Y | PENDING/SENT/ACKED/SUPPRESSED | `-` | 状态 |
-| `targetType` | `AlertTargetType?` | N | PATENT/ORDER/LISTING/ACHIEVEMENT/AI_PARSE/IMPORT/PAYMENT/REFUND/SYSTEM | `@map("target_type")` | 目标类型 |
-| `targetId` | `String?` | N | - | `@map("target_id") @db.Uuid` | 目标ID |
-| `message` | `String?` | N | - | `-` | 消息 |
-| `triggeredAt` | `DateTime` | Y | - | `@map("triggered_at")` | 触发时间 |
-| `sentAt` | `DateTime?` | N | - | `@map("sent_at")` | 已发送时间 |
-| `createdAt` | `DateTime` | Y | - | `@default(now()) @map("created_at")` | 创建时间 |
 
 ### 6.9 `AuditLog`
 

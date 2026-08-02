@@ -4,20 +4,23 @@
 
 ## Summary
 
-- OpenAPI operations: 287
-- Frontend-used operations (client): 95
-- Frontend-used operations (admin): 156
+- OpenAPI operations: 286
+- Frontend-used operations (client): 96
+- Frontend-used operations (admin): 150
 - Fixture scenarios: 7
 
 ## Key Gaps
 
 - Frontend-used but missing from OpenAPI: 0
-- OpenAPI-defined but unused by frontend: 43
+- OpenAPI-defined but unused by frontend: 47
   - GET /WW_verify_YpAqDE4xoAPsmGSK.txt
   - GET /admin/achievements/:param/audit-logs
   - GET /admin/ai/parse-results
   - GET /admin/ai/parse-results/:param
   - GET /admin/config/banner
+  - GET /admin/config/hot-search
+  - GET /admin/config/sensitive-words
+  - GET /admin/config/taxonomy
   - GET /admin/deal-records/:param
   - GET /admin/deal-records/imports
   - GET /admin/listings/:param/audit-logs
@@ -43,8 +46,6 @@
   - POST /admin/achievements/:param/publish
   - POST /admin/deal-records/backfill/completed-orders
   - POST /admin/listings
-  - POST /admin/listings/:param/off-shelf
-  - POST /admin/listings/:param/publish
   - POST /admin/patent-maintenance/orders/:param/cancel
   - POST /admin/patent-maintenance/orders/:param/close
   - POST /admin/patent-maintenance/orders/:param/execution
@@ -55,8 +56,11 @@
   - POST /ai/agent/query
   - POST /ai/parse-results/:param/feedback
   - PUT /admin/config/banner
+  - PUT /admin/config/hot-search
+  - PUT /admin/config/sensitive-words
+  - PUT /admin/config/taxonomy
   - PUT /admin/listings/:param/featured
-- Frontend-used but missing in happy fixtures: 239
+- Frontend-used but missing in happy fixtures: 234
   - DELETE /achievements/:param/favorites
   - DELETE /admin/config/home-announcements/items/:param
   - DELETE /admin/config/home-announcements/templates/:param
@@ -71,19 +75,14 @@
   - GET /admin/achievements
   - GET /admin/achievements/:param
   - GET /admin/achievements/:param/materials
-  - GET /admin/alerts
   - GET /admin/audit-logs
   - GET /admin/cases
   - GET /admin/cases/:param
   - GET /admin/comments
-  - GET /admin/config/alerts
   - GET /admin/config/customer-service
   - GET /admin/config/home-announcements
   - GET /admin/config/home-landing
-  - GET /admin/config/hot-search
   - GET /admin/config/recommendation
-  - GET /admin/config/sensitive-words
-  - GET /admin/config/taxonomy
   - GET /admin/config/trade-rules
   - GET /admin/conversations/platform
   - GET /admin/dashboard/showcase-summary
@@ -107,7 +106,12 @@
   - GET /admin/patent-maintenance/orders
   - GET /admin/patent-maintenance/orders/:param/events
   - GET /admin/patent-maintenance/schedules
-  - ... (189 more)
+  - GET /admin/patent-maintenance/tasks
+  - GET /admin/patents
+  - GET /admin/patents/:param
+  - GET /admin/patents/jobs/import
+  - GET /admin/patents/jobs/import/:param/rows
+  - ... (184 more)
 
 ## Coverage Details (by operation)
 
@@ -130,20 +134,18 @@
 | adminGetAchievementMaterials | GET | /admin/achievements/:param/materials |  | Y |  |  |  |  |  |  |  |
 | adminListAiParseResults | GET | /admin/ai/parse-results |  |  |  |  |  |  |  |  |  |
 | adminGetAiParseResult | GET | /admin/ai/parse-results/:param |  |  |  |  |  |  |  |  |  |
-| adminListAlertEvents | GET | /admin/alerts |  | Y |  |  |  |  |  |  |  |
 | adminListAuditLogs | GET | /admin/audit-logs |  | Y |  |  |  |  |  |  |  |
 | adminListCases | GET | /admin/cases |  | Y |  |  |  |  |  |  |  |
 | adminGetCaseById | GET | /admin/cases/:param |  | Y |  |  |  |  |  |  |  |
 | adminListComments | GET | /admin/comments |  | Y |  |  |  |  |  |  |  |
-| adminGetAlertConfig | GET | /admin/config/alerts |  | Y |  |  |  |  |  |  |  |
 | adminGetBannerConfig | GET | /admin/config/banner |  |  |  |  |  |  |  |  |  |
 | adminGetCustomerServiceConfig | GET | /admin/config/customer-service |  | Y |  |  |  |  |  |  |  |
 | adminGetHomeAnnouncementsConfig | GET | /admin/config/home-announcements |  | Y |  |  |  |  |  |  |  |
 | adminGetHomeLandingConfig | GET | /admin/config/home-landing |  | Y |  |  |  |  |  |  |  |
-| adminGetHotSearchConfig | GET | /admin/config/hot-search |  | Y |  |  |  |  |  |  |  |
+| adminGetHotSearchConfig | GET | /admin/config/hot-search |  |  |  |  |  |  |  |  |  |
 | adminGetRecommendationConfig | GET | /admin/config/recommendation |  | Y |  |  |  |  |  |  |  |
-| adminGetSensitiveWordsConfig | GET | /admin/config/sensitive-words |  | Y |  |  |  |  |  |  |  |
-| adminGetTaxonomyConfig | GET | /admin/config/taxonomy |  | Y |  |  |  |  |  |  |  |
+| adminGetSensitiveWordsConfig | GET | /admin/config/sensitive-words |  |  |  |  |  |  |  |  |  |
+| adminGetTaxonomyConfig | GET | /admin/config/taxonomy |  |  |  |  |  |  |  |  |  |
 | adminGetTradeRulesConfig | GET | /admin/config/trade-rules |  | Y |  |  |  |  |  |  |  |
 | adminListPlatformConversations | GET | /admin/conversations/platform |  | Y |  |  |  |  |  |  |  |
 | adminGetDashboardShowcaseSummary | GET | /admin/dashboard/showcase-summary |  | Y |  |  |  |  |  |  |  |
@@ -287,7 +289,6 @@
 | adminOffShelfAchievement | POST | /admin/achievements/:param/off-shelf |  | Y |  |  |  |  |  |  |  |
 | adminPublishAchievement | POST | /admin/achievements/:param/publish |  |  |  |  |  |  |  |  |  |
 | adminRejectAchievement | POST | /admin/achievements/:param/reject |  | Y |  |  |  |  |  |  |  |
-| adminAcknowledgeAlertEvent | POST | /admin/alerts/:param/ack |  | Y |  |  |  |  |  |  |  |
 | adminCreateCase | POST | /admin/cases |  | Y |  |  |  |  |  |  |  |
 | adminAssignCase | POST | /admin/cases/:param/assign |  | Y |  |  |  |  |  |  |  |
 | adminAddCaseEvidence | POST | /admin/cases/:param/evidence |  | Y |  |  |  |  |  |  |  |
@@ -308,19 +309,21 @@
 | adminCreateIndustryTag | POST | /admin/industry-tags |  | Y |  |  |  |  |  |  |  |
 | adminCreateListing | POST | /admin/listings |  |  |  |  |  |  |  |  |  |
 | adminApproveListing | POST | /admin/listings/:param/approve |  | Y |  |  |  |  |  |  |  |
-| adminOffShelfListing | POST | /admin/listings/:param/off-shelf |  |  |  |  |  |  |  |  |  |
-| adminPublishListing | POST | /admin/listings/:param/publish |  |  |  |  |  |  |  |  |  |
+| adminOffShelfListing | POST | /admin/listings/:param/off-shelf |  | Y |  |  |  |  |  |  |  |
+| adminPublishListing | POST | /admin/listings/:param/publish |  | Y |  |  |  |  |  |  |  |
 | adminRejectListing | POST | /admin/listings/:param/reject |  | Y |  |  |  |  |  |  |  |
 | adminCreateListingBatchJob | POST | /admin/listings/jobs/batch |  | Y |  |  |  |  |  |  |  |
 | adminCreateListingImportJob | POST | /admin/listings/jobs/import |  | Y |  |  |  |  |  |  |  |
 | adminExecuteListingImportJob | POST | /admin/listings/jobs/import/:param/execute |  | Y |  |  |  |  |  |  |  |
 | adminValidateListingImportJob | POST | /admin/listings/jobs/import/:param/validate |  | Y |  |  |  |  |  |  |  |
+| adminRejectContractSignedSubmission | POST | /admin/orders/:param/contract/signed-submissions/:param/reject |  | Y |  |  |  |  |  |  |  |
 | adminUploadOrderContract | POST | /admin/orders/:param/contract/upload |  | Y |  |  |  |  |  |  |  |
 | adminIssueOrderInvoice | POST | /admin/orders/:param/invoice |  | Y |  |  |  |  |  |  |  |
 | adminConfirmContractSigned | POST | /admin/orders/:param/milestones/contract-signed |  | Y |  |  |  |  |  |  |  |
 | adminConfirmTransferCompleted | POST | /admin/orders/:param/milestones/transfer-completed |  | Y |  |  |  |  |  |  |  |
 | adminManualConfirmPayment | POST | /admin/orders/:param/payments/manual |  | Y |  |  |  |  |  |  |  |
 | adminConfirmManualPayout | POST | /admin/orders/:param/payouts/manual |  | Y |  |  |  |  |  |  |  |
+| adminRejectAssignedContractSignedSubmission | POST | /admin/orders/assigned/:param/contract/signed-submissions/:param/reject |  | Y |  |  |  |  |  |  |  |
 | adminUploadAssignedOrderContract | POST | /admin/orders/assigned/:param/contract/upload |  | Y |  |  |  |  |  |  |  |
 | adminConfirmAssignedOrderContractSigned | POST | /admin/orders/assigned/:param/milestones/contract-signed |  | Y |  |  |  |  |  |  |  |
 | adminApprovePatentClaim | POST | /admin/patent-claims/:param/approve |  | Y |  |  |  |  |  |  |  |
@@ -357,6 +360,7 @@
 | authWechatMpLogin | POST | /auth/wechat/mp-login | Y |  |  |  |  |  |  |  |  |
 | authWechatPhoneBind | POST | /auth/wechat/phone-bind | Y |  |  |  |  |  |  |  |  |
 | authWechatPhoneLogin | POST | /auth/wechat/phone-login | Y |  |  |  |  |  |  |  |  |
+| createContractSignedSubmission | POST | /contracts/:param/signed-submissions | Y |  |  |  |  |  |  |  |  |
 | uploadContractPdf | POST | /contracts/:param/upload | Y |  |  |  |  |  |  |  |  |
 | sendConversationMessage | POST | /conversations/:param/messages | Y | Y |  |  |  |  |  |  |  |
 | markConversationRead | POST | /conversations/:param/read | Y | Y |  |  |  |  |  |  |  |
@@ -386,16 +390,15 @@
 | upsertTechManagerConversation | POST | /tech-managers/:param/conversations | Y |  |  |  |  |  |  |  |  |
 | wechatContentSecurityNotify | POST | /webhooks/wechat/content-security |  |  |  |  |  |  |  |  |  |
 | wechatPayNotify | POST | /webhooks/wechatpay/notify |  |  |  |  |  |  |  |  |  |
-| adminUpdateAlertConfig | PUT | /admin/config/alerts |  | Y |  |  |  |  |  |  |  |
 | adminUpdateBannerConfig | PUT | /admin/config/banner |  |  |  |  |  |  |  |  |  |
 | adminUpdateCustomerServiceConfig | PUT | /admin/config/customer-service |  | Y |  |  |  |  |  |  |  |
 | adminUpdateHomeAnnouncementItem | PUT | /admin/config/home-announcements/items/:param |  | Y |  |  |  |  |  |  |  |
 | adminUpdateHomeAnnouncementTemplate | PUT | /admin/config/home-announcements/templates/:param |  | Y |  |  |  |  |  |  |  |
 | adminUpdateHomeLandingConfig | PUT | /admin/config/home-landing |  | Y |  |  |  |  |  |  |  |
-| adminUpdateHotSearchConfig | PUT | /admin/config/hot-search |  | Y |  |  |  |  |  |  |  |
+| adminUpdateHotSearchConfig | PUT | /admin/config/hot-search |  |  |  |  |  |  |  |  |  |
 | adminUpdateRecommendationConfig | PUT | /admin/config/recommendation |  | Y |  |  |  |  |  |  |  |
-| adminUpdateSensitiveWordsConfig | PUT | /admin/config/sensitive-words |  | Y |  |  |  |  |  |  |  |
-| adminUpdateTaxonomyConfig | PUT | /admin/config/taxonomy |  | Y |  |  |  |  |  |  |  |
+| adminUpdateSensitiveWordsConfig | PUT | /admin/config/sensitive-words |  |  |  |  |  |  |  |  |  |
+| adminUpdateTaxonomyConfig | PUT | /admin/config/taxonomy |  |  |  |  |  |  |  |  |  |
 | adminUpdateTradeRulesConfig | PUT | /admin/config/trade-rules |  | Y |  |  |  |  |  |  |  |
 | adminSetListingFeatured | PUT | /admin/listings/:param/featured |  |  |  |  |  |  |  |  |  |
 | adminUpsertOrderInvoice | PUT | /admin/orders/:param/invoice |  | Y |  |  |  |  |  |  |  |

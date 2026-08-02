@@ -97,8 +97,6 @@ This maps backend enforcement (`requirePermission`) to admin modules/pages:
   - `/admin/config`
 - `report.read`, `report.export`:
   - `/admin/reports`
-- `alert.manage`:
-  - `/admin/alerts`
 - `rbac.manage`:
   - `/admin/rbac/*` (role/permission/user management, staff onboarding)
 - `auditLog.read`:
