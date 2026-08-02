@@ -1,4 +1,4 @@
-import { Button, Card, Collapse, Descriptions, Drawer, Form, Input, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, Collapse, Descriptions, Drawer, Form, Input, Segmented, Select, Space, Table, Tag, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { apiGet, apiPatch, apiPost } from '../lib/api';
@@ -107,6 +107,7 @@ export function AchievementsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
   const [data, setData] = useState<PagedAchievements | null>(null);
+  const [viewMode, setViewMode] = useState<'REVIEW' | 'DRAFTS'>('REVIEW');
   const [q, setQ] = useState('');
   const [auditStatus, setAuditStatus] = useState<AuditStatus | ''>('');
   const [status, setStatus] = useState<ContentStatus | ''>('');
@@ -142,6 +143,7 @@ export function AchievementsPage() {
   const detailSeqRef = useRef(0);
   const detailIdRef = useRef<string | null>(null);
 
+  const isDraftMode = viewMode === 'DRAFTS';
   const rows = useMemo(() => data?.items || [], [data?.items]);
   const loadAchievementContext = useCallback(async (id: string) => {
     const [detail, mat] = await Promise.all([
@@ -160,8 +162,9 @@ export function AchievementsPage() {
     try {
       const d = await apiGet<PagedAchievements>('/admin/achievements', {
         q: q.trim() || undefined,
-        auditStatus: auditStatus || undefined,
-        status: status || undefined,
+        auditStatus: isDraftMode ? undefined : auditStatus || undefined,
+        status: isDraftMode ? 'DRAFT' : status || undefined,
+        excludeStatus: isDraftMode ? undefined : !status ? 'DRAFT' : undefined,
         source: source || undefined,
         page: nextPage,
         pageSize: nextPageSize,
@@ -177,7 +180,7 @@ export function AchievementsPage() {
       if (seq !== loadSeqRef.current) return;
       setLoading(false);
     }
-  }, [auditStatus, page, pageSize, q, source, status]);
+  }, [auditStatus, isDraftMode, page, pageSize, q, source, status]);
 
   useEffect(() => {
     void load();
@@ -463,6 +466,18 @@ export function AchievementsPage() {
 
         {error ? <RequestErrorAlert error={error} onRetry={load} /> : null}
 
+        <Segmented
+          value={viewMode}
+          onChange={(value) => {
+            setViewMode(value as 'REVIEW' | 'DRAFTS');
+            setPage(1);
+          }}
+          options={[
+            { label: '待处理', value: 'REVIEW' },
+            { label: '草稿箱', value: 'DRAFTS' },
+          ]}
+        />
+
         <Space wrap size={12}>
           <Input
             value={q}
@@ -472,28 +487,31 @@ export function AchievementsPage() {
             onChange={(e) => setQ(e.target.value)}
             onPressEnter={handleSearch}
           />
-          <Select
-            value={auditStatus}
-            style={{ width: 160 }}
-            onChange={(v) => setAuditStatus((v as AuditStatus) || '')}
-            options={[
-              { value: '', label: '全部审核状态' },
-              { value: 'PENDING', label: '待审核' },
-              { value: 'APPROVED', label: '已通过' },
-              { value: 'REJECTED', label: '已驳回' },
-            ]}
-          />
-          <Select
-            value={status}
-            style={{ width: 160 }}
-            onChange={(v) => setStatus((v as ContentStatus) || '')}
-            options={[
-              { value: '', label: '全部上架状态' },
-              { value: 'DRAFT', label: '草稿' },
-              { value: 'ACTIVE', label: '上架中' },
-              { value: 'OFF_SHELF', label: '已下架' },
-            ]}
-          />
+          {!isDraftMode ? (
+            <>
+              <Select
+                value={auditStatus}
+                style={{ width: 160 }}
+                onChange={(v) => setAuditStatus((v as AuditStatus) || '')}
+                options={[
+                  { value: '', label: '全部审核状态' },
+                  { value: 'PENDING', label: '待审核' },
+                  { value: 'APPROVED', label: '已通过' },
+                  { value: 'REJECTED', label: '已驳回' },
+                ]}
+              />
+              <Select
+                value={status}
+                style={{ width: 160 }}
+                onChange={(v) => setStatus((v as ContentStatus) || '')}
+                options={[
+                  { value: '', label: '全部上架状态' },
+                  { value: 'ACTIVE', label: '上架中' },
+                  { value: 'OFF_SHELF', label: '已下架' },
+                ]}
+              />
+            </>
+          ) : null}
           <Select
             value={source}
             style={{ width: 160 }}
@@ -505,6 +523,8 @@ export function AchievementsPage() {
           </Button>
           <Button onClick={openCreate}>新建成果</Button>
         </Space>
+
+        {isDraftMode ? <Typography.Text type="secondary">草稿箱仅用于查看草稿，不进入待审核队列。</Typography.Text> : null}
 
         <Table<AchievementItem>
           rowKey="id"

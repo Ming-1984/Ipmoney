@@ -495,6 +495,47 @@ describe('AchievementsService admin update suite', () => {
     expect(result.items[1]).toMatchObject({ id: '44444444-4444-4444-8444-444444444444', moderationStatus: 'PENDING' });
   });
 
+  it('listAdmin can exclude draft achievements from default admin views', async () => {
+    prisma.achievement.findMany.mockResolvedValueOnce([
+      {
+        id: ACHIEVEMENT_ID,
+        publisherUserId: PUBLISHER_ID,
+        title: 'Ready Achievement',
+        summary: null,
+        source: 'ADMIN',
+        auditStatus: 'APPROVED',
+        status: 'ACTIVE',
+        externalId: null,
+        sourceRawCategory: null,
+        sourceRawStatus: null,
+        sourceBatch: null,
+        sourceRawRegion: null,
+        sourceOrgName: null,
+        maturity: null,
+        regionCode: null,
+        keywordsJson: [],
+        cooperationModesJson: [],
+        industryTagsJson: [],
+        stats: null,
+        coverFile: null,
+        createdAt: new Date('2026-06-15T00:00:00.000Z'),
+      },
+    ]);
+    prisma.achievement.count.mockResolvedValueOnce(1);
+
+    const result = await service.listAdmin({ excludeStatus: 'draft', page: '1', pageSize: '10' });
+
+    expect(prisma.achievement.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { status: { not: 'DRAFT' } },
+        skip: 0,
+        take: 10,
+      }),
+    );
+    expect(prisma.achievement.count).toHaveBeenCalledWith({ where: { status: { not: 'DRAFT' } } });
+    expect(result.page).toEqual({ page: 1, pageSize: 10, total: 1 });
+  });
+
   it('listAdmin prioritizes strong title and publisher matches before weaker summary matches', async () => {
     prisma.achievement.findMany.mockResolvedValueOnce([
       {

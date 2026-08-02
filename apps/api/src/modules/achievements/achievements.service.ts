@@ -454,12 +454,14 @@ export class AchievementsService {
 
     const hasAuditStatus = this.hasOwn(query, 'auditStatus');
     const hasStatus = this.hasOwn(query, 'status');
+    const hasExcludeStatus = this.hasOwn(query, 'excludeStatus');
     const hasSource = this.hasOwn(query, 'source');
     const hasPublisherUserId = this.hasOwn(query, 'publisherUserId');
     const hasRegionCode = this.hasOwn(query, 'regionCode');
 
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(query?.auditStatus, 'auditStatus') : undefined;
     const status = hasStatus ? this.parseStatusStrict(query?.status, 'status') : undefined;
+    const excludeStatus = hasExcludeStatus ? this.parseStatusStrict(query?.excludeStatus, 'excludeStatus') : undefined;
     const source = hasSource ? this.parseSourceStrict(query?.source, 'source') : undefined;
     const publisherUserId = hasPublisherUserId
       ? this.parseUuidStrict(query?.publisherUserId, 'publisherUserId')
@@ -468,7 +470,11 @@ export class AchievementsService {
 
     const where: any = {};
     if (auditStatus) where.auditStatus = auditStatus;
-    if (status) where.status = status;
+    if (status) {
+      where.status = status;
+    } else if (excludeStatus) {
+      where.status = { not: excludeStatus };
+    }
     if (source) where.source = source;
     if (publisherUserId) where.publisherUserId = publisherUserId;
     if (regionCode) where.regionCode = regionCode;
