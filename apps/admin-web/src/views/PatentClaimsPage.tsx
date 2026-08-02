@@ -1,4 +1,4 @@
-import { Button, Card, Input, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, Descriptions, Drawer, Input, Select, Space, Table, Tag, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useState } from 'react';
 
 import { apiGet, apiPost } from '../lib/api';
@@ -12,6 +12,9 @@ type ClaimStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 type ClaimItem = {
   id: string;
   patentId: string;
+  patentTitle?: string | null;
+  patentApplicationNoDisplay?: string | null;
+  patentApplicationNoNorm?: string | null;
   applicantUserId: string;
   applicantDisplayName?: string | null;
   status: ClaimStatus;
@@ -43,6 +46,10 @@ function displayClaimText(value: unknown, fallback = '待确认'): string {
   return normalizeUserFacingText(value) || fallback;
 }
 
+function materialCountText(row: ClaimItem): string {
+  return `${row.evidenceFileIds?.length || 0} 份`;
+}
+
 export function PatentClaimsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
@@ -52,6 +59,8 @@ export function PatentClaimsPage() {
   const [draftQ, setDraftQ] = useState('');
   const [appliedStatus, setAppliedStatus] = useState<ClaimStatus | ''>('PENDING');
   const [appliedQ, setAppliedQ] = useState('');
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailTarget, setDetailTarget] = useState<ClaimItem | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -108,6 +117,8 @@ export function PatentClaimsPage() {
           { idempotencyKey: `admin-claim-approve-${row.id}-${Date.now()}` },
         );
         message.success('认领已通过');
+        setDetailOpen(false);
+        setDetailTarget(null);
         void load();
       } catch (e: any) {
         message.error(e?.message || '通过失败');
@@ -135,6 +146,8 @@ export function PatentClaimsPage() {
           { idempotencyKey: `admin-claim-reject-${row.id}-${Date.now()}` },
         );
         message.success('认领已驳回');
+        setDetailOpen(false);
+        setDetailTarget(null);
         void load();
       } catch (e: any) {
         message.error(e?.message || '驳回失败');
@@ -202,7 +215,7 @@ export function PatentClaimsPage() {
               ),
             },
             { title: '状态', dataIndex: 'status', width: 100, render: (v: ClaimStatus) => statusTag(v) },
-            { title: '证据材料', render: (_, row) => `${row.evidenceFileIds?.length || 0} 份`, width: 110 },
+            { title: '证据材料', render: (_, row) => materialCountText(row), width: 110 },
             { title: '提交时间', dataIndex: 'submittedAt', width: 160, render: (v: string) => formatTimeSmart(v) },
             {
               title: '审核人',
@@ -213,24 +226,90 @@ export function PatentClaimsPage() {
             { title: '审核备注', dataIndex: 'reviewComment', width: 200, render: (v: string | null | undefined) => displayClaimText(v) },
             {
               title: '操作',
-              width: 170,
-              render: (_, row) =>
-                row.status === 'PENDING' ? (
-                  <Space>
-                    <Button size="small" type="primary" onClick={() => void approve(row)}>
-                      通过
-                    </Button>
-                    <Button size="small" danger onClick={() => void reject(row)}>
-                      驳回
-                    </Button>
-                  </Space>
-                ) : (
-                  <Typography.Text type="secondary">已处理</Typography.Text>
-                ),
+              width: 230,
+              render: (_, row) => (
+                <Space>
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      setDetailTarget(row);
+                      setDetailOpen(true);
+                    }}
+                  >
+                    详情
+                  </Button>
+                  {row.status === 'PENDING' ? (
+                    <>
+                      <Button size="small" type="primary" onClick={() => void approve(row)}>
+                        通过
+                      </Button>
+                      <Button size="small" danger onClick={() => void reject(row)}>
+                        驳回
+                      </Button>
+                    </>
+                  ) : (
+                    <Typography.Text type="secondary">已处理</Typography.Text>
+                  )}
+                </Space>
+              ),
             },
           ]}
         />
       </Card>
+
+      <Drawer
+        title="认领详情"
+        open={detailOpen}
+        onClose={() => {
+          setDetailOpen(false);
+          setDetailTarget(null);
+        }}
+        width={640}
+        destroyOnClose
+      >
+        {detailTarget ? (
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Descriptions size="small" column={1} bordered>
+              <Descriptions.Item label="认领单号">
+                <Typography.Text copyable={{ text: detailTarget.id }}>{detailTarget.id}</Typography.Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="专利记录编号">
+                <Typography.Text copyable={{ text: detailTarget.patentId }}>{detailTarget.patentId}</Typography.Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="专利名称">{displayClaimText(detailTarget.patentTitle)}</Descriptions.Item>
+              <Descriptions.Item label="申请号">
+                {displayClaimText(detailTarget.patentApplicationNoDisplay || detailTarget.patentApplicationNoNorm)}
+              </Descriptions.Item>
+              <Descriptions.Item label="申请人">
+                {displayClaimText(detailTarget.applicantDisplayName, '申请人待确认')}
+              </Descriptions.Item>
+              <Descriptions.Item label="认领状态">{statusTag(detailTarget.status)}</Descriptions.Item>
+              <Descriptions.Item label="提交时间">{formatTimeSmart(detailTarget.submittedAt)}</Descriptions.Item>
+              <Descriptions.Item label="材料数量">{materialCountText(detailTarget)}</Descriptions.Item>
+              <Descriptions.Item label="认领理由">
+                <Typography.Paragraph style={{ marginBottom: 0, whiteSpace: 'pre-wrap' }}>
+                  {displayClaimText(detailTarget.claimReason, '暂无认领说明')}
+                </Typography.Paragraph>
+              </Descriptions.Item>
+              <Descriptions.Item label="审核人">{displayClaimText(detailTarget.reviewerDisplayName, '待处理')}</Descriptions.Item>
+              <Descriptions.Item label="审核时间">
+                {detailTarget.reviewedAt ? formatTimeSmart(detailTarget.reviewedAt) : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="审核备注">{displayClaimText(detailTarget.reviewComment)}</Descriptions.Item>
+            </Descriptions>
+            {detailTarget.status === 'PENDING' ? (
+              <Space>
+                <Button type="primary" onClick={() => void approve(detailTarget)}>
+                  通过
+                </Button>
+                <Button danger onClick={() => void reject(detailTarget)}>
+                  驳回
+                </Button>
+              </Space>
+            ) : null}
+          </Space>
+        ) : null}
+      </Drawer>
     </Space>
   );
 }
