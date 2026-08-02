@@ -20,6 +20,11 @@ import { isSuperAdminSession, type AdminSessionInfo } from '../lib/adminSession'
 import { normalizeUserFacingText } from '../lib/userFacingText';
 import { confirmActionWithReason } from '../ui/confirm';
 import { ImageUrlUploadField } from '../ui/ImageUrlUploadField';
+import heroSpotlightPreviewImage from '../assets/home/promo-certificate.png';
+import zoneAwardPreviewImage from '../assets/home/zones/zone-award.jpg';
+import zoneHighTechRetiredPreviewImage from '../assets/home/zones/zone-high-tech-retired.jpg';
+import zoneOpenLicensePreviewImage from '../assets/home/zones/zone-open-license.jpg';
+import zoneSleepingPreviewImage from '../assets/home/zones/zone-sleeping.jpg';
 
 type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'FIVE_STAR' | 'OPEN_LICENSE';
 type PatentType = 'INVENTION' | 'UTILITY_MODEL' | 'DESIGN';
@@ -124,13 +129,39 @@ const TOPIC_META: Record<ListingTopic, { featuredId: string; builtinImageUrl: st
 };
 
 const DEFAULT_FEATURED_ITEM_COUNT = 4;
-const DEFAULT_HERO_SPOTLIGHT_IMAGE_URL = 'https://ipmoney.cn/static/images/assets/home/promo-certificate.png';
+const LEGACY_HERO_SPOTLIGHT_IMAGE_URL = 'https://ipmoney.cn/static/images/assets/home/promo-certificate.png';
+const DEFAULT_HERO_SPOTLIGHT_IMAGE_URL = '';
+const BLOCKED_HOME_LANDING_TEXT_REPLACEMENTS: ReadonlyArray<{ pattern: RegExp; replacement: string }> = [
+  { pattern: /0\s*元/gi, replacement: '' },
+  { pattern: /零\s*元/g, replacement: '' },
+  { pattern: /免费/g, replacement: '' },
+  { pattern: /无\s*风险/g, replacement: '流程可查' },
+  { pattern: /0\s*风险/gi, replacement: '流程可查' },
+];
+const BUILTIN_IMAGE_PREVIEW_MAP: Record<string, string> = {
+  'builtin://zone-retired': zoneHighTechRetiredPreviewImage,
+  'builtin://zone-high-tech-retired': zoneHighTechRetiredPreviewImage,
+  'builtin://zone-sleeping': zoneSleepingPreviewImage,
+  'builtin://zone-award-winning': zoneAwardPreviewImage,
+  'builtin://zone-award': zoneAwardPreviewImage,
+  'builtin://zone-five-star': zoneAwardPreviewImage,
+  'builtin://zone-open-license': zoneOpenLicensePreviewImage,
+};
 
 function normalizeOperatorText(value: unknown, fallback = '', maxLength = 1000): string {
   const normalized = normalizeUserFacingText(value);
   if (!normalized) return fallback;
   if (normalized.toLowerCase() === 'string') return fallback;
   return normalized.slice(0, maxLength);
+}
+
+function sanitizeHomeLandingText(value: unknown, fallback = '', maxLength = 1000): string {
+  let normalized = normalizeOperatorText(value, fallback, maxLength);
+  for (const item of BLOCKED_HOME_LANDING_TEXT_REPLACEMENTS) {
+    normalized = normalized.replace(item.pattern, item.replacement);
+  }
+  normalized = normalized.replace(/流程可查流程可查/g, '流程可查').replace(/\s{2,}/g, ' ').trim();
+  return (normalized || fallback).slice(0, maxLength);
 }
 
 function normalizePositiveOrder(value: unknown, fallback: number): number {
@@ -159,6 +190,20 @@ function defaultLabelForTopic(topic?: ListingTopic | null): string {
   return '特色卡片';
 }
 
+function resolveHeroSpotlightPreviewUrl(imageUrl?: string | null): string {
+  const normalized = String(imageUrl || '').trim();
+  if (!normalized || normalized === LEGACY_HERO_SPOTLIGHT_IMAGE_URL) return heroSpotlightPreviewImage;
+  return normalized;
+}
+
+function resolveFeaturedImagePreviewUrl(imageUrl: string | undefined, topic?: ListingTopic | null): string | undefined {
+  const normalized = String(imageUrl || '').trim();
+  if (normalized.startsWith('builtin://')) {
+    return BUILTIN_IMAGE_PREVIEW_MAP[normalized] || BUILTIN_IMAGE_PREVIEW_MAP[defaultBuiltinImageForTopic(topic)];
+  }
+  return normalized || undefined;
+}
+
 function normalizeHeroSpotlightActionPayload(input: unknown): HeroSpotlight['actionPayload'] {
   const payload = input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
   const tabRaw = String(payload.tab || '')
@@ -181,11 +226,12 @@ function normalizeHeroSpotlightActionPayload(input: unknown): HeroSpotlight['act
 
 function normalizeHeroSpotlight(input: unknown): HeroSpotlight {
   const source = input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
+  const imageUrl = normalizeOperatorText(source.imageUrl, DEFAULT_HERO_SPOTLIGHT_IMAGE_URL, 1000);
   return {
     enabled: source.enabled !== false,
-    imageUrl: normalizeOperatorText(source.imageUrl, DEFAULT_HERO_SPOTLIGHT_IMAGE_URL, 1000),
-    title: normalizeOperatorText(source.title, '', 24),
-    subtitle: normalizeOperatorText(source.subtitle, '', 40),
+    imageUrl: imageUrl === LEGACY_HERO_SPOTLIGHT_IMAGE_URL ? DEFAULT_HERO_SPOTLIGHT_IMAGE_URL : imageUrl,
+    title: sanitizeHomeLandingText(source.title, '', 24),
+    subtitle: sanitizeHomeLandingText(source.subtitle, '', 40),
     actionPayload: normalizeHeroSpotlightActionPayload(source.actionPayload),
   };
 }
@@ -194,7 +240,7 @@ function defaultHomeLandingConfig(): HomeLandingConfig {
   return {
     schemaVersion: 1,
     hero: {
-      tags: ['0元专利托管', '0元代办过户', '0风险交易'],
+      tags: ['专利托管', '过户协助', '流程可查'],
       searchPlaceholder: '开始寻找被你发现的IP',
     },
     heroSpotlight: {
@@ -313,8 +359,8 @@ function normalizeFeaturedItems(input: unknown, fallbackItems: FeaturedItem[]): 
 
     out.push({
       id,
-      title: normalizeOperatorText(raw?.title, fallbackItem.title, 24),
-      subtitle: normalizeOperatorText(raw?.subtitle, fallbackItem.subtitle, 40),
+      title: sanitizeHomeLandingText(raw?.title, fallbackItem.title, 24),
+      subtitle: sanitizeHomeLandingText(raw?.subtitle, fallbackItem.subtitle, 40),
       imageUrl: normalizeOperatorText(raw?.imageUrl, fallbackItem.imageUrl, 1000),
       enabled: raw?.enabled !== false,
       order: normalizePositiveOrder(orderRaw, fallbackItem.order),
@@ -390,8 +436,8 @@ function buildPersistedHomeLandingConfig(input: HomeLandingConfig): HomeLandingC
     return {
       ...item,
       id: defaultFeaturedIdForTopic(topic, normalizeOperatorText(item.id, '', 40), index),
-      title: normalizeOperatorText(item.title, defaultLabelForTopic(topic), 24),
-      subtitle: normalizeOperatorText(item.subtitle, '请填写副标题', 40),
+      title: sanitizeHomeLandingText(item.title, defaultLabelForTopic(topic), 24),
+      subtitle: sanitizeHomeLandingText(item.subtitle, '请填写副标题', 40),
       imageUrl:
         currentImageUrl && !currentImageUrl.startsWith('builtin://') ? currentImageUrl : defaultImageUrl,
       order: normalizePositiveOrder(item.order, (index + 1) * 10),
@@ -410,8 +456,8 @@ function buildPersistedHomeLandingConfig(input: HomeLandingConfig): HomeLandingC
     heroSpotlight: {
       enabled: normalized.heroSpotlight.enabled,
       imageUrl: heroSpotlightImage || DEFAULT_HERO_SPOTLIGHT_IMAGE_URL,
-      title: normalizeOperatorText(normalized.heroSpotlight.title, '', 24),
-      subtitle: normalizeOperatorText(normalized.heroSpotlight.subtitle, '', 40),
+      title: sanitizeHomeLandingText(normalized.heroSpotlight.title, '', 24),
+      subtitle: sanitizeHomeLandingText(normalized.heroSpotlight.subtitle, '', 40),
       actionPayload: {
         ...(heroSpotlightTab ? { tab: heroSpotlightTab } : {}),
         ...(heroSpotlightTab && normalized.heroSpotlight.actionPayload.listingTopic
@@ -460,10 +506,10 @@ function normalizeHomeLandingConfig(input: unknown): HomeLandingConfig {
   }));
 
   const tags = (Array.isArray(heroRaw.tags) ? heroRaw.tags : fallback.hero.tags)
-    .map((item, index) => normalizeOperatorText(item, fallback.hero.tags[index] || '', 20))
+    .map((item, index) => sanitizeHomeLandingText(item, fallback.hero.tags[index] || '', 20))
     .filter(Boolean)
     .slice(0, 3);
-  const searchPlaceholder = normalizeOperatorText(heroRaw.searchPlaceholder, fallback.hero.searchPlaceholder, 40);
+  const searchPlaceholder = sanitizeHomeLandingText(heroRaw.searchPlaceholder, fallback.hero.searchPlaceholder, 40);
 
   return {
     schemaVersion: 1,
@@ -473,8 +519,8 @@ function normalizeHomeLandingConfig(input: unknown): HomeLandingConfig {
     },
     heroSpotlight: normalizeHeroSpotlight(heroSpotlightRaw),
     sectionTexts: {
-      featuredTitle: normalizeOperatorText(sectionRaw.featuredTitle, fallback.sectionTexts.featuredTitle, 20),
-      featuredMoreText: normalizeOperatorText(sectionRaw.featuredMoreText, fallback.sectionTexts.featuredMoreText, 10),
+      featuredTitle: sanitizeHomeLandingText(sectionRaw.featuredTitle, fallback.sectionTexts.featuredTitle, 20),
+      featuredMoreText: sanitizeHomeLandingText(sectionRaw.featuredMoreText, fallback.sectionTexts.featuredMoreText, 10),
     },
     featuredZones: {
       enabled: featuredRaw.enabled !== false,
@@ -551,10 +597,6 @@ export function HomeLandingConfigPage() {
   }, [form]);
 
   const validateBeforeSave = useCallback((payload: HomeLandingConfig): string | null => {
-    if (payload.heroSpotlight.enabled && !payload.heroSpotlight.imageUrl.trim()) {
-      return '首页固定展示图已启用时，必须上传展示图片。';
-    }
-
     if (payload.featuredZones.enabled) {
       const enabledItems = (payload.featuredZones.items || []).filter((item) => item.enabled);
       if (enabledItems.length < DEFAULT_FEATURED_ITEM_COUNT) {
@@ -640,18 +682,24 @@ export function HomeLandingConfigPage() {
     }
   }, [jsonText, persist]);
 
+  const saveModuleButton = useCallback(
+    (label = '保存') => (
+      <Button size="small" type="primary" loading={saving} onClick={() => void saveVisual()}>
+        {label}
+      </Button>
+    ),
+    [saveVisual, saving],
+  );
+
   const panelItems = [
     {
       key: 'visual',
       label: '可视化编辑',
       children: (
         <Space direction="vertical" size={16} style={{ width: '100%' }}>
-          <Card>
-            <Typography.Title level={4} style={{ marginTop: 0 }}>
-              首页首屏文案
-            </Typography.Title>
+          <Card title="首页首屏文案" extra={saveModuleButton()}>
             <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
-              这里改的是首页最上面第一屏的卖点短语、搜索框提示词，以及“特色专区”的标题文案。
+              这里改的是首页最上面第一屏的卖点短语、搜索框提示词，以及“特色专区”的标题文案。保存时会自动屏蔽“0元、零元、免费、无风险、0风险”等高风险宣传词。
             </Typography.Paragraph>
             <div
               style={{
@@ -662,13 +710,13 @@ export function HomeLandingConfigPage() {
               }}
             >
               <Form.Item label="首页卖点 1" name={['hero', 'tags', 0]} style={{ marginBottom: 0 }}>
-                <Input maxLength={20} placeholder="例如：0元专利托管" />
+                <Input maxLength={20} placeholder="例如：专利托管" />
               </Form.Item>
               <Form.Item label="首页卖点 2" name={['hero', 'tags', 1]} style={{ marginBottom: 0 }}>
-                <Input maxLength={20} placeholder="例如：0元代办过户" />
+                <Input maxLength={20} placeholder="例如：过户协助" />
               </Form.Item>
               <Form.Item label="首页卖点 3" name={['hero', 'tags', 2]} style={{ marginBottom: 0 }}>
-                <Input maxLength={20} placeholder="例如：0风险交易" />
+                <Input maxLength={20} placeholder="例如：流程可查" />
               </Form.Item>
               <Form.Item label="搜索框占位文案" name={['hero', 'searchPlaceholder']} style={{ marginBottom: 0 }}>
                 <Input maxLength={40} placeholder="例如：开始寻找被你发现的IP" />
@@ -682,12 +730,9 @@ export function HomeLandingConfigPage() {
             </div>
           </Card>
 
-          <Card>
-            <Typography.Title level={4} style={{ marginTop: 0 }}>
-              首页固定展示图
-            </Typography.Title>
+          <Card title="首页固定展示图" extra={saveModuleButton()}>
             <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
-              这里修改首页这张主展示图的图片、文案和点击后的去向。
+              这里修改首页这张主展示图的图片、文案和点击后的去向。未上传自定义图时，系统会使用默认展示图。
             </Typography.Paragraph>
             <Space direction="vertical" size={12} style={{ width: '100%' }}>
               <Space wrap size={16}>
@@ -713,6 +758,7 @@ export function HomeLandingConfigPage() {
                           maxSizeMb={10}
                           allowUrlInput={false}
                           uploadButtonText="上传展示图片"
+                          previewUrl={resolveHeroSpotlightPreviewUrl(currentImage)}
                           onChange={(next) => {
                             form.setFieldValue(imagePath, next);
                             void syncJsonFromForm();
@@ -787,10 +833,7 @@ export function HomeLandingConfigPage() {
             </Space>
           </Card>
 
-          <Card>
-            <Typography.Title level={4} style={{ marginTop: 0 }}>
-              特色专区基础设置
-            </Typography.Title>
+          <Card title="特色专区基础设置" extra={saveModuleButton()}>
             <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
               首页特色专区固定展示 4 张卡片。系统会按“展示顺序”从小到大，自动取前 4 张启用中的卡片显示在首页。
             </Typography.Paragraph>
@@ -802,10 +845,7 @@ export function HomeLandingConfigPage() {
             </Space>
           </Card>
 
-          <Card>
-            <Typography.Title level={4} style={{ marginTop: 0 }}>
-              首页特色入口
-            </Typography.Title>
+          <Card title="首页特色入口" extra={saveModuleButton()}>
             <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
               首页固定维护 4 张特色卡片。每张卡片只需要设置展示内容和点击后的筛选条件，用户点击后会固定进入列表页。
             </Typography.Paragraph>
@@ -813,7 +853,7 @@ export function HomeLandingConfigPage() {
               {(fields) => (
                 <Space direction="vertical" size={12} style={{ width: '100%' }}>
                   {fields.map((field, index) => (
-                    <Card key={field.key} size="small" title={`卡片 ${index + 1}`}>
+                    <Card key={field.key} size="small" title={`卡片 ${index + 1}`} extra={saveModuleButton()}>
                       <Space direction="vertical" size={10} style={{ width: '100%' }}>
                         <Typography.Text strong>展示内容</Typography.Text>
                         <Space wrap size={12}>
@@ -855,6 +895,7 @@ export function HomeLandingConfigPage() {
                                     maxSizeMb={10}
                                     allowUrlInput={false}
                                     uploadButtonText="上传替换图片"
+                                    previewUrl={resolveFeaturedImagePreviewUrl(currentImage, selectedTopic)}
                                     builtinDisplayText={
                                       selectedTopic
                                         ? `当前使用“${defaultLabelForTopic(selectedTopic)}”的系统默认配图，上传后会自动替换。`

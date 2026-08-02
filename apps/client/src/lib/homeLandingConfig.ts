@@ -79,9 +79,14 @@ const LISTING_TOPIC_SET = new Set<ListingTopic>(LISTING_TOPIC_DEFAULTS.map((item
 const PATENT_TYPE_SET = new Set<PatentType>(['INVENTION', 'UTILITY_MODEL', 'DESIGN']);
 const SAFE_FEATURED_TITLE = '\u7cbe\u9009\u4e13\u5229\u63a8\u8350';
 const SAFE_HERO_SPOTLIGHT_TITLE = '\u4e13\u5229\u4fe1\u606f';
-const ZERO_CODE = 48;
-const YUAN_CODE = 20803;
-const RISK_CODES = [39118, 38505];
+const LEGACY_HERO_SPOTLIGHT_IMAGE_URL = 'https://ipmoney.cn/static/images/assets/home/promo-certificate.png';
+const HOME_LANDING_TEXT_REPLACEMENTS: ReadonlyArray<{ pattern: RegExp; replacement: string }> = [
+  { pattern: /0\s*\u5143/gi, replacement: '' },
+  { pattern: /\u96f6\s*\u5143/g, replacement: '' },
+  { pattern: /\u514d\u8d39/g, replacement: '' },
+  { pattern: /\u65e0\s*\u98ce\u9669/g, replacement: '\u6d41\u7a0b\u53ef\u67e5' },
+  { pattern: /0\s*\u98ce\u9669/gi, replacement: '\u6d41\u7a0b\u53ef\u67e5' },
+];
 const LEGACY_HERO_SPOTLIGHT_TITLES = new Set([
   '\u4e0a\u67b6\u4e13\u5229',
   '\u70b9\u51fb\u67e5\u770b\u4e0a\u67b6\u4e13\u5229',
@@ -107,25 +112,38 @@ function containsCodeSequence(text: string, codes: number[]): boolean {
 }
 
 function normalizeHomeHeroTag(input: unknown): string {
-  const text = String(input || '').trim();
-  if (text.charCodeAt(0) !== ZERO_CODE) return text;
-  if (text.charCodeAt(1) === YUAN_CODE) {
-    return text.length > 4 ? text.slice(2) : '\u8fc7\u6237\u534f\u52a9';
+  return sanitizeHomeLandingText(input, '', 20);
+}
+
+function sanitizeHomeLandingText(input: unknown, fallback = '', maxLength = 1000): string {
+  let text = String(input || '').trim() || fallback;
+  for (const item of HOME_LANDING_TEXT_REPLACEMENTS) {
+    text = text.replace(item.pattern, item.replacement);
   }
-  if (containsCodeSequence(text, RISK_CODES)) return '\u6d41\u7a0b\u53ef\u67e5';
-  return text;
+  text = text
+    .replace(/\u6d41\u7a0b\u53ef\u67e5\u6d41\u7a0b\u53ef\u67e5/g, '\u6d41\u7a0b\u53ef\u67e5')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  return (text || fallback).slice(0, maxLength);
 }
 
 function normalizeFeaturedTitle(input: unknown, fallback: string): string {
   const text = String(input || fallback).trim() || fallback;
-  return SENSITIVE_FEATURED_TITLE_CODES.some((codes) => containsCodeSequence(text, codes))
+  const normalized = SENSITIVE_FEATURED_TITLE_CODES.some((codes) => containsCodeSequence(text, codes))
     ? SAFE_FEATURED_TITLE
     : text;
+  return sanitizeHomeLandingText(normalized, fallback, 20);
 }
 
 function normalizeHeroSpotlightTitle(input: unknown): string {
   const text = String(input || '').trim();
-  return LEGACY_HERO_SPOTLIGHT_TITLES.has(text) ? SAFE_HERO_SPOTLIGHT_TITLE : text.slice(0, 24);
+  return sanitizeHomeLandingText(LEGACY_HERO_SPOTLIGHT_TITLES.has(text) ? SAFE_HERO_SPOTLIGHT_TITLE : text, '', 24);
+}
+
+function normalizeHeroSpotlightImageUrl(input: unknown, fallback: string): string {
+  const text = String(input || '').trim().slice(0, 1000);
+  if (!text || text === LEGACY_HERO_SPOTLIGHT_IMAGE_URL) return fallback;
+  return text;
 }
 
 export function defaultHomeLandingConfig(): HomeLandingConfig {
@@ -256,8 +274,8 @@ function normalizeFeaturedItems(input: unknown): HomeLandingFeaturedItem[] {
       .toUpperCase();
     out.push({
       id,
-      title: String(raw?.title || '').trim().slice(0, 24),
-      subtitle: String(raw?.subtitle || '').trim().slice(0, 40),
+      title: sanitizeHomeLandingText(raw?.title, '', 24),
+      subtitle: sanitizeHomeLandingText(raw?.subtitle, '', 40),
       imageUrl: String(raw?.imageUrl || '').trim().slice(0, 1000),
       enabled: raw?.enabled !== false,
       order: Number.isSafeInteger(Number(raw?.order)) ? Number(raw?.order) : (idx + 1) * 10,
@@ -293,9 +311,9 @@ function normalizeHeroSpotlight(input: unknown, fallback: HomeLandingHeroSpotlig
 
   return {
     enabled: source.enabled !== false,
-    imageUrl: String(source.imageUrl || fallback.imageUrl).trim().slice(0, 1000) || fallback.imageUrl,
+    imageUrl: normalizeHeroSpotlightImageUrl(source.imageUrl, fallback.imageUrl),
     title: normalizeHeroSpotlightTitle(source.title),
-    subtitle: String(source.subtitle || '').trim().slice(0, 40),
+    subtitle: sanitizeHomeLandingText(source.subtitle, '', 40),
     actionPayload: {
       ...(tabRaw === 'LISTING' || tabRaw === 'ACHIEVEMENT' ? { tab: tabRaw } : {}),
       ...(LISTING_TOPIC_SET.has(listingTopicRaw) ? { listingTopic: listingTopicRaw } : {}),
@@ -330,7 +348,7 @@ export function normalizeHomeLandingConfig(input: unknown): HomeLandingConfig {
     .map((item) => normalizeHomeHeroTag(item))
     .filter(Boolean)
     .slice(0, 3);
-  const searchPlaceholder = String(heroRaw.searchPlaceholder || fallback.hero.searchPlaceholder).trim().slice(0, 40);
+  const searchPlaceholder = sanitizeHomeLandingText(heroRaw.searchPlaceholder, fallback.hero.searchPlaceholder, 40);
 
   const displayCountRaw = Number(featuredRaw.displayCount);
   const displayCount: 4 | 6 = displayCountRaw === 6 ? 6 : 4;
@@ -352,7 +370,7 @@ export function normalizeHomeLandingConfig(input: unknown): HomeLandingConfig {
     heroSpotlight: normalizeHeroSpotlight(heroSpotlightRaw, fallback.heroSpotlight),
     sectionTexts: {
       featuredTitle: normalizeFeaturedTitle(sectionRaw.featuredTitle, fallback.sectionTexts.featuredTitle),
-      featuredMoreText: String(sectionRaw.featuredMoreText || fallback.sectionTexts.featuredMoreText).trim() || fallback.sectionTexts.featuredMoreText,
+      featuredMoreText: sanitizeHomeLandingText(sectionRaw.featuredMoreText, fallback.sectionTexts.featuredMoreText, 10),
     },
     featuredZones: {
       enabled: featuredRaw.enabled !== false,

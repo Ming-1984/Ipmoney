@@ -267,6 +267,39 @@ describe('ConfigService behavior suite', () => {
     ]);
   });
 
+  it('getHomeLandingConfig sanitizes blocked homepage marketing text and legacy image url', async () => {
+    prisma.systemConfig.findUnique.mockResolvedValueOnce({
+      key: 'home_landing_config',
+      value: JSON.stringify({
+        schemaVersion: 1,
+        hero: {
+          tags: ['0元专利托管', '免费过户', '无风险流程可查'],
+          searchPlaceholder: '免费搜专利',
+        },
+        heroSpotlight: {
+          enabled: true,
+          imageUrl: 'https://ipmoney.cn/static/images/assets/home/promo-certificate.png',
+          title: '0风险交易',
+          subtitle: '免费服务',
+          actionPayload: { tab: 'LISTING', reset: true },
+        },
+        sectionTexts: { featuredTitle: '免费专区', featuredMoreText: '更多' },
+        featuredZones: { enabled: false, displayCount: 4, items: [] },
+        listingTopicUi: { items: [] },
+      }),
+      version: 1,
+    });
+
+    const result = await service.getHomeLandingConfig();
+
+    expect(result.hero.tags).toEqual(['专利托管', '过户', '流程可查']);
+    expect(result.hero.searchPlaceholder).toBe('搜专利');
+    expect(result.heroSpotlight?.imageUrl).toBe('');
+    expect(result.heroSpotlight?.title).toBe('流程可查交易');
+    expect(result.heroSpotlight?.subtitle).toBe('服务');
+    expect(result.sectionTexts.featuredTitle).toBe('专区');
+  });
+
   it('updateHomeLandingConfig rejects when enabled featured cards are less than displayCount', async () => {
     prisma.systemConfig.findUnique.mockResolvedValueOnce({
       key: 'home_landing_config',

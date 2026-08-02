@@ -279,6 +279,15 @@ const LISTING_TOPIC_ORDER_DEFAULTS: ReadonlyArray<{ value: ListingTopic; label: 
 const LISTING_TOPIC_SET = new Set<ListingTopic>(LISTING_TOPIC_ORDER_DEFAULTS.map((item) => item.value));
 const PATENT_TYPE_SET = new Set<PatentType>(['INVENTION', 'UTILITY_MODEL', 'DESIGN']);
 const HOME_LANDING_ACTION_TYPE_SET = new Set<HomeLandingActionType>(['SEARCH_PREFILL', 'PAGE_ROUTE']);
+const LEGACY_HOME_HERO_SPOTLIGHT_IMAGE_URL = 'https://ipmoney.cn/static/images/assets/home/promo-certificate.png';
+const DEFAULT_HOME_HERO_SPOTLIGHT_IMAGE_URL = '';
+const HOME_LANDING_TEXT_REPLACEMENTS: ReadonlyArray<{ pattern: RegExp; replacement: string }> = [
+  { pattern: /0\s*元/gi, replacement: '' },
+  { pattern: /零\s*元/g, replacement: '' },
+  { pattern: /免费/g, replacement: '' },
+  { pattern: /无\s*风险/g, replacement: '流程可查' },
+  { pattern: /0\s*风险/gi, replacement: '流程可查' },
+];
 
 const KEY_TRADE_RULES = 'trade_rules';
 const KEY_RECOMMENDATION = 'recommendation_config';
@@ -321,7 +330,7 @@ function buildDefaultRecommendation(): RecommendationConfig {
 }
 
 function buildDefaultBanner(): BannerConfig {
-  const prodFallbackCover = 'https://ipmoney.cn/static/images/assets/home/promo-certificate.png';
+  const prodFallbackCover = DEFAULT_HOME_HERO_SPOTLIGHT_IMAGE_URL;
   return {
     items: [
       {
@@ -403,7 +412,7 @@ function buildDefaultHomeLandingConfig(): HomeLandingConfig {
   return {
     schemaVersion: 1,
     hero: {
-      tags: ['0元专利托管', '0元代办过户', '0风险交易'],
+      tags: ['专利托管', '过户协助', '流程可查'],
       searchPlaceholder: '开始寻找被你发现的IP',
     },
     sectionTexts: {
@@ -475,6 +484,22 @@ function buildDefaultHomeLandingConfig(): HomeLandingConfig {
       })),
     },
   };
+}
+
+function sanitizeHomeLandingText(value: unknown, fallback = '', maxLength = 1000): string {
+  let normalized = String(value ?? '').trim();
+  if (!normalized) normalized = fallback;
+  for (const item of HOME_LANDING_TEXT_REPLACEMENTS) {
+    normalized = normalized.replace(item.pattern, item.replacement);
+  }
+  normalized = normalized.replace(/流程可查流程可查/g, '流程可查').replace(/\s{2,}/g, ' ').trim();
+  return (normalized || fallback).slice(0, maxLength);
+}
+
+function normalizeHomeLandingImageUrl(value: unknown, fallback = ''): string {
+  const normalized = String(value ?? fallback).trim().slice(0, 1000);
+  if (normalized === LEGACY_HOME_HERO_SPOTLIGHT_IMAGE_URL) return '';
+  return normalized;
 }
 
 @Injectable()
@@ -848,8 +873,8 @@ export class ConfigService {
     for (let idx = 0; idx < list.length; idx += 1) {
       const raw = list[idx] as Record<string, unknown>;
       const id = String(raw?.id || '').trim();
-      const title = String(raw?.title || '').trim();
-      const subtitle = String(raw?.subtitle || '').trim();
+      const title = sanitizeHomeLandingText(raw?.title, '', 24);
+      const subtitle = sanitizeHomeLandingText(raw?.subtitle, '', 40);
       const imageUrl = String(raw?.imageUrl || '').trim();
       if (strict) {
         if (!id || seenIds.has(id)) {
@@ -870,8 +895,8 @@ export class ConfigService {
       const action = this.normalizeHomeLandingAction(raw?.actionType, raw?.actionPayload, strict, topicEnabledSet);
       out.push({
         id,
-        title: title.slice(0, 24),
-        subtitle: subtitle.slice(0, 40),
+        title,
+        subtitle,
         imageUrl: imageUrl.slice(0, 1000),
         enabled: raw?.enabled !== false,
         order: this.normalizePositiveInt(raw?.order, (idx + 1) * 10, 0, 100000),
@@ -938,16 +963,11 @@ export class ConfigService {
     fallback: HomeLandingHeroSpotlight,
   ): HomeLandingHeroSpotlight {
     const raw = input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
-    const imageUrl = String(raw.imageUrl || fallback.imageUrl || '')
-      .trim()
-      .slice(0, 1000);
-    const title = String(raw.title || '').trim().slice(0, 24);
-    const subtitle = String(raw.subtitle || '').trim().slice(0, 40);
+    const imageUrl = normalizeHomeLandingImageUrl(raw.imageUrl, fallback.imageUrl || '');
+    const title = sanitizeHomeLandingText(raw.title, '', 24);
+    const subtitle = sanitizeHomeLandingText(raw.subtitle, '', 40);
     const enabled = raw.enabled !== false;
 
-    if (strict && enabled && !imageUrl) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'heroSpotlight.imageUrl is invalid' });
-    }
     if (strict && String(raw.title || '').trim().length > 24) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'heroSpotlight.title is invalid' });
     }
@@ -979,7 +999,7 @@ export class ConfigService {
     if (!firstEnabledBanner) {
       return fallbackConfig.heroSpotlight || {
         enabled: true,
-        imageUrl: 'https://ipmoney.cn/static/images/assets/home/promo-certificate.png',
+        imageUrl: DEFAULT_HOME_HERO_SPOTLIGHT_IMAGE_URL,
         title: '',
         subtitle: '',
         actionPayload: { tab: 'LISTING', reset: true },
@@ -988,8 +1008,11 @@ export class ConfigService {
 
     return {
       enabled: true,
-      imageUrl: String(firstEnabledBanner.posterUrl || firstEnabledBanner.imageUrl || '').trim() || 'https://ipmoney.cn/static/images/assets/home/promo-certificate.png',
-      title: String(firstEnabledBanner.title || '').trim().slice(0, 24),
+      imageUrl: normalizeHomeLandingImageUrl(
+        firstEnabledBanner.posterUrl || firstEnabledBanner.imageUrl,
+        DEFAULT_HOME_HERO_SPOTLIGHT_IMAGE_URL,
+      ),
+      title: sanitizeHomeLandingText(firstEnabledBanner.title, '', 24),
       subtitle: '',
       actionPayload: {
         reset: true,
@@ -1019,7 +1042,7 @@ export class ConfigService {
         : {};
 
     const heroTags = (Array.isArray(heroRaw.tags) ? heroRaw.tags : fallback.hero.tags)
-      .map((item) => String(item || '').trim())
+      .map((item) => sanitizeHomeLandingText(item, '', 20))
       .filter(Boolean)
       .slice(0, 3);
     if (strict && heroTags.length < 1) {
@@ -1029,7 +1052,7 @@ export class ConfigService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'hero.tags is invalid' });
     }
 
-    const searchPlaceholder = String(heroRaw.searchPlaceholder || fallback.hero.searchPlaceholder).trim().slice(0, 40);
+    const searchPlaceholder = sanitizeHomeLandingText(heroRaw.searchPlaceholder, fallback.hero.searchPlaceholder, 40);
     if (strict && !searchPlaceholder) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'hero.searchPlaceholder is invalid' });
     }
@@ -1039,7 +1062,7 @@ export class ConfigService {
     const fallbackHeroSpotlight: HomeLandingHeroSpotlight =
       fallback.heroSpotlight || {
         enabled: true,
-        imageUrl: 'https://ipmoney.cn/static/images/assets/home/promo-certificate.png',
+        imageUrl: DEFAULT_HOME_HERO_SPOTLIGHT_IMAGE_URL,
         title: '',
         subtitle: '',
         actionPayload: {
@@ -1066,10 +1089,8 @@ export class ConfigService {
       });
     }
 
-    const featuredTitle = String(sectionRaw.featuredTitle || fallback.sectionTexts.featuredTitle).trim().slice(0, 20);
-    const featuredMoreText = String(sectionRaw.featuredMoreText || fallback.sectionTexts.featuredMoreText)
-      .trim()
-      .slice(0, 10);
+    const featuredTitle = sanitizeHomeLandingText(sectionRaw.featuredTitle, fallback.sectionTexts.featuredTitle, 20);
+    const featuredMoreText = sanitizeHomeLandingText(sectionRaw.featuredMoreText, fallback.sectionTexts.featuredMoreText, 10);
     if (strict && (!featuredTitle || !featuredMoreText)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'sectionTexts is invalid' });
     }
@@ -1103,12 +1124,8 @@ export class ConfigService {
       const parsed = JSON.parse(row.value);
       const normalized = this.normalizeHomeLandingConfig(parsed, false);
       const source = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
-      const hasHeroSpotlight =
-        Boolean(source.heroSpotlight && typeof source.heroSpotlight === 'object') &&
-        String((source.heroSpotlight as Record<string, unknown>).imageUrl || '')
-          .trim()
-          .length > 0;
-      if (hasHeroSpotlight && String(normalized.heroSpotlight?.imageUrl || '').trim()) {
+      const hasHeroSpotlight = Boolean(source.heroSpotlight && typeof source.heroSpotlight === 'object');
+      if (hasHeroSpotlight) {
         return normalized;
       }
       const banner = await this.getBanner();

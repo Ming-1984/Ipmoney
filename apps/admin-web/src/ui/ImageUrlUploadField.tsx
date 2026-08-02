@@ -1,5 +1,5 @@
 import { Button, Input, Select, Space, Typography, Upload, message } from 'antd';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { API_BASE_URL, apiUploadFile, type FileObject } from '../lib/api';
 
@@ -27,6 +27,16 @@ type ImageUrlUploadFieldProps = {
 
 function isHttpUrl(value: string) {
   return /^https?:\/\//i.test(value);
+}
+
+function toPreviewImageUrl(value: string): string {
+  const normalized = String(value || '').trim();
+  if (!normalized) return '';
+  if (isHttpUrl(normalized)) return normalized;
+  if (/^(data|blob):/i.test(normalized)) return normalized;
+  if (normalized.startsWith('/uploads/')) return new URL(normalized, API_BASE_URL).toString();
+  if (normalized.startsWith('/')) return normalized;
+  return '';
 }
 
 function toPublicUploadedImageUrl(file: FileObject): string {
@@ -67,10 +77,11 @@ export function ImageUrlUploadField(props: ImageUrlUploadFieldProps) {
   } = props;
   const [uploading, setUploading] = useState(false);
   const [lastUploaded, setLastUploaded] = useState<FileObject | null>(null);
+  const [previewFailed, setPreviewFailed] = useState(false);
 
   const current = String(value || '').trim();
   const isBuiltin = current.startsWith('builtin://');
-  const resolvedPreviewUrl = String(previewUrl || '').trim();
+  const resolvedPreviewUrl = toPreviewImageUrl(String(previewUrl || '').trim()) || toPreviewImageUrl(current);
 
   const builtinValue = useMemo(() => {
     if (!isBuiltin) return undefined;
@@ -90,6 +101,10 @@ export function ImageUrlUploadField(props: ImageUrlUploadFieldProps) {
     },
     [maxSizeMb],
   );
+
+  useEffect(() => {
+    setPreviewFailed(false);
+  }, [resolvedPreviewUrl]);
 
   return (
     <Space direction="vertical" size={8} style={{ width: '100%' }}>
@@ -153,31 +168,40 @@ export function ImageUrlUploadField(props: ImageUrlUploadFieldProps) {
       ) : null}
 
       {resolvedPreviewUrl ? (
-        <img
-          src={resolvedPreviewUrl}
-          alt=""
-          style={{
-            width: 220,
-            height: 124,
-            objectFit: previewObjectFit,
-            borderRadius: 8,
-            border: '1px solid #f0f0f0',
-            background: '#fafafa',
-          }}
-        />
-      ) : isHttpUrl(current) ? (
-        <img
-          src={current}
-          alt=""
-          style={{
-            width: 220,
-            height: 124,
-            objectFit: previewObjectFit,
-            borderRadius: 8,
-            border: '1px solid #f0f0f0',
-            background: '#fafafa',
-          }}
-        />
+        previewFailed ? (
+          <div
+            style={{
+              width: 220,
+              height: 124,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 12,
+              textAlign: 'center',
+              color: '#cf1322',
+              borderRadius: 8,
+              border: '1px solid #ffccc7',
+              background: '#fff2f0',
+            }}
+          >
+            图片暂时无法预览，请确认图片地址可访问或重新上传
+          </div>
+        ) : (
+          <img
+            src={resolvedPreviewUrl}
+            alt=""
+            onLoad={() => setPreviewFailed(false)}
+            onError={() => setPreviewFailed(true)}
+            style={{
+              width: 220,
+              height: 124,
+              objectFit: previewObjectFit,
+              borderRadius: 8,
+              border: '1px solid #f0f0f0',
+              background: '#fafafa',
+            }}
+          />
+        )
       ) : isBuiltin && builtinDisplayText !== null ? (
         <Typography.Text type="secondary">{builtinDisplayText || `当前使用系统默认图：${current}`}</Typography.Text>
       ) : null}
