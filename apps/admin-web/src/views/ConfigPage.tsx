@@ -45,42 +45,6 @@ type CustomerServiceConfig = {
   assignStrategy: 'AUTO' | 'MANUAL';
 };
 
-type TaxonomyConfig = {
-  industries: string[];
-  ipcMappings: string[];
-  locMappings: string[];
-};
-
-type SensitiveWordsConfig = {
-  words: string[];
-};
-
-type HotSearchConfig = {
-  keywords: string[];
-};
-
-type AlertRule = {
-  type: string;
-  severity: 'LOW' | 'MEDIUM' | 'HIGH';
-  channels: Array<'SMS' | 'EMAIL' | 'IN_APP'>;
-  enabled: boolean;
-  threshold?: number;
-  cooldownMinutes?: number;
-};
-
-type AlertConfig = {
-  enabled: boolean;
-  defaultChannels?: Array<'SMS' | 'EMAIL' | 'IN_APP'>;
-  rules: AlertRule[];
-};
-
-function toList(value: string) {
-  return value
-    .split(/[,，\n]/)
-    .map((v) => v.trim())
-    .filter(Boolean);
-}
-
 export function ConfigPage() {
   const [loading, setLoading] = useState(false);
   const [tradeForm] = Form.useForm();
@@ -88,12 +52,6 @@ export function ConfigPage() {
   const [csPhone, setCsPhone] = useState('');
   const [csDefaultReply, setCsDefaultReply] = useState('');
   const [csAssignStrategy, setCsAssignStrategy] = useState<CustomerServiceConfig['assignStrategy']>('AUTO');
-  const [taxonomyIndustries, setTaxonomyIndustries] = useState('');
-  const [taxonomyIpc, setTaxonomyIpc] = useState('');
-  const [taxonomyLoc, setTaxonomyLoc] = useState('');
-  const [sensitiveWords, setSensitiveWords] = useState('');
-  const [hotSearchKeywords, setHotSearchKeywords] = useState('');
-  const [alertJson, setAlertJson] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -111,23 +69,11 @@ export function ConfigPage() {
       const rec = await apiGet<RecommendationConfig>('/admin/config/recommendation');
       recForm.setFieldsValue(rec);
 
-      const [cs, taxonomy, sensitive, hotSearch, alert] = await Promise.all([
-        apiGet<CustomerServiceConfig>('/admin/config/customer-service'),
-        apiGet<TaxonomyConfig>('/admin/config/taxonomy'),
-        apiGet<SensitiveWordsConfig>('/admin/config/sensitive-words'),
-        apiGet<HotSearchConfig>('/admin/config/hot-search'),
-        apiGet<AlertConfig>('/admin/config/alerts'),
-      ]);
+      const cs = await apiGet<CustomerServiceConfig>('/admin/config/customer-service');
 
       setCsPhone(cs.phone || '');
       setCsDefaultReply(cs.defaultReply || '');
       setCsAssignStrategy(cs.assignStrategy || 'AUTO');
-      setTaxonomyIndustries((taxonomy.industries || []).join('，'));
-      setTaxonomyIpc((taxonomy.ipcMappings || []).join('，'));
-      setTaxonomyLoc((taxonomy.locMappings || []).join('，'));
-      setSensitiveWords((sensitive.words || []).join('，'));
-      setHotSearchKeywords((hotSearch.keywords || []).join('，'));
-      setAlertJson(JSON.stringify(alert, null, 2));
     } catch (e: any) {
       message.error(e?.message || '加载失败');
     } finally {
@@ -146,7 +92,7 @@ export function ConfigPage() {
           高级系统配置
         </Typography.Title>
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-          这里用于维护交易规则、推荐权重、客服、词库和告警等系统级参数。首页展示内容和首页公告已拆分到独立运营页面，普通运营日常无需进入本页。
+          这里用于维护已接入业务链路的交易规则、推荐权重和客服参数。首页展示内容、首页公告、地区/行业标签已拆分到独立运营页面。
         </Typography.Paragraph>
       </Card>
 
@@ -326,168 +272,6 @@ export function ConfigPage() {
             }}
           >
             保存客服设置
-          </Button>
-        </Space>
-      </Card>
-
-      <Card loading={loading}>
-        <Typography.Title level={3} style={{ marginTop: 0 }}>
-          类目与标签
-        </Typography.Title>
-        <Typography.Paragraph type="secondary">
-          使用逗号或换行分隔；保存后用于筛选与展示。
-        </Typography.Paragraph>
-        <Space direction="vertical" size={12} style={{ width: '100%' }}>
-          <Input.TextArea
-            value={taxonomyIndustries}
-            onChange={(e) => setTaxonomyIndustries(e.target.value)}
-            rows={2}
-            placeholder="行业领域"
-          />
-          <Input.TextArea
-            value={taxonomyIpc}
-            onChange={(e) => setTaxonomyIpc(e.target.value)}
-            rows={2}
-            placeholder="IPC 分类映射"
-          />
-          <Input.TextArea
-            value={taxonomyLoc}
-            onChange={(e) => setTaxonomyLoc(e.target.value)}
-            rows={2}
-            placeholder="LOC 分类映射"
-          />
-        </Space>
-        <Space style={{ marginTop: 12 }}>
-          <Button
-            type="primary"
-            onClick={async () => {
-              const { ok } = await confirmActionWithReason({
-                title: '确认保存类目与标签？',
-                content: '保存后将影响发布与筛选选项。',
-                okText: '保存',
-                reasonLabel: '变更原因（建议填写）',
-              });
-              if (!ok) return;
-              try {
-                await apiPut<TaxonomyConfig>('/admin/config/taxonomy', {
-                  industries: toList(taxonomyIndustries),
-                  ipcMappings: toList(taxonomyIpc),
-                  locMappings: toList(taxonomyLoc),
-                });
-                message.success('已保存');
-              } catch (e: any) {
-                message.error(e?.message || '保存失败');
-              }
-            }}
-          >
-            保存类目与标签
-          </Button>
-        </Space>
-      </Card>
-
-      <Card loading={loading}>
-        <Typography.Title level={3} style={{ marginTop: 0 }}>
-          敏感词库
-        </Typography.Title>
-        <Input.TextArea
-          value={sensitiveWords}
-          onChange={(e) => setSensitiveWords(e.target.value)}
-          rows={3}
-          placeholder="敏感词（逗号或换行分隔）"
-        />
-        <Space style={{ marginTop: 12 }}>
-          <Button
-            type="primary"
-            onClick={async () => {
-              const { ok } = await confirmActionWithReason({
-                title: '确认保存敏感词？',
-                content: '保存后将用于审核与过滤。',
-                okText: '保存',
-                reasonLabel: '变更原因（建议填写）',
-              });
-              if (!ok) return;
-              try {
-                await apiPut<SensitiveWordsConfig>('/admin/config/sensitive-words', {
-                  words: toList(sensitiveWords),
-                });
-                message.success('已保存');
-              } catch (e: any) {
-                message.error(e?.message || '保存失败');
-              }
-            }}
-          >
-            保存敏感词
-          </Button>
-        </Space>
-      </Card>
-
-      <Card loading={loading}>
-        <Typography.Title level={3} style={{ marginTop: 0 }}>
-          热门搜索词
-        </Typography.Title>
-        <Input.TextArea
-          value={hotSearchKeywords}
-          onChange={(e) => setHotSearchKeywords(e.target.value)}
-          rows={3}
-          placeholder="热门搜索词（逗号或换行分隔）"
-        />
-        <Space style={{ marginTop: 12 }}>
-          <Button
-            type="primary"
-            onClick={async () => {
-              const { ok } = await confirmActionWithReason({
-                title: '确认保存热门搜索词？',
-                content: '保存后将用于前端搜索推荐。',
-                okText: '保存',
-                reasonLabel: '变更原因（建议填写）',
-              });
-              if (!ok) return;
-              try {
-                await apiPut<HotSearchConfig>('/admin/config/hot-search', {
-                  keywords: toList(hotSearchKeywords),
-                });
-                message.success('已保存');
-              } catch (e: any) {
-                message.error(e?.message || '保存失败');
-              }
-            }}
-          >
-            保存热门搜索词
-          </Button>
-        </Space>
-      </Card>
-
-      <Card loading={loading}>
-        <Typography.Title level={3} style={{ marginTop: 0 }}>
-          告警配置
-        </Typography.Title>
-        <Typography.Paragraph type="secondary">
-          建议使用结构化配置文本编辑，保存前请确保格式正确；变更需留痕。
-        </Typography.Paragraph>
-        <Input.TextArea value={alertJson} onChange={(e) => setAlertJson(e.target.value)} rows={8} />
-        <Space style={{ marginTop: 12 }}>
-          <Button
-            type="primary"
-            onClick={async () => {
-              const { ok } = await confirmActionWithReason({
-                title: '确认保存告警配置？',
-                content: '保存后将影响告警规则与通知通道。',
-                okText: '保存',
-                reasonLabel: '变更原因（必填）',
-                reasonRequired: true,
-              });
-              if (!ok) return;
-              try {
-                const payload = JSON.parse(alertJson) as AlertConfig;
-                await apiPut<AlertConfig>('/admin/config/alerts', payload);
-                message.success('已保存');
-                void load();
-              } catch (e: any) {
-                message.error(e?.message || '保存失败，请检查配置文本格式');
-              }
-            }}
-          >
-            保存告警配置
           </Button>
         </Space>
       </Card>
