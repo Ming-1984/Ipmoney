@@ -50,6 +50,10 @@ function materialCountText(row: ClaimItem): string {
   return `${row.evidenceFileIds?.length || 0} 份`;
 }
 
+function materialIds(row: ClaimItem): string[] {
+  return Array.from(new Set((row.evidenceFileIds || []).map((item) => String(item || '').trim()).filter(Boolean)));
+}
+
 export function PatentClaimsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
@@ -61,6 +65,30 @@ export function PatentClaimsPage() {
   const [appliedQ, setAppliedQ] = useState('');
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailTarget, setDetailTarget] = useState<ClaimItem | null>(null);
+
+  const openMaterial = useCallback(async (fileId: string) => {
+    const normalizedFileId = String(fileId || '').trim();
+    if (!normalizedFileId) {
+      message.warning('材料文件编号为空');
+      return;
+    }
+    const previewWindow = window.open('about:blank', '_blank');
+    if (previewWindow) previewWindow.opener = null;
+    try {
+      const temp = await apiPost<{ url: string }>(`/files/${normalizedFileId}/temporary-access`, {
+        scope: 'preview',
+      });
+      if (!temp?.url) throw new Error('empty preview url');
+      if (previewWindow) {
+        previewWindow.location.href = temp.url;
+      } else {
+        window.open(temp.url, '_blank', 'noopener,noreferrer');
+      }
+    } catch (e: any) {
+      if (previewWindow) previewWindow.close();
+      message.error(e?.message || '打开材料失败');
+    }
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -297,6 +325,30 @@ export function PatentClaimsPage() {
               </Descriptions.Item>
               <Descriptions.Item label="审核备注">{displayClaimText(detailTarget.reviewComment)}</Descriptions.Item>
             </Descriptions>
+            <div>
+              <Typography.Text strong>上传材料</Typography.Text>
+              <div style={{ marginTop: 8 }}>
+                {materialIds(detailTarget).length ? (
+                  <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                    {materialIds(detailTarget).map((fileId, index) => (
+                      <Space key={fileId} wrap>
+                        <Typography.Text>
+                          材料 {index + 1}
+                        </Typography.Text>
+                        <Typography.Text copyable={{ text: fileId }} type="secondary">
+                          {fileId}
+                        </Typography.Text>
+                        <Button size="small" onClick={() => void openMaterial(fileId)}>
+                          查看
+                        </Button>
+                      </Space>
+                    ))}
+                  </Space>
+                ) : (
+                  <Typography.Text type="secondary">暂无上传材料。</Typography.Text>
+                )}
+              </div>
+            </div>
             {detailTarget.status === 'PENDING' ? (
               <Space>
                 <Button type="primary" onClick={() => void approve(detailTarget)}>
