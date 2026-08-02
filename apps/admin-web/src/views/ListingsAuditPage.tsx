@@ -322,7 +322,7 @@ export function ListingsAuditPage() {
   const [error, setError] = useState<unknown | null>(null);
   const [listings, setListings] = useState<Paged<Listing> | null>(null);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(5);
   const [draftQ, setDraftQ] = useState('');
   const [draftAuditStatus, setDraftAuditStatus] = useState<AuditStatus | ''>('');
   const [draftStatus, setDraftStatus] = useState<ListingStatus | ''>('');
@@ -1135,7 +1135,7 @@ export function ListingsAuditPage() {
               pageSize: listings?.page.pageSize || pageSize,
               total: listings?.page.total || 0,
               showSizeChanger: true,
-              pageSizeOptions: ['10', '20', '50'],
+              pageSizeOptions: ['5', '10', '20', '50'],
               onChange: (nextPage, nextPageSize) => {
                 if (nextPageSize && nextPageSize !== pageSize) {
                   setPageSize(nextPageSize);
