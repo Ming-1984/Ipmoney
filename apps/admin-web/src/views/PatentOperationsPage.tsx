@@ -1,5 +1,5 @@
 import { Alert, Button, Card, Drawer, Form, Input, InputNumber, Modal, Select, Space, Switch, Table, Tag, Typography, Upload, message } from 'antd';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet, apiPost, apiUploadFile, type FileObject } from '../lib/api';
@@ -523,6 +523,7 @@ export function PatentOperationsPage() {
   const [mapDataScope, setMapDataScope] = useState<PatentMapDataScope>('ACTIVE_APPROVED');
   const [mapOverviewTop, setMapOverviewTop] = useState(100);
   const [mapSelectedRegionCode, setMapSelectedRegionCode] = useState('');
+  const mapSelectedRegionCodeRef = useRef('');
 
   const [mapRegionPage, setMapRegionPage] = useState(1);
   const [mapRegionPageSize, setMapRegionPageSize] = useState(20);
@@ -621,14 +622,13 @@ export function PatentOperationsPage() {
         top: Math.max(1, Math.min(100, Number(mapOverviewTop) || 100)),
         scope: mapDataScope,
       });
+      const currentRegionCode = String(mapSelectedRegionCodeRef.current || '').trim();
+      const currentRegionExists = (data.regions || []).some((item) => item.regionCode === currentRegionCode);
+      const nextRegionCode = currentRegionExists ? currentRegionCode : data.ranking[0]?.regionCode || data.regions[0]?.regionCode || '';
       setMapOverview(data);
-      let nextRegionCode = '';
-      setMapSelectedRegionCode((prev) => {
-        const current = String(prev || '').trim();
-        const existed = (data.regions || []).some((item) => item.regionCode === current);
-        nextRegionCode = existed ? current : data.ranking[0]?.regionCode || data.regions[0]?.regionCode || '';
-        return nextRegionCode;
-      });
+      setMapSelectedRegionCode(nextRegionCode);
+      setMapRegionPage(1);
+      setMapSelectedListingRowKeys([]);
       if (!nextRegionCode) {
         setMapRegionDetail(null);
       }
@@ -819,12 +819,17 @@ export function PatentOperationsPage() {
   }, [loadRows]);
 
   useEffect(() => {
+    mapSelectedRegionCodeRef.current = mapSelectedRegionCode;
+  }, [mapSelectedRegionCode]);
+
+  useEffect(() => {
     void loadPatentMapOverview();
   }, [loadPatentMapOverview]);
 
   useEffect(() => {
+    if (!mapOverview) return;
     void loadPatentMapRegionDetail();
-  }, [loadPatentMapRegionDetail]);
+  }, [loadPatentMapRegionDetail, mapOverview]);
 
   useEffect(() => {
     setMapSelectedListingRowKeys([]);
