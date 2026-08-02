@@ -361,6 +361,37 @@ describe('TechManagersService filter and sanitization suite', () => {
     expect(result.items[0].contactPhone).toBe('13800000000');
   });
 
+  it('supports admin filtering by active badge code', async () => {
+    prisma.userVerification.findMany.mockResolvedValueOnce([]);
+    prisma.userVerification.count.mockResolvedValueOnce(0);
+
+    await service.listAdmin(
+      { auth: { isAdmin: true, userId: 'admin-1' } },
+      { badgeCode: 'GOLD_MANAGER', page: '1', pageSize: '20' },
+    );
+
+    const args = prisma.userVerification.findMany.mock.calls[0]?.[0];
+    expect(args.where.verificationType).toBe('TECH_MANAGER');
+    expect(args.where.AND).toEqual(
+      expect.arrayContaining([
+        {
+          user: {
+            techManagerProfile: {
+              is: {
+                badges: {
+                  some: {
+                    badgeCode: 'GOLD_MANAGER',
+                    expiresAt: null,
+                  },
+                },
+              },
+            },
+          },
+        },
+      ]),
+    );
+  });
+
   it('supports admin completeness filters for missing intro/contact/rating', async () => {
     prisma.userVerification.findMany.mockResolvedValueOnce([]);
     prisma.userVerification.count.mockResolvedValueOnce(0);
@@ -568,6 +599,9 @@ describe('TechManagersService filter and sanitization suite', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
     await expect(
       service.listAdmin({ auth: { isAdmin: true, userId: 'admin-1' } }, { suspectExperienceLabel: 'abc' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.listAdmin({ auth: { isAdmin: true, userId: 'admin-1' } }, { badgeCode: 'BADGE_X' }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 });

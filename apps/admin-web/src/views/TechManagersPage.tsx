@@ -33,7 +33,6 @@ type TechManagerEditorUpdateRequest = Omit<TechManagerUpdateRequest, 'intro' | '
   position?: string | null;
   organization?: string | null;
   experienceLabel?: string | null;
-  levelLabel?: string | null;
   workHighlights?: string | null;
   contactName?: string | null;
   contactPhone?: string | null;
@@ -131,7 +130,7 @@ export function TechManagersPage() {
   const [missingIntro, setMissingIntro] = useState<MissingFilterValue>('');
   const [missingContact, setMissingContact] = useState<MissingFilterValue>('');
   const [missingExperienceLabel, setMissingExperienceLabel] = useState<MissingFilterValue>('');
-  const [missingLevelLabel, setMissingLevelLabel] = useState<MissingFilterValue>('');
+  const [badgeCode, setBadgeCode] = useState<TechManagerBadgeCode | ''>('');
   const [suspectExperienceLabel, setSuspectExperienceLabel] = useState<MissingFilterValue>('');
 
   const [page, setPage] = useState(1);
@@ -145,7 +144,6 @@ export function TechManagersPage() {
   const [position, setPosition] = useState('');
   const [organization, setOrganization] = useState('');
   const [experienceLabel, setExperienceLabel] = useState('');
-  const [levelLabel, setLevelLabel] = useState('');
   const [serviceDirectionsInput, setServiceDirectionsInput] = useState('');
   const [workHighlights, setWorkHighlights] = useState('');
   const [contactName, setContactName] = useState('');
@@ -174,7 +172,7 @@ export function TechManagersPage() {
           missingIntro: missingIntro || undefined,
           missingContact: missingContact || undefined,
           missingExperienceLabel: missingExperienceLabel || undefined,
-          missingLevelLabel: missingLevelLabel || undefined,
+          badgeCode: badgeCode || undefined,
           suspectExperienceLabel: suspectExperienceLabel || undefined,
           page: nextPage,
           pageSize: nextPageSize,
@@ -188,7 +186,7 @@ export function TechManagersPage() {
         setLoading(false);
       }
     },
-    [missingContact, missingExperienceLabel, missingIntro, missingLevelLabel, page, pageSize, q, regionCode, status, suspectExperienceLabel],
+    [badgeCode, missingContact, missingExperienceLabel, missingIntro, page, pageSize, q, regionCode, status, suspectExperienceLabel],
   );
 
   useEffect(() => {
@@ -205,7 +203,6 @@ export function TechManagersPage() {
     setPosition(normalizeUserFacingText(record.position));
     setOrganization(normalizeUserFacingText(record.organization));
     setExperienceLabel(normalizeUserFacingText(record.experienceLabel));
-    setLevelLabel(normalizeUserFacingText(record.levelLabel));
     setServiceDirectionsInput((record.serviceDirections || []).join('，'));
     setWorkHighlights(normalizeUserFacingText(record.workHighlights));
     setContactName(normalizeUserFacingText(record.contactName));
@@ -225,7 +222,6 @@ export function TechManagersPage() {
       position: position.trim() || null,
       organization: organization.trim() || null,
       experienceLabel: experienceLabel.trim() || null,
-      levelLabel: levelLabel.trim() || null,
       serviceDirections: splitCommaText(serviceDirectionsInput),
       workHighlights: workHighlights.trim() || null,
       contactName: contactName.trim() || null,
@@ -258,7 +254,6 @@ export function TechManagersPage() {
     featuredRank,
     featuredUntil,
     intro,
-    levelLabel,
     load,
     organization,
     position,
@@ -302,7 +297,7 @@ export function TechManagersPage() {
     setMissingIntro('');
     setMissingContact('');
     setMissingExperienceLabel('');
-    setMissingLevelLabel('');
+    setBadgeCode('');
     setSuspectExperienceLabel('');
     setSelectedRowKeys([]);
     setPageSize(20);
@@ -323,7 +318,7 @@ export function TechManagersPage() {
             技术经理人管理
           </Typography.Title>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            统一维护技术经理人的公开展示信息、联系资料、从业信息、等级标签与荣誉标签。
+            统一维护技术经理人的公开展示信息、联系资料、从业信息与荣誉标签。
           </Typography.Paragraph>
         </div>
 
@@ -398,15 +393,6 @@ export function TechManagersPage() {
               options={missingFilterOptions}
             />
           </FilterField>
-          <FilterField label="等级标签">
-            <Select
-              value={missingLevelLabel}
-              style={{ width: 160 }}
-              placeholder="等级标签"
-              onChange={(value) => setMissingLevelLabel((value as MissingFilterValue) || '')}
-              options={missingFilterOptions}
-            />
-          </FilterField>
           <FilterField label="从业信息异常">
             <Select
               value={suspectExperienceLabel}
@@ -418,6 +404,15 @@ export function TechManagersPage() {
                 { value: 'true', label: '仅异常值' },
                 { value: 'false', label: '排除异常值' },
               ]}
+            />
+          </FilterField>
+          <FilterField label="荣誉标签">
+            <Select<TechManagerBadgeCode | ''>
+              value={badgeCode}
+              style={{ width: 180 }}
+              placeholder="荣誉标签"
+              onChange={(value) => setBadgeCode(value || '')}
+              options={[{ value: '', label: '全部标签' }, ...BADGE_OPTIONS]}
             />
           </FilterField>
           <Space size={12}>
@@ -497,12 +492,6 @@ export function TechManagersPage() {
                 if (!text) return renderMissingTag();
                 return isSuspectExperienceLabel(text) ? <Tag color="volcano">{text}</Tag> : text;
               },
-            },
-            {
-              title: '等级标签',
-              dataIndex: 'levelLabel',
-              render: (value) =>
-                normalizeUserFacingText(value) ? <Tag color="blue">{normalizeUserFacingText(value)}</Tag> : renderMissingTag(),
             },
             {
               title: '荣誉标签',
@@ -607,26 +596,15 @@ export function TechManagersPage() {
               </div>
             </Space>
 
-            <Space style={{ width: '100%' }} size={16} align="start">
-              <div style={{ flex: 1 }}>
-                <Typography.Text strong>从业信息</Typography.Text>
-                <Input
-                  value={experienceLabel}
-                  onChange={(e) => setExperienceLabel(e.target.value)}
-                  placeholder="例如：10年成果转化服务经验"
-                  style={{ marginTop: 8 }}
-                />
-              </div>
-              <div style={{ flex: 1 }}>
-                <Typography.Text strong>等级标签</Typography.Text>
-                <Input
-                  value={levelLabel}
-                  onChange={(e) => setLevelLabel(e.target.value)}
-                  placeholder="例如：资深顾问"
-                  style={{ marginTop: 8 }}
-                />
-              </div>
-            </Space>
+            <div>
+              <Typography.Text strong>从业信息</Typography.Text>
+              <Input
+                value={experienceLabel}
+                onChange={(e) => setExperienceLabel(e.target.value)}
+                placeholder="例如：10年成果转化服务经验"
+                style={{ marginTop: 8 }}
+              />
+            </div>
 
             <div>
               <Typography.Text strong>服务标签</Typography.Text>

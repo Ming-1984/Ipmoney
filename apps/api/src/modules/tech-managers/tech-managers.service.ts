@@ -357,6 +357,14 @@ export class TechManagersService {
     return unique as TechManagerBadgeCode[];
   }
 
+  private parseBadgeCodeStrict(value: unknown, fieldName: string): TechManagerBadgeCode {
+    const normalized = String(value ?? '').trim();
+    if (!isTechManagerBadgeCode(normalized)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
   private parseBadgeModeStrict(value: unknown, fieldName: string): TechManagerBadgeMode {
     const normalized = String(value || TECH_MANAGER_BADGE_MODE.REPLACE).trim().toUpperCase();
     if (
@@ -743,6 +751,8 @@ export class TechManagersService {
     const hasRegionCode = this.hasOwn(query, 'regionCode');
     const regionCode = hasRegionCode ? this.parseRegionCodeFilterStrict(query?.regionCode, 'regionCode') : '';
     const hasVerificationStatus = this.hasOwn(query, 'verificationStatus');
+    const hasBadgeCode = this.hasOwn(query, 'badgeCode');
+    const badgeCode = hasBadgeCode ? this.parseBadgeCodeStrict(query?.badgeCode, 'badgeCode') : null;
     const forceApproved = opts?.forceApproved ?? false;
     const allowCompletenessFilters = opts?.allowCompletenessFilters ?? false;
     const ignoreSearch = opts?.ignoreSearch ?? false;
@@ -757,6 +767,22 @@ export class TechManagersService {
       where.verificationStatus = this.parseVerificationStatusStrict(query?.verificationStatus, 'verificationStatus');
     }
     if (regionCode) andConditions.push({ regionCode });
+    if (badgeCode) {
+      andConditions.push({
+        user: {
+          techManagerProfile: {
+            is: {
+              badges: {
+                some: {
+                  badgeCode,
+                  expiresAt: null,
+                },
+              },
+            },
+          },
+        },
+      });
+    }
     if (searchText && !ignoreSearch) {
       andConditions.push({
         OR: [
