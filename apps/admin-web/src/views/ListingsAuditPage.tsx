@@ -18,6 +18,7 @@
   Upload,
   message,
 } from 'antd';
+import { DownloadOutlined } from '@ant-design/icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { components } from '@ipmoney/api-types';
 
@@ -257,6 +258,72 @@ function displayText(value: unknown, fallback = '-'): string {
 function displayList(value: unknown, fallback = '-'): string {
   const items = Array.isArray(value) ? value.map((item) => normalizeUserFacingText(item)).filter(Boolean) : [];
   return items.length ? items.join('、') : fallback;
+}
+
+const listingImportTemplateHeaders = [
+  '专利号/申请号/公开号',
+  '专利标题',
+  '摘要',
+  '来源',
+  '卖家用户ID',
+  '咨询路由',
+  '交易方式',
+  '许可方式',
+  '价格类型',
+  '价格元',
+  '保证金元',
+  '地区编码',
+  '特色标签',
+  '行业标签',
+  '上架状态',
+  '审核状态',
+];
+
+const listingImportTemplateSample: Record<string, string> = {
+  '专利号/申请号/公开号': 'CN202410000000.1',
+  专利标题: '高效储能控制方法',
+  摘要: '适用于新能源储能场景的控制方法，可提升系统稳定性。',
+  来源: 'PLATFORM',
+  卖家用户ID: '',
+  咨询路由: 'PLATFORM',
+  交易方式: 'ASSIGNMENT',
+  许可方式: '',
+  价格类型: 'NEGOTIABLE',
+  价格元: '',
+  保证金元: '0',
+  地区编码: '110000',
+  特色标签: 'SLEEPING',
+  行业标签: '新能源,储能',
+  上架状态: 'DRAFT',
+  审核状态: 'PENDING',
+};
+
+function escapeCsv(value: unknown): string {
+  const raw = String(value ?? '');
+  if (raw.includes('"') || raw.includes(',') || raw.includes('\n')) {
+    return `"${raw.replace(/"/g, '""')}"`;
+  }
+  return raw;
+}
+
+function buildListingImportTemplateCsv(): string {
+  const headerLine = listingImportTemplateHeaders.map((header) => escapeCsv(header)).join(',');
+  const sampleLine = listingImportTemplateHeaders
+    .map((header) => escapeCsv(listingImportTemplateSample[header] || ''))
+    .join(',');
+  return `\uFEFF${headerLine}\n${sampleLine}\n`;
+}
+
+function downloadTextFile(filename: string, content: string, mimeType: string) {
+  const blob = new Blob([content], { type: mimeType });
+  const objectUrl = window.URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  window.URL.revokeObjectURL(objectUrl);
 }
 
 function licenseModeLabel(value?: Listing['licenseMode']): string {
@@ -968,6 +1035,13 @@ export function ListingsAuditPage() {
     void loadImportJobRows(activeImportJob, { page: importRowsPage, pageSize: importRowsPageSize });
   }, [activeImportJob, importDrawerOpen, importRowsPage, importRowsPageSize, loadImportJobRows]);
 
+  const downloadListingImportTemplate = useCallback(() => {
+    const content = buildListingImportTemplateCsv();
+    const date = new Date().toISOString().slice(0, 10);
+    downloadTextFile(`listing-import-template-${date}.csv`, content, 'text/csv;charset=utf-8');
+    message.success('挂牌导入模板已开始下载');
+  }, []);
+
   const runImport = useCallback(async () => {
     const file = uploadFileList?.[0]?.originFileObj as File | undefined;
     if (!file) {
@@ -1333,18 +1407,21 @@ export function ListingsAuditPage() {
       <Card title="批量导入挂牌数据">
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
-            支持上传运营模板批量导入挂牌数据。系统会自动完成检查和处理，结果可在下方处理记录中查看，并下载错误文件。
+            先下载模板整理数据，再上传文件批量导入挂牌数据。系统会自动完成检查和处理，结果可在下方处理记录中查看，并下载错误文件。
           </Typography.Paragraph>
+          <Typography.Text type="secondary">
+            模板首列必须填写专利号、申请号或公开号；来源、交易方式、报价类型、状态等枚举字段请使用模板中的英文值。
+          </Typography.Text>
           <Form layout="vertical">
             <Row gutter={12}>
               <Col span={8}>
-                <Form.Item label="导入文件（xlsx）">
+                <Form.Item label="导入文件（xlsx / csv）">
                   <Upload
                     fileList={uploadFileList}
                     maxCount={1}
                     beforeUpload={() => false}
                     onChange={({ fileList }) => setUploadFileList(fileList)}
-                    accept=".xlsx,.xls"
+                    accept=".xlsx,.xls,.csv"
                   >
                     <Button>选择文件</Button>
                   </Upload>
@@ -1438,6 +1515,9 @@ export function ListingsAuditPage() {
             </Row>
           </Form>
           <Space>
+            <Button icon={<DownloadOutlined />} onClick={downloadListingImportTemplate}>
+              下载挂牌导入模板（Excel兼容 CSV）
+            </Button>
             <Button type="primary" loading={importing} onClick={() => void runImport()}>
               提交本次导入
             </Button>
