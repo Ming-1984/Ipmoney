@@ -1,4 +1,4 @@
-import { Alert, Button, Card, Drawer, Form, Input, InputNumber, Select, Space, Switch, Table, Tag, Typography, Upload, message } from 'antd';
+import { Alert, Button, Card, Drawer, Form, Input, InputNumber, Modal, Select, Space, Switch, Table, Tag, Typography, Upload, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { components } from '@ipmoney/api-types';
 
@@ -389,6 +389,16 @@ function statusTag(status: JobStatus | ImportRowStatus) {
   return <Tag>{label}</Tag>;
 }
 
+function importJobStageTag(job: PatentImportJob) {
+  if (job.status === 'PENDING' && !job.validatedAt) return <Tag>待检查</Tag>;
+  if (job.status === 'PENDING' && job.validatedAt) return <Tag color="gold">待处理</Tag>;
+  if (job.status === 'RUNNING') return <Tag color="blue">处理中</Tag>;
+  if (job.status === 'PAUSED') return <Tag color="orange">已暂停</Tag>;
+  if (job.status === 'SUCCEEDED') return <Tag color="green">已完成</Tag>;
+  if (job.status === 'FAILED') return <Tag color="red">处理失败</Tag>;
+  return <Tag>状态待确认</Tag>;
+}
+
 function duplicatePolicyLabel(policy?: DuplicatePolicy | null): string {
   if (policy === 'OVERWRITE') return '覆盖更新';
   if (policy === 'SKIP') return '跳过重复';
@@ -463,11 +473,11 @@ function patentImportRowSummary(row: PatentImportJobRow): string {
 
 const jobStatusFilterOptions: Array<{ value: JobStatus | ''; label: string }> = [
   { value: '', label: '全部状态' },
-  { value: 'PENDING', label: '待处理' },
-  { value: 'RUNNING', label: '执行中' },
+  { value: 'PENDING', label: '待检查/待处理' },
+  { value: 'RUNNING', label: '处理中' },
   { value: 'PAUSED', label: '已暂停' },
   { value: 'SUCCEEDED', label: '已完成' },
-  { value: 'FAILED', label: '失败' },
+  { value: 'FAILED', label: '处理失败' },
 ];
 
 const duplicatePolicyFilterOptions: Array<{ value: DuplicatePolicy | ''; label: string }> = [
@@ -896,7 +906,7 @@ export function PatentOperationsPage() {
           await apiPost(`/admin/patents/jobs/import/${created.id}/validate`, {}, { idempotencyKey: `validate-${Date.now()}` });
           await apiPost(`/admin/patents/jobs/import/${created.id}/execute`, {}, { idempotencyKey: `execute-${Date.now()}` });
         }
-        message.success(autoExecute ? '任务已创建并完成“校验+执行”' : '任务已创建，请在任务列表中执行“校验/执行”');
+        message.success(autoExecute ? '任务已提交并开始自动处理' : '任务已提交为待检查任务，请在任务记录中点击“检查”');
         await loadJobs();
       } catch (e: any) {
         message.error(e?.message || '创建任务失败');
@@ -905,6 +915,23 @@ export function PatentOperationsPage() {
       }
     },
     [file?.id, form, loadJobs],
+  );
+
+  const confirmCreateImportJob = useCallback(
+    (autoExecute: boolean) => {
+      if (!autoExecute) {
+        void createImportJob(false);
+        return;
+      }
+      Modal.confirm({
+        title: '确认提交并自动处理？',
+        content: '系统将自动检查并处理本次导入数据，处理成功后会自动生成或更新挂牌。',
+        okText: '确认处理',
+        cancelText: '取消',
+        onOk: () => createImportJob(true),
+      });
+    },
+    [createImportJob],
   );
 
   const validateJob = useCallback(
@@ -925,6 +952,10 @@ export function PatentOperationsPage() {
 
   const executeJob = useCallback(
     async (job: PatentImportJob) => {
+      if (job.status !== 'PAUSED' && (job.status !== 'PENDING' || !job.validatedAt)) {
+        message.warning('只有已检查待处理或已暂停的任务可以开始处理');
+        return;
+      }
       try {
         setSubmitting(true);
         await apiPost(`/admin/patents/jobs/import/${job.id}/execute`, {}, { idempotencyKey: `admin-patent-import-execute-${job.id}-${Date.now()}` });
@@ -937,6 +968,22 @@ export function PatentOperationsPage() {
       }
     },
     [loadJobs, loadRows],
+  );
+
+  const confirmExecuteJob = useCallback(
+    (job: PatentImportJob) => {
+      const isResume = job.status === 'PAUSED';
+      Modal.confirm({
+        title: isResume ? '确认继续处理该任务？' : '确认开始处理该任务？',
+        content: isResume
+          ? '系统将继续处理该导入任务，并写入或更新专利及挂牌数据。'
+          : '系统将写入或更新专利数据，并自动生成或更新挂牌。',
+        okText: isResume ? '继续处理' : '开始处理',
+        cancelText: '取消',
+        onOk: () => executeJob(job),
+      });
+    },
+    [executeJob],
   );
 
   const downloadErrorFile = useCallback(async (fileId?: string | null) => {
@@ -973,9 +1020,9 @@ export function PatentOperationsPage() {
         { idempotencyKey: `admin-patent-listings-${Date.now()}` },
       );
       setGenerateResult(result);
-      message.success(`批量上架执行完成：成功 ${result.successCount}，失败 ${result.failedCount}，跳过 ${result.skippedCount}`);
+      message.success(`补生成挂牌完成：成功 ${result.successCount}，失败 ${result.failedCount}，跳过 ${result.skippedCount}`);
     } catch (e: any) {
-      message.error(e?.message || '批量上架失败');
+      message.error(e?.message || '补生成挂牌失败');
     } finally {
       setSubmitting(false);
     }
@@ -996,10 +1043,10 @@ export function PatentOperationsPage() {
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Card>
         <Typography.Title level={3} style={{ marginTop: 0 }}>
-          专利批量处理
+          专利主数据批量导入
         </Typography.Title>
         <Typography.Paragraph type="secondary">
-          按“下载模板并上传数据、设置本次处理方式、查看处理结果”的顺序完成专利批量处理。系统内部检查和执行会自动完成。
+          上传文件并设置处理方式后，可提交为待检查任务，也可让系统自动完成检查和处理。处理成功后会自动生成或更新挂牌。
         </Typography.Paragraph>
         {error ? <RequestErrorAlert error={error} onRetry={loadJobs} /> : null}
 
@@ -1007,7 +1054,7 @@ export function PatentOperationsPage() {
           <Alert
             showIcon
             type="info"
-            message="1. 先下载模板并准备本次要处理的数据"
+            message="（1）先下载模板并准备本次要处理的数据"
             description={
               <Space direction="vertical" size={2}>
                 <Typography.Text type="secondary">必填列：申请号、发明名称、专利类型。</Typography.Text>
@@ -1058,7 +1105,7 @@ export function PatentOperationsPage() {
 
           <Form form={form} layout="vertical">
             <Space wrap>
-              <Form.Item label="2. 重复数据怎么处理" name="duplicatePolicy" rules={[{ required: true }]}>
+              <Form.Item label="（2）重复数据怎么处理" name="duplicatePolicy" rules={[{ required: true }]}>
                 <Select style={{ width: 160 }} options={duplicatePolicyOptions} />
               </Form.Item>
               <Form.Item label="咨询分配方式" name="consultationRouting" rules={[{ required: true }]}>
@@ -1092,38 +1139,21 @@ export function PatentOperationsPage() {
           </Form>
 
           <Space>
-            <Button type="primary" loading={submitting} onClick={() => void createImportJob(false)}>
-              提交本次导入
+            <Button loading={submitting} onClick={() => confirmCreateImportJob(false)}>
+              提交为待检查任务
             </Button>
-            <Button loading={submitting} onClick={() => void createImportJob(true)}>
-              提交并立即开始处理
+            <Button type="primary" loading={submitting} onClick={() => confirmCreateImportJob(true)}>
+              提交并自动处理
             </Button>
             <Button onClick={() => void loadJobs()}>刷新处理记录</Button>
           </Space>
         </Space>
       </Card>
 
-      <Card title="按专利编号批量发布">
-        <Space direction="vertical" size={12} style={{ width: '100%' }}>
-          <Input.TextArea
-            rows={4}
-            value={patentIdsText}
-            onChange={(e) => setPatentIdsText(e.target.value)}
-            placeholder="每行一个专利记录编号，或逗号分隔"
-          />
-          <Typography.Text type="secondary">已识别 {parsedPatentIdsCount} 个专利编号（自动去重）</Typography.Text>
-          <Button type="primary" loading={submitting} onClick={() => void runBatchGenerate()}>
-            开始批量发布
-          </Button>
-          {generateResult ? (
-            <Typography.Text type="secondary">
-              总 {generateResult.totalCount}，成功 {generateResult.successCount}，失败 {generateResult.failedCount}，跳过 {generateResult.skippedCount}
-            </Typography.Text>
-          ) : null}
-        </Space>
-      </Card>
-
-      <Card title="3. 最近处理记录">
+      <Card title="（3）导入任务记录">
+        <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
+          “检查”只校验文件数据；“开始处理”才会写入或更新专利，并自动生成或更新挂牌。已完成任务无需再次处理。
+        </Typography.Paragraph>
         <Space wrap style={{ marginBottom: 12 }}>
           <Select
             value={draftJobStatusFilter}
@@ -1166,7 +1196,7 @@ export function PatentOperationsPage() {
                 <Space direction="vertical" size={2}>
                   <Typography.Text>{patentImportJobSummary(row)}</Typography.Text>
                   <Typography.Text type="secondary">
-                    策略：{duplicatePolicyLabel(row.duplicatePolicy)} · 状态：{statusTag(row.status)}
+                    策略：{duplicatePolicyLabel(row.duplicatePolicy)} · 状态：{importJobStageTag(row)}
                   </Typography.Text>
                   <Typography.Text type="secondary" copyable={{ text: row.id }}>
                     处理单号：{row.id}
@@ -1174,39 +1204,68 @@ export function PatentOperationsPage() {
                 </Space>
               ),
             },
-            { title: '状态', dataIndex: 'status', width: 110, render: (v: JobStatus) => statusTag(v) },
+            { title: '状态', width: 120, render: (_, row) => importJobStageTag(row) },
             { title: '策略', dataIndex: 'duplicatePolicy', width: 90, render: (v: DuplicatePolicy) => duplicatePolicyLabel(v) },
             { title: '失败率', dataIndex: 'failRate', width: 100, render: (v: number) => `${Math.round((Number(v) || 0) * 100)}%` },
-            { title: '已检查', dataIndex: 'validatedAt', width: 160, render: (v: string | null | undefined) => (v ? formatTimeSmart(v) : '-') },
+            { title: '检查时间', dataIndex: 'validatedAt', width: 160, render: (v: string | null | undefined) => (v ? formatTimeSmart(v) : '-') },
             { title: '创建时间', dataIndex: 'createdAt', width: 150, render: (v: string) => formatTimeSmart(v) },
             {
               title: '操作',
-              width: 340,
-              render: (_, r) => (
-                <Space>
-                  <Button size="small" onClick={() => openRows(r)}>
-                    查看详情
-                  </Button>
-                  <Button size="small" loading={submitting} disabled={r.status === 'RUNNING'} onClick={() => void validateJob(r.id)}>
-                    检查
-                  </Button>
-                  <Button
-                    size="small"
-                    type="primary"
-                    loading={submitting}
-                    disabled={r.status === 'RUNNING' || !r.validatedAt}
-                    onClick={() => void executeJob(r)}
-                  >
-                    {r.status === 'PAUSED' ? '继续处理' : '开始处理'}
-                  </Button>
-                  <Button size="small" disabled={!r.errorFileId} onClick={() => void downloadErrorFile(r.errorFileId)}>
-                    错误文件
-                  </Button>
-                </Space>
-              ),
+              width: 320,
+              render: (_, r) => {
+                const canValidate = r.status === 'PENDING';
+                const canExecute = r.status === 'PENDING' && Boolean(r.validatedAt);
+                const canResume = r.status === 'PAUSED';
+                const showErrorFile = (r.status === 'PAUSED' || r.status === 'FAILED') && Boolean(r.errorFileId);
+                return (
+                  <Space>
+                    <Button size="small" onClick={() => openRows(r)}>
+                      查看详情
+                    </Button>
+                    {canValidate ? (
+                      <Button size="small" loading={submitting} onClick={() => void validateJob(r.id)}>
+                        {r.validatedAt ? '重新检查' : '检查'}
+                      </Button>
+                    ) : null}
+                    {canExecute || canResume ? (
+                      <Button size="small" type="primary" loading={submitting} onClick={() => confirmExecuteJob(r)}>
+                        {canResume ? '继续处理' : '开始处理'}
+                      </Button>
+                    ) : null}
+                    {showErrorFile ? (
+                      <Button size="small" onClick={() => void downloadErrorFile(r.errorFileId)}>
+                        错误文件
+                      </Button>
+                    ) : null}
+                  </Space>
+                );
+              },
             },
           ]}
         />
+      </Card>
+
+      <Card title="异常补挂牌">
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
+            仅用于系统中已有专利但挂牌缺失、挂牌被误删或历史数据需要补齐的特殊场景。日常专利导入无需使用此功能。
+          </Typography.Paragraph>
+          <Input.TextArea
+            rows={4}
+            value={patentIdsText}
+            onChange={(e) => setPatentIdsText(e.target.value)}
+            placeholder="每行一个专利记录编号，或用逗号分隔"
+          />
+          <Typography.Text type="secondary">已识别 {parsedPatentIdsCount} 个专利编号（自动去重）</Typography.Text>
+          <Button loading={submitting} onClick={() => void runBatchGenerate()}>
+            补生成挂牌
+          </Button>
+          {generateResult ? (
+            <Typography.Text type="secondary">
+              总 {generateResult.totalCount}，成功 {generateResult.successCount}，失败 {generateResult.failedCount}，跳过 {generateResult.skippedCount}
+            </Typography.Text>
+          ) : null}
+        </Space>
       </Card>
 
       <Card title="专利地图批量管理">
