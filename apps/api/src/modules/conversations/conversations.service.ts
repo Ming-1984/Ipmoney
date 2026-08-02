@@ -362,10 +362,17 @@ export class ConversationsService {
       .toLowerCase();
     if (!normalizedKeyword) return true;
     const candidates = [
+      summary.id,
+      summary.contentId,
+      summary.orderId,
       normalizeDisplayText(summary.counterpart?.displayName),
       normalizeDisplayText(summary.counterpart?.nickname),
       normalizeDisplayText(summary.contentTitle),
+      normalizeDisplayText(summary.orderTitle),
       normalizeDisplayText(summary.listingTitle),
+      normalizeDisplayText(summary.patentTitle),
+      normalizeDisplayText(summary.applicationNoDisplay),
+      normalizeDisplayText(summary.patentNoDisplay),
       normalizeDisplayText(summary.lastMessagePreview),
     ]
       .filter(Boolean)
@@ -382,10 +389,21 @@ export class ConversationsService {
     const counterpartDisplayName = normalizeDisplayText(summary.counterpart?.displayName)?.toLowerCase() ?? '';
     const counterpartNickname = normalizeDisplayText(summary.counterpart?.nickname)?.toLowerCase() ?? '';
     const contentTitle = normalizeDisplayText(summary.contentTitle)?.toLowerCase() ?? '';
+    const orderId = String(summary.orderId || '').trim().toLowerCase();
+    const contentId = String(summary.contentId || '').trim().toLowerCase();
+    const conversationId = String(summary.id || '').trim().toLowerCase();
+    const orderTitle = normalizeDisplayText(summary.orderTitle)?.toLowerCase() ?? '';
     const listingTitle = normalizeDisplayText(summary.listingTitle)?.toLowerCase() ?? '';
+    const patentTitle = normalizeDisplayText(summary.patentTitle)?.toLowerCase() ?? '';
+    const applicationNoDisplay = normalizeDisplayText(summary.applicationNoDisplay)?.toLowerCase() ?? '';
+    const patentNoDisplay = normalizeDisplayText(summary.patentNoDisplay)?.toLowerCase() ?? '';
     const lastMessagePreview = normalizeDisplayText(summary.lastMessagePreview)?.toLowerCase() ?? '';
 
     let score = 0;
+    if (orderId === normalizedKeyword) score += 2000;
+    if (conversationId === normalizedKeyword) score += 1500;
+    if (contentId === normalizedKeyword) score += 1200;
+
     if (counterpartDisplayName === normalizedKeyword) score += 1000;
     else if (counterpartDisplayName.startsWith(normalizedKeyword)) score += 850;
     else if (counterpartDisplayName.includes(normalizedKeyword)) score += 650;
@@ -398,10 +416,17 @@ export class ConversationsService {
     else if (contentTitle.startsWith(normalizedKeyword)) score += 240;
     else if (contentTitle.includes(normalizedKeyword)) score += 160;
 
+    if (orderTitle === normalizedKeyword) score += 280;
+    else if (orderTitle.startsWith(normalizedKeyword)) score += 220;
+    else if (orderTitle.includes(normalizedKeyword)) score += 150;
+
     if (listingTitle === normalizedKeyword) score += 260;
     else if (listingTitle.startsWith(normalizedKeyword)) score += 200;
     else if (listingTitle.includes(normalizedKeyword)) score += 140;
 
+    if (patentTitle.includes(normalizedKeyword)) score += 100;
+    if (applicationNoDisplay.includes(normalizedKeyword)) score += 90;
+    if (patentNoDisplay.includes(normalizedKeyword)) score += 90;
     if (lastMessagePreview.includes(normalizedKeyword)) score += 60;
 
     return score;
@@ -414,7 +439,13 @@ export class ConversationsService {
     if (!normalizedKeyword) return false;
     const counterpartDisplayName = normalizeDisplayText(summary.counterpart?.displayName)?.toLowerCase() ?? '';
     const contentTitle = normalizeDisplayText(summary.contentTitle)?.toLowerCase() ?? '';
+    const orderId = String(summary.orderId || '').trim().toLowerCase();
+    const contentId = String(summary.contentId || '').trim().toLowerCase();
+    const conversationId = String(summary.id || '').trim().toLowerCase();
     return (
+      orderId === normalizedKeyword ||
+      contentId === normalizedKeyword ||
+      conversationId === normalizedKeyword ||
       Boolean(counterpartDisplayName) &&
       (counterpartDisplayName === normalizedKeyword || counterpartDisplayName.startsWith(normalizedKeyword))
     ) ||
@@ -1360,6 +1391,17 @@ export class ConversationsService {
         qOrFilters.push({ contentId: qFilter });
         qOrFilters.push({ buyerUserId: qFilter });
         qOrFilters.push({ orderId: qFilter });
+        const linkedOrder = await this.prisma.order.findUnique({
+          where: { id: qFilter },
+          select: { listingId: true, buyerUserId: true },
+        });
+        if (linkedOrder?.listingId && linkedOrder?.buyerUserId) {
+          qOrFilters.push({
+            contentType: 'LISTING',
+            listingId: linkedOrder.listingId,
+            buyerUserId: linkedOrder.buyerUserId,
+          });
+        }
       }
       andFilters.push({
         OR: qOrFilters,

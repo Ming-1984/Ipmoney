@@ -19,6 +19,7 @@ describe('ConversationsService pagination and id strictness suite', () => {
         findMany: vi.fn(),
       },
       order: {
+        findUnique: vi.fn().mockResolvedValue(null),
         findMany: vi.fn().mockResolvedValue([]),
       },
       userVerification: {
@@ -791,6 +792,79 @@ describe('ConversationsService pagination and id strictness suite', () => {
         },
       }),
     );
+  });
+
+  it('finds linked listing consultations when searching platform conversations by order id', async () => {
+    const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', permissions: new Set(['*']) } };
+    const orderId = '55555555-5555-4555-8555-555555555555';
+    const listingId = '22222222-2222-4222-8222-222222222222';
+    const buyerUserId = '33333333-3333-4333-8333-333333333333';
+
+    prisma.order.findUnique.mockResolvedValueOnce({ listingId, buyerUserId });
+    prisma.conversation.findMany.mockResolvedValueOnce([
+      {
+        id: '11111111-1111-4111-8111-111111111111',
+        contentType: 'LISTING',
+        contentId: listingId,
+        listingId,
+        orderId: null,
+        buyerUserId,
+        sellerUserId: 'seller-platform',
+        listing: {
+          id: listingId,
+          title: 'Platform listing',
+          consultationRouting: 'PLATFORM',
+          source: 'ADMIN',
+          listingTopicsJson: [],
+        },
+        buyer: {
+          id: buyerUserId,
+          nickname: 'Buyer Nick',
+          avatarUrl: null,
+          role: 'buyer',
+          verifications: [],
+        },
+        seller: { id: 'seller-platform', nickname: 'Platform', avatarUrl: null, role: 'seller', verifications: [] },
+        order: null,
+        agents: [],
+        participants: [{ lastReadAt: null }],
+        messages: [{ id: 'm-1', text: 'hello', type: 'TEXT', createdAt: new Date('2026-03-14T01:10:00.000Z') }],
+        lastMessageAt: new Date('2026-03-14T01:10:00.000Z'),
+        updatedAt: new Date('2026-03-14T01:10:00.000Z'),
+        createdAt: new Date('2026-03-14T01:00:00.000Z'),
+      },
+    ]);
+    prisma.order.findMany.mockResolvedValueOnce([
+      {
+        id: orderId,
+        listingId,
+        buyerUserId,
+        status: 'DEPOSIT_PAID',
+        listing: { id: listingId, title: 'Platform listing' },
+      },
+    ]);
+    prisma.conversationMessage.count.mockResolvedValueOnce(0);
+
+    const result = await service.listPlatformConversations(req, { q: orderId });
+
+    expect(prisma.conversation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            expect.objectContaining({
+              OR: expect.arrayContaining([
+                {
+                  contentType: 'LISTING',
+                  listingId,
+                  buyerUserId,
+                },
+              ]),
+            }),
+          ]),
+        }),
+      }),
+    );
+    expect(result.items[0]).toMatchObject({ orderId, orderStatus: 'DEPOSIT_PAID' });
   });
 
   it('supports maintenance channel in platform conversation filters', async () => {

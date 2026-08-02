@@ -25,7 +25,7 @@ import {
 } from 'antd';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { components } from '@ipmoney/api-types';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { apiDelete, apiGet, apiPatch, apiPost, apiUploadFile } from '../lib/api';
 import { fenToYuan, fenToYuanNumber, formatTimeSmart, yuanToFen } from '../lib/format';
@@ -402,25 +402,28 @@ function orderProgressColor(status?: string | null): string {
 
 export function PlatformConversationsPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialPresetQ = String(searchParams.get('orderId') || searchParams.get('q') || '').trim();
+  const initialPresetConversationId = String(searchParams.get('conversationId') || '').trim();
   const screens = Grid.useBreakpoint();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
   const [page, setPage] = useState(1);
   const [data, setData] = useState<Paged<ConversationSummary> | null>(null);
 
-  const [draftQ, setDraftQ] = useState('');
+  const [draftQ, setDraftQ] = useState(initialPresetQ);
   const [draftAssigned, setDraftAssigned] = useState<AssignedFilter>('ALL');
   const [draftChannel, setDraftChannel] = useState<ConversationChannelFilter>('ALL');
   const [draftListingTopic, setDraftListingTopic] = useState<ListingTopic | ''>('');
   const [draftUpdatedRange, setDraftUpdatedRange] = useState<DateRangeValue>(null);
 
-  const [appliedQ, setAppliedQ] = useState('');
+  const [appliedQ, setAppliedQ] = useState(initialPresetQ);
   const [appliedAssigned, setAppliedAssigned] = useState<AssignedFilter>('ALL');
   const [appliedChannel, setAppliedChannel] = useState<ConversationChannelFilter>('ALL');
   const [appliedListingTopic, setAppliedListingTopic] = useState<ListingTopic | ''>('');
   const [appliedUpdatedRange, setAppliedUpdatedRange] = useState<DateRangeValue>(null);
 
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(initialPresetConversationId || null);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [messagesLoading, setMessagesLoading] = useState(false);
@@ -450,6 +453,7 @@ export function PlatformConversationsPage() {
   const activeConversationIdRef = useRef<string | null>(null);
   const latestMessageLoadIdRef = useRef(0);
   const conversationsLoadIdRef = useRef(0);
+  const urlPresetKeyRef = useRef(searchParams.toString());
 
   const activeConversation = useMemo(
     () => (data?.items || []).find((item) => item.id === activeConversationId) || null,
@@ -910,6 +914,32 @@ export function PlatformConversationsPage() {
       setAppliedAssigned('MINE');
     }
   }, [appliedAssigned, canManageConversations, draftAssigned]);
+
+  useEffect(() => {
+    const nextPresetKey = searchParams.toString();
+    if (urlPresetKeyRef.current === nextPresetKey) return;
+    urlPresetKeyRef.current = nextPresetKey;
+
+    const nextQ = String(searchParams.get('orderId') || searchParams.get('q') || '').trim();
+    const nextConversationId = String(searchParams.get('conversationId') || '').trim();
+    if (!nextQ && !nextConversationId) return;
+
+    const nextAssigned = canManageConversations === false ? 'MINE' : 'ALL';
+    setPage(1);
+    setDraftAssigned(nextAssigned);
+    setAppliedAssigned(nextAssigned);
+    setDraftChannel('ALL');
+    setAppliedChannel('ALL');
+    setDraftListingTopic('');
+    setAppliedListingTopic('');
+    setDraftUpdatedRange(null);
+    setAppliedUpdatedRange(null);
+    if (nextQ) {
+      setDraftQ(nextQ);
+      setAppliedQ(nextQ);
+    }
+    setActiveConversationId(nextConversationId || null);
+  }, [canManageConversations, searchParams]);
 
   useEffect(() => {
     (async () => {

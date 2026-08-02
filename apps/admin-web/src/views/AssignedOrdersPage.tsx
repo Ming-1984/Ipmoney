@@ -16,8 +16,9 @@ import {
   message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { CloseCircleOutlined, EyeOutlined, FileDoneOutlined, ReloadOutlined, UploadOutlined } from '@ant-design/icons';
+import { CloseCircleOutlined, EyeOutlined, FileDoneOutlined, MessageOutlined, ReloadOutlined, UploadOutlined } from '@ant-design/icons';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { apiGet, apiPost, type FileObject } from '../lib/api';
 import { fenToYuan, formatTimeSmart, yuanToFen } from '../lib/format';
@@ -118,6 +119,7 @@ const TEXT = {
   updatedAt: '更新时间',
   actions: '操作',
   detail: '详情',
+  conversation: '\u4f1a\u8bdd',
   contractStatus: '合同',
   contractUpload: '上传合同',
   contractReplace: '重传/更换合同',
@@ -317,6 +319,7 @@ function milestoneStatusColor(status?: string | null): string {
 }
 
 export function AssignedOrdersPage() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
   const [data, setData] = useState<PagedAssignedOrder | null>(null);
@@ -391,6 +394,15 @@ export function AssignedOrdersPage() {
       setDetailLoading(false);
     }
   }, []);
+
+  const openOrderConversation = useCallback(
+    (orderId?: string | null) => {
+      const normalizedOrderId = String(orderId || '').trim();
+      if (!normalizedOrderId) return;
+      navigate(`/conversations/platform?orderId=${encodeURIComponent(normalizedOrderId)}`);
+    },
+    [navigate],
+  );
 
   useEffect(() => {
     void load();
@@ -575,12 +587,15 @@ export function AssignedOrdersPage() {
       {
         title: TEXT.actions,
         key: 'actions',
-        width: 430,
+        width: 520,
         fixed: 'right',
         render: (_, row) => (
           <Space wrap>
             <Button icon={<EyeOutlined />} onClick={() => void loadDetail(row.id)}>
               {TEXT.detail}
+            </Button>
+            <Button icon={<MessageOutlined />} onClick={() => openOrderConversation(row.id)}>
+              {TEXT.conversation}
             </Button>
             <Button
               icon={<UploadOutlined />}
@@ -613,7 +628,7 @@ export function AssignedOrdersPage() {
         ),
       },
     ],
-    [loadDetail, openContractModal, rejectSignedSubmission],
+    [loadDetail, openContractModal, openOrderConversation, rejectSignedSubmission],
   );
 
   return (
@@ -653,7 +668,7 @@ export function AssignedOrdersPage() {
           columns={columns}
           dataSource={rows}
           locale={{ emptyText: <Empty description={TEXT.empty} /> }}
-          scroll={{ x: 1630 }}
+          scroll={{ x: 1720 }}
           pagination={{
             current: data?.page.page || page,
             pageSize: data?.page.pageSize || pageSize,
@@ -711,6 +726,9 @@ export function AssignedOrdersPage() {
           </Descriptions>
 
           <Space style={{ marginTop: 16 }} wrap>
+            <Button icon={<MessageOutlined />} disabled={!detail?.id} onClick={() => openOrderConversation(detail?.id)}>
+              {TEXT.conversation}
+            </Button>
             <Button
               icon={<UploadOutlined />}
               disabled={detail?.status !== 'DEPOSIT_PAID'}
