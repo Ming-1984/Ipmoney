@@ -18,11 +18,26 @@ type FinanceSummary = {
 };
 
 type ExportResult = { exportUrl: string };
+type TemporaryAccessResult = { url: string };
+
+function extractFileIdFromFileUrl(rawUrl?: string | null): string | null {
+  const input = String(rawUrl || '').trim();
+  if (!input) return null;
+  let pathname = input;
+  try {
+    pathname = new URL(input).pathname || input;
+  } catch {
+    pathname = input.split('?')[0] || input;
+  }
+  const match = pathname.match(/\/files\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:$|\/)/i);
+  return match?.[1] || null;
+}
 
 export function ReportsPage() {
   const [error, setError] = useState<unknown | null>(null);
   const [summary, setSummary] = useState<FinanceSummary | null>(null);
   const [range, setRange] = useState<any>(null);
+  const [exporting, setExporting] = useState(false);
 
   const rangeParams = useMemo(() => {
     if (!range || !range[0] || !range[1]) return {};
@@ -75,6 +90,9 @@ export function ReportsPage() {
                 reasonLabel: '导出原因（建议填写）',
               });
               if (!ok) return;
+              const downloadWindow = window.open('about:blank', '_blank');
+              if (downloadWindow) downloadWindow.opener = null;
+              setExporting(true);
               try {
                 const res = await apiPost<ExportResult>(
                   '/admin/reports/finance/export',
@@ -84,12 +102,29 @@ export function ReportsPage() {
                   },
                   { idempotencyKey: `report-export-${Date.now()}`, retry: 1 },
                 );
+                if (!res?.exportUrl) throw new Error('导出文件地址为空');
+                const fileId = extractFileIdFromFileUrl(res.exportUrl);
+                if (!fileId) throw new Error('导出文件编号缺失');
+                const temp = await apiPost<TemporaryAccessResult>(`/files/${fileId}/temporary-access`, {
+                  scope: 'download',
+                  ttlSeconds: 300,
+                });
+                if (!temp?.url) throw new Error('临时下载地址为空');
+
                 message.success('已生成导出文件');
-                if (res?.exportUrl) window.open(res.exportUrl, '_blank', 'noreferrer');
+                if (downloadWindow) {
+                  downloadWindow.location.href = temp.url;
+                } else {
+                  window.open(temp.url, '_blank', 'noopener,noreferrer');
+                }
               } catch (e: any) {
+                if (downloadWindow) downloadWindow.close();
                 message.error(e?.message || '导出失败');
+              } finally {
+                setExporting(false);
               }
             }}
+            loading={exporting}
           >
             导出报表
           </Button>
