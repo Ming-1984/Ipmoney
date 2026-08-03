@@ -34,6 +34,7 @@ export default ((merge, env) => {
   const apiBaseUrl = rawApiBaseUrl.replace('http://localhost', 'http://127.0.0.1');
   const rawMockTools = String(process.env.TARO_APP_ENABLE_MOCK_TOOLS || '').trim().toLowerCase();
   const rawDemoAuth = String(process.env.DEMO_AUTH_ENABLED || '').trim().toLowerCase();
+  const wechatCloudEnv = String(process.env.TARO_APP_WECHAT_CLOUD_ENV || '').trim();
   if (isProdBuild) {
     if (rawMockTools === '1' || rawMockTools === 'true') {
       throw new Error('TARO_APP_ENABLE_MOCK_TOOLS must be disabled in production build.');
@@ -108,6 +109,7 @@ export default ((merge, env) => {
       __APP_MODE__: JSON.stringify(env.mode),
       __DEMO_AUTH_ENABLED__: JSON.stringify(demoAuthEnabled),
       __IS_PROD_DEPLOY__: JSON.stringify(isProdDeploy),
+      __WECHAT_CLOUD_ENV__: JSON.stringify(wechatCloudEnv),
     },
     alias: {
       // Keep H5 bundles lean: NutUI's icon entry is marked as side-effectful and

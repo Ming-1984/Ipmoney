@@ -4250,14 +4250,45 @@ export interface components {
          * @enum {string}
          */
         InvoiceStatus: "WAIT_APPLY" | "APPLYING" | "ISSUED";
+        /** @enum {string} */
+        InvoiceTitleType: "PERSONAL" | "ENTERPRISE";
+        /** @enum {string} */
+        InvoiceRequestStatus: "APPLYING" | "ISSUED" | "CANCELLED";
+        InvoiceRequestCreateRequest: {
+            titleType: components["schemas"]["InvoiceTitleType"];
+            titleName: string;
+            taxNo?: string | null;
+            /** Format: email */
+            email?: string | null;
+            phone?: string | null;
+            remark?: string | null;
+        };
+        InvoiceRequest: {
+            id: components["schemas"]["Uuid"];
+            orderId: components["schemas"]["Uuid"];
+            titleType: components["schemas"]["InvoiceTitleType"];
+            titleName: string;
+            taxNo?: string | null;
+            /** Format: email */
+            email?: string | null;
+            phone?: string | null;
+            remark?: string | null;
+            status: components["schemas"]["InvoiceRequestStatus"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         InvoiceRequestResult: {
             orderId: components["schemas"]["Uuid"];
+            requestId: components["schemas"]["Uuid"];
             status: components["schemas"]["InvoiceStatus"];
         };
         InvoiceItem: components["schemas"]["Order"] & {
             invoiceStatus: components["schemas"]["InvoiceStatus"];
             amountFen?: components["schemas"]["MoneyFen"];
             itemName?: string | null;
+            invoiceRequest?: components["schemas"]["InvoiceRequest"];
             invoiceNo?: string | null;
             /** Format: date-time */
             issuedAt?: string | null;
@@ -5605,6 +5636,7 @@ export interface components {
             commissionAmountFen?: components["schemas"]["MoneyFen"];
             /** @description 鐠併垹宕熼悽闈涚摍閸欐垹銈ㄩ敍鍫滅矌鐠併垹宕熺€瑰本鍨氶崥搴″讲閼宠棄鐡ㄩ崷顭掔礆 */
             invoice?: components["schemas"]["OrderInvoice"];
+            invoiceRequest?: components["schemas"]["InvoiceRequest"];
             listingTitle?: string | null;
             applicationNoDisplay?: string | null;
             invoiceNo?: string | null;
@@ -5711,18 +5743,20 @@ export interface components {
         };
         OrderInvoice: {
             orderId: components["schemas"]["Uuid"];
+            status: components["schemas"]["InvoiceStatus"];
             /** @description 鐠併垹宕熼張宥呭鐠?娴ｏ綁鍣鹃柌鎴︻杺閿涘牆绱戠粊銊╁櫨妫版繐绱? */
             amountFen?: components["schemas"]["MoneyFen"];
             /** @description 閸欐垹銈ㄦい鍦窗閸氬秶袨/閺堝秴濮熼崘鍛啇閿涘牓绮拋銈忕窗鐏炲懘妫块張宥呭鐠愮櫢绱? */
             itemName?: string;
-            invoiceNo?: string;
+            invoiceRequest?: components["schemas"]["InvoiceRequest"];
+            invoiceNo?: string | null;
             /** Format: date-time */
-            issuedAt?: string;
-            invoiceFile: components["schemas"]["FileObject"];
+            issuedAt?: string | null;
+            invoiceFile?: components["schemas"]["FileObject"];
             /** Format: date-time */
-            attachedAt?: string;
+            attachedAt?: string | null;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt?: string | null;
         };
         AdminInvoiceItem: components["schemas"]["InvoiceItem"] & {
             order?: components["schemas"]["AdminOrderContext"];
@@ -9484,7 +9518,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvoiceRequestCreateRequest"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -9495,6 +9533,7 @@ export interface operations {
                     "application/json": components["schemas"]["InvoiceRequestResult"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];

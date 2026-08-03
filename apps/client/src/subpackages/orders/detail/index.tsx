@@ -15,7 +15,7 @@ import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { useRouteStringParam } from '../../../lib/routeParams';
 import { AccessGate } from '../../../ui/PageState';
-import { Button, Popup, TextArea, toast } from '../../../ui/nutui';
+import { Button, Input, Popup, TextArea, toast } from '../../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
 import { PageHeader, PopupSheet, Spacer, Surface } from '../../../ui/layout';
 
@@ -26,12 +26,40 @@ type OrderDetail = OrderBase & {
   invoiceNo?: string | null;
   invoiceFileId?: string | null;
   invoiceIssuedAt?: string | null;
+  invoiceRequest?: InvoiceRequestInfo | null;
 };
 type CaseWithMilestones = components['schemas']['CaseWithMilestones'];
 type RefundRequest = components['schemas']['RefundRequest'];
 type RefundReasonCode = components['schemas']['RefundReasonCode'];
 type RefundRequestCreate = components['schemas']['RefundRequestCreate'];
-type OrderInvoice = components['schemas']['OrderInvoice'];
+type InvoiceTitleType = 'PERSONAL' | 'ENTERPRISE';
+type InvoiceStatus = 'WAIT_APPLY' | 'APPLYING' | 'ISSUED';
+type InvoiceRequestInfo = {
+  id: string;
+  orderId: string;
+  titleType: InvoiceTitleType;
+  titleName: string;
+  taxNo?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  remark?: string | null;
+  status: 'APPLYING' | 'ISSUED' | 'CANCELLED';
+  createdAt: string;
+  updatedAt?: string | null;
+};
+type InvoiceRequestCreatePayload = {
+  titleType: InvoiceTitleType;
+  titleName: string;
+  taxNo?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  remark?: string | null;
+};
+type OrderInvoice = Omit<components['schemas']['OrderInvoice'], 'invoiceFile'> & {
+  status?: InvoiceStatus;
+  invoiceRequest?: InvoiceRequestInfo | null;
+  invoiceFile?: components['schemas']['FileObject'] | null;
+};
 type Conversation = components['schemas']['Conversation'];
 
 const REFUNDABLE_STATUSES = new Set<OrderBase['status']>(['DEPOSIT_PAID', 'WAIT_FINAL_PAYMENT', 'FINAL_PAID_ESCROW']);
@@ -46,6 +74,9 @@ const REFUND_REASON_OPTIONS: Array<{ label: string; value: RefundReasonCode }> =
   { label: '风控', value: 'RISK_CONTROL' },
   { label: '其他', value: 'OTHER' },
 ];
+const TAX_NO_RE = /^[0-9A-Z]{8,32}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const CN_MOBILE_RE = /^1[3-9]\d{9}$/;
 
 function reasonLabel(code: RefundReasonCode): string {
   if (code === 'BUYER_CHANGED_MIND') return '意向方改变主意';
@@ -83,6 +114,16 @@ function refundStatusLabel(status?: string | null): string {
   if (status === 'REFUNDING') return '退款中';
   if (status === 'REFUNDED') return '已退款';
   return '处理中';
+}
+
+function invoiceTitleTypeLabel(type?: string | null): string {
+  if (type === 'ENTERPRISE') return '企业';
+  return '个人';
+}
+
+function normalizeLegacyInvoiceNo(value?: string | null): string {
+  const raw = normalizeDisplayText(value) || '';
+  return /^REQ-/i.test(raw) ? '' : raw;
 }
 
 function displayOrderInfo(value: unknown, fallback = '待确认'): string {
@@ -170,6 +211,13 @@ export default function OrderDetailPage() {
   const [invoice, setInvoice] = useState<OrderInvoice | null>(null);
   const [invoiceRequesting, setInvoiceRequesting] = useState(false);
   const [invoiceRequested, setInvoiceRequested] = useState(false);
+  const [invoiceFormOpen, setInvoiceFormOpen] = useState(false);
+  const [invoiceTitleType, setInvoiceTitleType] = useState<InvoiceTitleType>('ENTERPRISE');
+  const [invoiceTitleName, setInvoiceTitleName] = useState('');
+  const [invoiceTaxNo, setInvoiceTaxNo] = useState('');
+  const [invoiceEmail, setInvoiceEmail] = useState('');
+  const [invoicePhone, setInvoicePhone] = useState('');
+  const [invoiceRemark, setInvoiceRemark] = useState('');
 
   const [refundOpen, setRefundOpen] = useState(false);
   const [refundSubmitting, setRefundSubmitting] = useState(false);
@@ -177,7 +225,7 @@ export default function OrderDetailPage() {
   const [reasonCode, setReasonCode] = useState<RefundReasonCode>('BUYER_CHANGED_MIND');
   const [reasonText, setReasonText] = useState('');
 
-  const canFetchInvoiceDetail = Boolean(order?.invoiceFileId && (order?.invoiceNo || order?.invoiceIssuedAt));
+  const canFetchInvoiceDetail = Boolean(orderId && order);
 
   const load = useCallback(async (options?: { silent?: boolean }): Promise<OrderDetail | null> => {
     const silent = Boolean(options?.silent);
@@ -332,6 +380,13 @@ export default function OrderDetailPage() {
     setInvoiceLoading(false);
     setInvoiceError(null);
     setInvoice(null);
+    setInvoiceFormOpen(false);
+    setInvoiceTitleType('ENTERPRISE');
+    setInvoiceTitleName('');
+    setInvoiceTaxNo('');
+    setInvoiceEmail('');
+    setInvoicePhone('');
+    setInvoiceRemark('');
     setRefundOpen(false);
     setRefundSubmitting(false);
     setOpeningDisputeChat(false);
@@ -349,6 +404,7 @@ export default function OrderDetailPage() {
       setRefunds([]);
       setRefundsReady(false);
       setInvoiceRequested(false);
+      setInvoiceFormOpen(false);
       return;
     }
     const cachedOrder = getDetailCache<OrderDetail>(ORDER_DETAIL_CACHE_SCOPE, orderId);
@@ -373,7 +429,7 @@ export default function OrderDetailPage() {
   useEffect(() => {
     setInvoice(null);
     setInvoiceError(null);
-  }, [order?.invoiceFileId, order?.invoiceNo, order?.invoiceIssuedAt, orderId]);
+  }, [order?.invoiceFileId, order?.invoiceNo, order?.invoiceIssuedAt, order?.invoiceRequest?.id, orderId]);
 
   // Avoid auto-fetch on tab switch to reduce noisy 404 logs when invoice file is not ready yet.
 
@@ -407,6 +463,13 @@ export default function OrderDetailPage() {
     setInvoiceLoading(false);
     setInvoiceError(null);
     setInvoice(null);
+    setInvoiceFormOpen(false);
+    setInvoiceTitleType('ENTERPRISE');
+    setInvoiceTitleName('');
+    setInvoiceTaxNo('');
+    setInvoiceEmail('');
+    setInvoicePhone('');
+    setInvoiceRemark('');
     setRefundOpen(false);
   });
 
@@ -416,19 +479,62 @@ export default function OrderDetailPage() {
     void refreshAll();
   }, [access.state, orderId, refreshAll]);
 
+  const openInvoiceForm = useCallback(() => {
+    if (!ensureApproved()) return;
+    const defaultTitle = normalizeDisplayText(order?.buyerDisplayName) || '';
+    setInvoiceTitleType('ENTERPRISE');
+    setInvoiceTitleName((current) => current || defaultTitle);
+    setInvoiceTaxNo('');
+    setInvoiceEmail('');
+    setInvoicePhone('');
+    setInvoiceRemark('');
+    setInvoiceFormOpen(true);
+  }, [order?.buyerDisplayName]);
+
   const requestInvoice = useCallback(async () => {
     if (!ensureApproved()) return;
     const targetOrderId = orderId;
     if (!targetOrderId) return;
     if (invoiceRequesting) return;
+    const titleName = invoiceTitleName.trim();
+    const taxNo = invoiceTaxNo.trim().toUpperCase();
+    const email = invoiceEmail.trim();
+    const phone = invoicePhone.trim();
+    const remark = invoiceRemark.trim();
+    if (titleName.length < 2) {
+      toast('请填写发票抬头');
+      return;
+    }
+    if (invoiceTitleType === 'ENTERPRISE' && !TAX_NO_RE.test(taxNo)) {
+      toast('请填写正确的纳税人识别号');
+      return;
+    }
+    if (email && !EMAIL_RE.test(email)) {
+      toast('请填写正确的接收邮箱');
+      return;
+    }
+    if (phone && !CN_MOBILE_RE.test(phone)) {
+      toast('请填写正确的联系手机号');
+      return;
+    }
+    const payload: InvoiceRequestCreatePayload = {
+      titleType: invoiceTitleType,
+      titleName,
+      ...(invoiceTitleType === 'ENTERPRISE' ? { taxNo } : {}),
+      ...(email ? { email } : {}),
+      ...(phone ? { phone } : {}),
+      ...(remark ? { remark } : {}),
+    };
     const seq = ++invoiceActionSeqRef.current;
     setInvoiceRequesting(true);
     try {
-      await apiPost(`/orders/${targetOrderId}/invoice-requests`, {}, { idempotencyKey: `invoice-${targetOrderId}` });
+      await apiPost(`/orders/${targetOrderId}/invoice-requests`, payload, { idempotencyKey: `invoice-${targetOrderId}` });
       if (seq !== invoiceActionSeqRef.current || orderIdRef.current !== targetOrderId) return;
       setInvoiceRequested(true);
-      toast('已提交开票申请', { icon: 'success' });
+      setInvoiceFormOpen(false);
+      toast('已提交开票申请，财务将按填写信息处理', { icon: 'success' });
       void load();
+      void loadInvoice();
     } catch (e: any) {
       if (seq !== invoiceActionSeqRef.current || orderIdRef.current !== targetOrderId) return;
       toast(e?.message || '申请开票失败', { icon: 'fail' });
@@ -437,7 +543,18 @@ export default function OrderDetailPage() {
         setInvoiceRequesting(false);
       }
     }
-  }, [orderId, invoiceRequesting, load]);
+  }, [
+    invoiceEmail,
+    invoicePhone,
+    invoiceRemark,
+    invoiceRequesting,
+    invoiceTaxNo,
+    invoiceTitleName,
+    invoiceTitleType,
+    load,
+    loadInvoice,
+    orderId,
+  ]);
 
   const refundableByStatus = Boolean(order?.status && REFUNDABLE_STATUSES.has(order.status));
   const hasBlockingRefund = refunds.some((r) => BLOCKING_REFUND_REQUEST_STATUSES.has(r.status));
@@ -519,9 +636,12 @@ export default function OrderDetailPage() {
     }
   }, [openingDisputeChat, orderId]);
 
-  const hasInvoiceFile = Boolean(order?.invoiceFileId || invoice?.invoiceFile?.url);
-  const hasInvoiceRequest = Boolean(order?.invoiceNo || invoiceRequested);
-  const hasInvoiceDownloadUrl = Boolean(invoice?.invoiceFile?.url);
+  const currentInvoiceRequest = invoice?.invoiceRequest || order?.invoiceRequest || null;
+  const invoiceFileUrl = invoice?.invoiceFile?.url || '';
+  const hasInvoiceFile = Boolean(order?.invoiceFileId || invoiceFileUrl);
+  const hasInvoiceRequest = Boolean(currentInvoiceRequest || order?.invoiceNo || invoiceRequested || invoice?.status === 'APPLYING');
+  const hasInvoiceDownloadUrl = Boolean(invoiceFileUrl);
+  const displayInvoiceNo = normalizeLegacyInvoiceNo(invoice?.invoiceNo || order?.invoiceNo);
 
   const openInvoiceCenter = useCallback(() => {
     const tab = hasInvoiceFile ? 'ISSUED' : 'WAIT_APPLY';
@@ -536,7 +656,7 @@ export default function OrderDetailPage() {
     : hasInvoiceRequest
       ? '已提交开票申请，财务处理中'
       : order?.status === 'COMPLETED'
-        ? '订单已完成，可申请开票'
+        ? '订单已完成，可申请平台服务费发票'
         : '订单完成后由财务上传';
 
   const detailTabs = useMemo(
@@ -773,17 +893,17 @@ export default function OrderDetailPage() {
                 <Text className="order-detail-empty">加载中…</Text>
               ) : invoiceError ? (
                 <ErrorCard title="发票信息加载失败" message={invoiceError} onRetry={loadInvoice} />
-              ) : hasInvoiceFile && invoice?.invoiceFile?.url ? (
+              ) : hasInvoiceFile && invoiceFileUrl ? (
                 <View className="order-invoice-ready">
                   <View className="order-record-main">
                     <Text className="order-record-title">电子发票已上传</Text>
-                    <Text className="order-record-subtitle">{displayOrderInfo(invoice.invoiceNo || order.invoiceNo, '发票号待确认')}</Text>
+                    <Text className="order-record-subtitle">{displayOrderInfo(displayInvoiceNo, '发票号待确认')}</Text>
                   </View>
                   <Button
                     variant="ghost"
                     size="small"
                     onClick={() => {
-                      Taro.setClipboardData({ data: invoice.invoiceFile.url });
+                      Taro.setClipboardData({ data: invoiceFileUrl });
                       toast('已复制下载链接', { icon: 'success' });
                     }}
                   >
@@ -793,8 +913,24 @@ export default function OrderDetailPage() {
               ) : (
                 <View className="order-invoice-pending">
                   <Text className="order-detail-hint">{invoiceHint}</Text>
+                  {currentInvoiceRequest ? (
+                    <View className="order-invoice-request-info">
+                      <Text className="order-invoice-request-line">
+                        {invoiceTitleTypeLabel(currentInvoiceRequest.titleType)}抬头：{displayOrderInfo(currentInvoiceRequest.titleName)}
+                      </Text>
+                      {currentInvoiceRequest.titleType === 'ENTERPRISE' ? (
+                        <Text className="order-invoice-request-line">税号：{displayOrderInfo(currentInvoiceRequest.taxNo)}</Text>
+                      ) : null}
+                      {normalizeDisplayText(currentInvoiceRequest.email) ? (
+                        <Text className="order-invoice-request-line">邮箱：{displayOrderInfo(currentInvoiceRequest.email)}</Text>
+                      ) : null}
+                      {normalizeDisplayText(currentInvoiceRequest.phone) ? (
+                        <Text className="order-invoice-request-line">手机：{displayOrderInfo(currentInvoiceRequest.phone)}</Text>
+                      ) : null}
+                    </View>
+                  ) : null}
                   {canRequestInvoice ? (
-                    <Button variant="primary" size="small" loading={invoiceRequesting} onClick={() => void requestInvoice()}>
+                    <Button variant="primary" size="small" loading={invoiceRequesting} onClick={openInvoiceForm}>
                       申请开票
                     </Button>
                   ) : null}
@@ -807,6 +943,84 @@ export default function OrderDetailPage() {
       ) : (
         <EmptyCard message="无数据" actionText="返回" onAction={() => Taro.navigateBack()} />
       )}
+
+      <Popup
+        visible={invoiceFormOpen}
+        position="bottom"
+        round
+        closeable
+        title="填写开票信息"
+        onClose={() => setInvoiceFormOpen(false)}
+        onOverlayClick={() => setInvoiceFormOpen(false)}
+      >
+        <PopupSheet scrollRatio={0.72}>
+          <Surface className="invoice-popup-card">
+            <Text className="text-strong">抬头类型</Text>
+            <View className="invoice-popup-gap-sm" />
+            <View className="invoice-title-type-grid">
+              {(['ENTERPRISE', 'PERSONAL'] as InvoiceTitleType[]).map((type) => (
+                <View
+                  key={type}
+                  className={`invoice-title-type-item ${invoiceTitleType === type ? 'is-active' : ''}`}
+                  onClick={() => setInvoiceTitleType(type)}
+                >
+                  <Text>{invoiceTitleTypeLabel(type)}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View className="invoice-popup-gap" />
+            <View className="invoice-form-field">
+              <Text className="invoice-form-label">发票抬头</Text>
+              <View className="invoice-input-wrap">
+                <Input value={invoiceTitleName} onChange={setInvoiceTitleName} placeholder={invoiceTitleType === 'ENTERPRISE' ? '企业名称' : '个人姓名'} clearable />
+              </View>
+            </View>
+
+            {invoiceTitleType === 'ENTERPRISE' ? (
+              <View className="invoice-form-field">
+                <Text className="invoice-form-label">纳税人识别号</Text>
+                <View className="invoice-input-wrap">
+                  <Input
+                    value={invoiceTaxNo}
+                    onChange={(value) => setInvoiceTaxNo(String(value || '').toUpperCase())}
+                    placeholder="统一社会信用代码/税号"
+                    clearable
+                  />
+                </View>
+              </View>
+            ) : null}
+
+            <View className="invoice-form-field">
+              <Text className="invoice-form-label">接收邮箱（可选）</Text>
+              <View className="invoice-input-wrap">
+                <Input value={invoiceEmail} onChange={setInvoiceEmail} placeholder="用于接收电子发票" clearable />
+              </View>
+            </View>
+
+            <View className="invoice-form-field">
+              <Text className="invoice-form-label">联系手机号（可选）</Text>
+              <View className="invoice-input-wrap">
+                <Input value={invoicePhone} onChange={setInvoicePhone} placeholder="便于财务核对" type="digit" clearable />
+              </View>
+            </View>
+
+            <View className="invoice-form-field">
+              <Text className="invoice-form-label">备注（可选）</Text>
+              <View className="invoice-textarea-wrap">
+                <TextArea value={invoiceRemark} onChange={setInvoiceRemark} placeholder="特殊开票要求" maxLength={500} />
+              </View>
+            </View>
+
+            <Text className="order-detail-note">开票信息提交后如需修改，请联系客服处理。</Text>
+
+            <View className="invoice-popup-gap-lg" />
+            <Button loading={invoiceRequesting} disabled={invoiceRequesting} onClick={() => void requestInvoice()}>
+              提交开票申请
+            </Button>
+          </Surface>
+        </PopupSheet>
+      </Popup>
 
       <Popup
         visible={refundOpen}

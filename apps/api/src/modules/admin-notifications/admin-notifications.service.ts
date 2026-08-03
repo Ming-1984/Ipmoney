@@ -138,7 +138,16 @@ export class AdminNotificationsService {
       {
         key: 'invoices',
         permission: 'invoice.manage',
-        count: () => this.prisma.order.count({ where: { invoiceNo: { not: null }, invoiceFileId: null } }),
+        count: () =>
+          this.prisma.order.count({
+            where: {
+              invoiceFileId: null,
+              OR: [
+                { invoiceRequest: { is: { status: 'APPLYING' } } },
+                { invoiceNo: { not: null } },
+              ],
+            },
+          }),
       },
       {
         key: 'patent-claims',

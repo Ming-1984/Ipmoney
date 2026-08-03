@@ -17,6 +17,7 @@ import { STATE_COPY } from './ui/copy';
 import { apiPost } from './lib/api';
 import { DEMO_AUTH_ENABLED, IS_PROD_DEPLOY } from './constants';
 import { installClientBadgeSync, refreshClientBadges } from './lib/clientBadges';
+import { initWechatCloud } from './lib/wechatCloud';
 
 type AuthTokenResponse = components['schemas']['AuthTokenResponse'];
 type VerificationStatus = components['schemas']['VerificationStatus'];
@@ -60,6 +61,7 @@ if (process.env.TARO_ENV === 'weapp') {
 
 export default function App(props: { children: ReactNode }) {
   useLaunch(() => {
+    initWechatCloud();
     scheduleRegionWarmup();
     void refreshClientBadges();
     if (process.env.TARO_ENV !== 'h5') return;

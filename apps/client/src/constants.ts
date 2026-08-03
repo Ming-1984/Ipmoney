@@ -10,6 +10,9 @@ export const DEMO_AUTH_ENABLED = __DEMO_AUTH_ENABLED__;
 declare const __IS_PROD_DEPLOY__: boolean;
 export const IS_PROD_DEPLOY = __IS_PROD_DEPLOY__;
 
+declare const __WECHAT_CLOUD_ENV__: string;
+export const WECHAT_CLOUD_ENV = __WECHAT_CLOUD_ENV__;
+
 // Build mode can be "production" in release-like envs (production/staging); use IS_PROD_DEPLOY to gate demo-only UI/flows.
 export const IS_PROD_BUILD = APP_MODE === 'production';
 export const DEMO_LOGIN_ENABLED = DEMO_AUTH_ENABLED && !IS_PROD_DEPLOY;

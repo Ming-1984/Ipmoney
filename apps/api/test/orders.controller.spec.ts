@@ -12,6 +12,7 @@ describe('OrdersController delegation suite', () => {
   beforeEach(() => {
     orders = {
       createOrder: vi.fn(),
+      requestInvoice: vi.fn(),
       listAdminOrders: vi.fn(),
       listAssignedOrders: vi.fn(),
       getAdminOrderDetail: vi.fn(),
@@ -38,6 +39,25 @@ describe('OrdersController delegation suite', () => {
     await expect(controller.createOrder(req, undefined as any)).resolves.toEqual({ id: VALID_UUID });
 
     expect(orders.createOrder).toHaveBeenCalledWith(req, {});
+  });
+
+  it('delegates requestInvoice with fallback empty body', async () => {
+    const req: any = { auth: { userId: 'user-1' } };
+    const body = { titleType: 'PERSONAL', titleName: 'Buyer Name' };
+    orders.requestInvoice.mockResolvedValueOnce({ orderId: VALID_UUID, requestId: VALID_UUID, status: 'APPLYING' });
+
+    await expect(controller.requestInvoice(req, VALID_UUID, body)).resolves.toEqual({
+      orderId: VALID_UUID,
+      requestId: VALID_UUID,
+      status: 'APPLYING',
+    });
+    expect(orders.requestInvoice).toHaveBeenCalledWith(req, VALID_UUID, body);
+
+    orders.requestInvoice.mockResolvedValueOnce({ orderId: VALID_UUID, requestId: VALID_UUID, status: 'APPLYING' });
+    await expect(controller.requestInvoice(req, VALID_UUID, undefined as any)).resolves.toMatchObject({
+      status: 'APPLYING',
+    });
+    expect(orders.requestInvoice).toHaveBeenLastCalledWith(req, VALID_UUID, {});
   });
 
   it('rejects getAdminOrder when order.read permission is absent', async () => {

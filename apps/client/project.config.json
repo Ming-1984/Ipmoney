@@ -1,5 +1,7 @@
 {
   "miniprogramRoot": "dist/weapp/",
+  "cloudfunctionRoot": "cloudfunctions/",
+  "cloudbaseRoot": "cloudbase/",
   "projectname": "ipmoney-client",
   "description": "Ipmoney 用户端（小程序 + H5）",
   "appid": "wxa053408fad6ab1df",

@@ -84,7 +84,13 @@ describe('AdminNotificationsService', () => {
       },
     });
     expect(prisma.order.count).toHaveBeenNthCalledWith(3, {
-      where: { invoiceNo: { not: null }, invoiceFileId: null },
+      where: {
+        invoiceFileId: null,
+        OR: [
+          { invoiceRequest: { is: { status: 'APPLYING' } } },
+          { invoiceNo: { not: null } },
+        ],
+      },
     });
   });
 

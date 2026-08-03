@@ -2163,6 +2163,12 @@ paths:
       parameters:
         - $ref: '#/components/parameters/OrderId'
         - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceRequestCreateRequest'
       responses:
         '200':
           description: OK
@@ -2171,6 +2177,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InvoiceRequestResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -9586,13 +9594,97 @@ components:
         - APPLYING
         - ISSUED
       description: 閸欐垹銈ㄩ悩鑸碘偓渚婄礄濠曟梻銇氶敍娑氭埂鐎圭偟鏁撴禍褔娓堕幐澶庡偍閸斺剝绁︾粙瀣矎閸栨牭绱?
+    InvoiceTitleType:
+      type: string
+      enum:
+        - PERSONAL
+        - ENTERPRISE
+    InvoiceRequestStatus:
+      type: string
+      enum:
+        - APPLYING
+        - ISSUED
+        - CANCELLED
+    InvoiceRequestCreateRequest:
+      type: object
+      required:
+        - titleType
+        - titleName
+      properties:
+        titleType:
+          $ref: '#/components/schemas/InvoiceTitleType'
+        titleName:
+          type: string
+          minLength: 2
+          maxLength: 100
+        taxNo:
+          type: string
+          minLength: 8
+          maxLength: 32
+          nullable: true
+        email:
+          type: string
+          format: email
+          maxLength: 120
+          nullable: true
+        phone:
+          type: string
+          maxLength: 20
+          nullable: true
+        remark:
+          type: string
+          maxLength: 500
+          nullable: true
+    InvoiceRequest:
+      type: object
+      required:
+        - id
+        - orderId
+        - titleType
+        - titleName
+        - status
+        - createdAt
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        orderId:
+          $ref: '#/components/schemas/Uuid'
+        titleType:
+          $ref: '#/components/schemas/InvoiceTitleType'
+        titleName:
+          type: string
+        taxNo:
+          type: string
+          nullable: true
+        email:
+          type: string
+          format: email
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        remark:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/InvoiceRequestStatus'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
     InvoiceRequestResult:
       type: object
       required:
         - orderId
+        - requestId
         - status
       properties:
         orderId:
+          $ref: '#/components/schemas/Uuid'
+        requestId:
           $ref: '#/components/schemas/Uuid'
         status:
           $ref: '#/components/schemas/InvoiceStatus'
@@ -9610,6 +9702,9 @@ components:
               nullable: true
             itemName:
               type: string
+              nullable: true
+            invoiceRequest:
+              $ref: '#/components/schemas/InvoiceRequest'
               nullable: true
             invoiceNo:
               type: string
@@ -13071,6 +13166,9 @@ components:
           $ref: '#/components/schemas/OrderInvoice'
           description: 鐠併垹宕熼悽闈涚摍閸欐垹銈ㄩ敍鍫滅矌鐠併垹宕熺€瑰本鍨氶崥搴″讲閼宠棄鐡ㄩ崷顭掔礆
 
+        invoiceRequest:
+          $ref: '#/components/schemas/InvoiceRequest'
+          nullable: true
         listingTitle:
           type: string
           nullable: true
@@ -13330,29 +13428,39 @@ components:
       type: object
       required:
         - orderId
-        - invoiceFile
+        - status
       properties:
         orderId:
           $ref: '#/components/schemas/Uuid'
+        status:
+          $ref: '#/components/schemas/InvoiceStatus'
         amountFen:
           $ref: '#/components/schemas/MoneyFen'
           description: 鐠併垹宕熼張宥呭鐠?娴ｏ綁鍣鹃柌鎴︻杺閿涘牆绱戠粊銊╁櫨妫版繐绱?
         itemName:
           type: string
           description: 閸欐垹銈ㄦい鍦窗閸氬秶袨/閺堝秴濮熼崘鍛啇閿涘牓绮拋銈忕窗鐏炲懘妫块張宥呭鐠愮櫢绱?
+        invoiceRequest:
+          $ref: '#/components/schemas/InvoiceRequest'
+          nullable: true
         invoiceNo:
           type: string
+          nullable: true
         issuedAt:
           type: string
           format: date-time
+          nullable: true
         invoiceFile:
           $ref: '#/components/schemas/FileObject'
+          nullable: true
         attachedAt:
           type: string
           format: date-time
+          nullable: true
         updatedAt:
           type: string
           format: date-time
+          nullable: true
     AdminInvoiceItem:
       allOf:
         - $ref: '#/components/schemas/InvoiceItem'

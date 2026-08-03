@@ -296,6 +296,17 @@ enum SettlementPayoutStatus {
   FAILED
 }
 
+enum InvoiceTitleType {
+  PERSONAL
+  ENTERPRISE
+}
+
+enum InvoiceRequestStatus {
+  APPLYING
+  ISSUED
+  CANCELLED
+}
+
 enum SystemConfigValueType {
   INT
   DECIMAL
@@ -507,6 +518,7 @@ model User {
   achievements   Achievement[] @relation("Achievement_Publisher")
   orders         Order[]       @relation("Order_Buyer")
   assignedOrders Order[]       @relation("Order_AssignedCs")
+  invoiceRequests InvoiceRequest[]
 
   listingAuditLogs     ListingAuditLog[]     @relation("ListingAuditLog_Reviewer")
   listingFavorites     ListingFavorite[]
@@ -1222,6 +1234,7 @@ model Order {
   buyer       User    @relation("Order_Buyer", fields: [buyerUserId], references: [id])
   assignedCs  User?   @relation("Order_AssignedCs", fields: [assignedCsUserId], references: [id])
   invoiceFile File?   @relation(fields: [invoiceFileId], references: [id])
+  invoiceRequest InvoiceRequest?
 
   payments                  Payment[]
   paymentWebhookEvents      PaymentWebhookEvent[]
@@ -1235,6 +1248,28 @@ model Order {
 
   @@index([status, createdAt])
   @@map("orders")
+}
+
+model InvoiceRequest {
+  id        String               @id @default(uuid()) @db.Uuid
+  orderId   String               @unique @map("order_id") @db.Uuid
+  userId    String               @map("user_id") @db.Uuid
+  titleType InvoiceTitleType     @map("title_type")
+  titleName String               @map("title_name")
+  taxNo     String?              @map("tax_no")
+  email     String?
+  phone     String?
+  remark    String?
+  status    InvoiceRequestStatus @default(APPLYING)
+  createdAt DateTime             @default(now()) @map("created_at")
+  updatedAt DateTime             @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@map("invoice_requests")
 }
 
 model Contract {

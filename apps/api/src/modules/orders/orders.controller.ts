@@ -105,8 +105,8 @@ export class OrdersController {
 
   @UseGuards(BearerAuthGuard)
   @Post('/orders/:orderId/invoice-requests')
-  async requestInvoice(@Req() req: any, @Param('orderId') orderId: string) {
-    return await this.orders.requestInvoice(req, orderId);
+  async requestInvoice(@Req() req: any, @Param('orderId') orderId: string, @Body() body: any) {
+    return await this.orders.requestInvoice(req, orderId, body || {});
   }
 
   @UseGuards(BearerAuthGuard)

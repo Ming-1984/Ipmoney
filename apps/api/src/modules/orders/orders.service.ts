@@ -52,7 +52,11 @@ const ORDER_STATUSES = [
 ] as const;
 const ORDER_STATUS_GROUPS = ['PAYMENT_PENDING', 'IN_PROGRESS', 'REFUND', 'DONE'] as const;
 const INVOICE_STATUSES = ['WAIT_APPLY', 'APPLYING', 'ISSUED'] as const;
+const INVOICE_TITLE_TYPES = ['PERSONAL', 'ENTERPRISE'] as const;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const CN_MOBILE_RE = /^1[3-9]\d{9}$/;
+const TAX_NO_RE = /^[0-9A-Z]{8,32}$/;
 const CONTRACT_ID_PREFIX = 'contract-';
 const SIGNED_SUBMISSION_INCLUDE = {
   file: true,
@@ -128,6 +132,7 @@ type OrderDto = {
   invoiceNo?: string | null;
   invoiceFileId?: string | null;
   invoiceIssuedAt?: string | null;
+  invoiceRequest?: InvoiceRequestDto | null;
   contractStatus?: ContractStatus | null;
   contractFileUrl?: string | null;
   contractUploadedAt?: string | null;
@@ -140,7 +145,7 @@ type PagedOrder = {
   page: { page: number; pageSize: number; total: number };
 };
 
-type AssignedOrderDto = Omit<OrderDto, 'invoiceNo' | 'invoiceFileId' | 'invoiceIssuedAt'>;
+type AssignedOrderDto = Omit<OrderDto, 'invoiceNo' | 'invoiceFileId' | 'invoiceIssuedAt' | 'invoiceRequest'>;
 
 type PagedAssignedOrder = {
   items: AssignedOrderDto[];
@@ -218,13 +223,41 @@ type FileObjectDto = {
   createdAt: string;
 };
 
+type InvoiceTitleType = (typeof INVOICE_TITLE_TYPES)[number];
+type InvoiceRequestStatus = 'APPLYING' | 'ISSUED' | 'CANCELLED';
+
+type InvoiceRequestDto = {
+  id: string;
+  orderId: string;
+  titleType: InvoiceTitleType;
+  titleName: string;
+  taxNo?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  remark?: string | null;
+  status: InvoiceRequestStatus;
+  createdAt: string;
+  updatedAt?: string | null;
+};
+
+type InvoiceRequestCreateInput = {
+  titleType: InvoiceTitleType;
+  titleName: string;
+  taxNo?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  remark?: string | null;
+};
+
 type OrderInvoiceDto = {
   orderId: string;
+  status: InvoiceStatus;
   amountFen: number;
   itemName: string;
+  invoiceRequest?: InvoiceRequestDto | null;
   invoiceNo?: string | null;
   issuedAt?: string | null;
-  invoiceFile: FileObjectDto;
+  invoiceFile?: FileObjectDto | null;
   attachedAt?: string | null;
   updatedAt?: string | null;
 };
@@ -235,6 +268,7 @@ type InvoiceItem = OrderDto & {
   invoiceStatus: InvoiceStatus;
   amountFen?: number | null;
   itemName?: string | null;
+  invoiceRequest?: InvoiceRequestDto | null;
   invoiceNo?: string | null;
   issuedAt?: string | null;
   invoiceFileUrl?: string | null;
@@ -313,6 +347,61 @@ export class OrdersService {
     return raw;
   }
 
+  private parseRequiredBoundedString(value: unknown, fieldName: string, min: number, max: number): string {
+    const raw = String(value ?? '').trim();
+    if (raw.length < min || raw.length > max) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
+  private parseOptionalBoundedString(value: unknown, fieldName: string, max: number): string | null {
+    if (value === undefined || value === null) return null;
+    const raw = String(value).trim();
+    if (!raw) return null;
+    if (raw.length > max) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
+  private parseInvoiceRequestCreate(body: any): InvoiceRequestCreateInput {
+    if (!body || typeof body !== 'object') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'invoice request body is required' });
+    }
+    const rawTitleType = String(body.titleType || '').trim().toUpperCase();
+    if (!(INVOICE_TITLE_TYPES as readonly string[]).includes(rawTitleType)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'titleType is invalid' });
+    }
+
+    const titleType = rawTitleType as InvoiceTitleType;
+    const titleName = this.parseRequiredBoundedString(body.titleName, 'titleName', 2, 100);
+    const rawTaxNo = this.parseOptionalBoundedString(body.taxNo, 'taxNo', 32);
+    const taxNo = rawTaxNo ? rawTaxNo.toUpperCase() : null;
+    if (titleType === 'ENTERPRISE' && (!taxNo || !TAX_NO_RE.test(taxNo))) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'taxNo is invalid' });
+    }
+
+    const email = this.parseOptionalBoundedString(body.email, 'email', 120);
+    if (email && !EMAIL_RE.test(email)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'email is invalid' });
+    }
+    const phone = this.parseOptionalBoundedString(body.phone, 'phone', 20);
+    if (phone && !CN_MOBILE_RE.test(phone)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'phone is invalid' });
+    }
+    const remark = this.parseOptionalBoundedString(body.remark, 'remark', 500);
+
+    return {
+      titleType,
+      titleName,
+      taxNo: titleType === 'ENTERPRISE' ? taxNo : null,
+      email,
+      phone,
+      remark,
+    };
+  }
+
   private parseUuidStrict(value: unknown, fieldName: string): string {
     const raw = String(value ?? '').trim();
     if (!raw || !UUID_RE.test(raw)) {
@@ -358,7 +447,7 @@ export class OrdersService {
     const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
     return await this.prisma.order.findUnique({
       where: { id: normalizedOrderId },
-      include: { listing: true },
+      include: { listing: true, invoiceRequest: true },
     });
   }
 
@@ -697,6 +786,40 @@ export class OrdersService {
     return updatedOrder;
   }
 
+  private isLegacyInvoiceRequestNo(value?: string | null): boolean {
+    return /^REQ-/i.test(String(value || '').trim());
+  }
+
+  private publicInvoiceNo(value?: string | null): string | null {
+    if (!value || this.isLegacyInvoiceRequestNo(value)) return null;
+    return value;
+  }
+
+  private toInvoiceRequestDto(request?: any | null): InvoiceRequestDto | null {
+    if (!request) return null;
+    return {
+      id: request.id,
+      orderId: request.orderId,
+      titleType: request.titleType as InvoiceTitleType,
+      titleName: request.titleName,
+      taxNo: request.taxNo ?? null,
+      email: request.email ?? null,
+      phone: request.phone ?? null,
+      remark: request.remark ?? null,
+      status: request.status as InvoiceRequestStatus,
+      createdAt: request.createdAt ? request.createdAt.toISOString() : new Date().toISOString(),
+      updatedAt: request.updatedAt ? request.updatedAt.toISOString() : null,
+    };
+  }
+
+  private resolveInvoiceStatus(order: any): InvoiceStatus {
+    if (order?.invoiceFileId) return 'ISSUED';
+    if (order?.invoiceRequest && order.invoiceRequest.status !== 'CANCELLED') return 'APPLYING';
+    if (this.isLegacyInvoiceRequestNo(order?.invoiceNo)) return 'APPLYING';
+    if (order?.invoiceNo && !order?.invoiceFileId) return 'APPLYING';
+    return 'WAIT_APPLY';
+  }
+
   private toFileObject(file: any): FileObjectDto {
     return {
       id: file.id,
@@ -717,11 +840,13 @@ export class OrdersService {
     const amountFen = order.commissionAmount ?? settlement.commissionAmount;
     return {
       orderId: order.id,
+      status: this.resolveInvoiceStatus(order),
       amountFen,
       itemName: '居间服务费',
-      invoiceNo: order.invoiceNo ?? undefined,
+      invoiceRequest: this.toInvoiceRequestDto(order.invoiceRequest),
+      invoiceNo: this.publicInvoiceNo(order.invoiceNo),
       issuedAt: order.invoiceIssuedAt ? order.invoiceIssuedAt.toISOString() : undefined,
-      invoiceFile: this.toFileObject(invoiceFile),
+      invoiceFile: invoiceFile ? this.toFileObject(invoiceFile) : null,
       attachedAt: invoiceFile?.createdAt ? invoiceFile.createdAt.toISOString() : undefined,
       updatedAt: order.updatedAt ? order.updatedAt.toISOString() : undefined,
     };
@@ -789,6 +914,7 @@ export class OrdersService {
       invoiceNo: order.invoiceNo ?? null,
       invoiceFileId: order.invoiceFileId ?? null,
       invoiceIssuedAt: toIso(order.invoiceIssuedAt) ?? null,
+      invoiceRequest: this.toInvoiceRequestDto(order.invoiceRequest),
       contractStatus: (contract?.status ?? null) as ContractStatus | null,
       contractFileUrl,
       contractUploadedAt: toIso(contract?.uploadedAt) ?? null,
@@ -1352,11 +1478,15 @@ export class OrdersService {
     } else if (status === 'ISSUED') {
       where.invoiceFileId = { not: null };
     } else if (status === 'APPLYING') {
-      where.invoiceNo = { not: null };
       where.invoiceFileId = null;
+      where.OR = [
+        { invoiceRequest: { is: { status: 'APPLYING' } } },
+        { invoiceNo: { not: null } },
+      ];
     } else if (status === 'WAIT_APPLY') {
       where.invoiceNo = null;
       where.invoiceFileId = null;
+      where.invoiceRequest = { is: null };
     }
 
     const [items, total] = await Promise.all([
@@ -1364,6 +1494,7 @@ export class OrdersService {
         where,
         include: {
           ...this.adminOrderContextInclude(),
+          invoiceRequest: true,
           invoiceFile: true,
         },
         orderBy: { updatedAt: 'desc' },
@@ -1380,18 +1511,21 @@ export class OrdersService {
         { dealAmount: it.dealAmount, depositAmount: it.depositAmount, finalAmount: it.finalAmount },
         rules,
       );
-      let invoiceStatus: InvoiceStatus = 'WAIT_APPLY';
-      if (it.invoiceFileId) invoiceStatus = 'ISSUED';
-      else if (it.invoiceNo) invoiceStatus = 'APPLYING';
+      const invoiceStatus = this.resolveInvoiceStatus(it);
       return {
         ...base,
         invoiceStatus,
         amountFen: it.commissionAmount ?? settlement.commissionAmount,
         itemName: '居间服务费',
-        invoiceNo: it.invoiceNo ?? null,
+        invoiceRequest: this.toInvoiceRequestDto(it.invoiceRequest),
+        invoiceNo: this.publicInvoiceNo(it.invoiceNo),
         issuedAt: it.invoiceIssuedAt ? it.invoiceIssuedAt.toISOString() : null,
         invoiceFileUrl: it.invoiceFile?.url ?? null,
-        requestedAt: it.invoiceNo ? it.updatedAt.toISOString() : null,
+        requestedAt: it.invoiceRequest?.createdAt
+          ? it.invoiceRequest.createdAt.toISOString()
+          : this.isLegacyInvoiceRequestNo(it.invoiceNo)
+            ? it.updatedAt.toISOString()
+            : null,
         order: this.toAdminOrderContext(it),
       };
     });
@@ -1433,6 +1567,7 @@ export class OrdersService {
             },
           },
         },
+        invoiceRequest: true,
         contract: { include: ORDER_CONTRACT_INCLUDE },
       },
     });
@@ -2066,42 +2201,50 @@ export class OrdersService {
     const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
     const order = await this.prisma.order.findUnique({
       where: { id: normalizedOrderId },
-      include: { listing: true, invoiceFile: true },
+      include: { listing: true, invoiceFile: true, invoiceRequest: true },
     });
     if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
     if (order.buyerUserId !== req.auth.userId && order.listing?.sellerUserId !== req.auth.userId && !req.auth.isAdmin) {
       throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
     }
-    if (!order.invoiceFileId || !order.invoiceFile) {
-      throw new NotFoundException({ code: 'NOT_FOUND', message: 'invoice not available' });
-    }
     return await this.buildOrderInvoice(order, order.invoiceFile);
   }
 
-  async requestInvoice(req: any, orderId: string) {
+  async requestInvoice(req: any, orderId: string, body: any) {
     this.ensureAuth(req);
     const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
     const scope = `INVOICE_REQUEST:${normalizedOrderId}`;
     return await this.withIdempotency(req, scope, async () => {
+      const payload = this.parseInvoiceRequestCreate(body);
       const order = await this.getOrderWithListing(normalizedOrderId);
       this.ensureOrderAccess(req, order, { allowSeller: false });
       if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
       if (order.status !== 'COMPLETED') {
         throw new ConflictException({ code: 'CONFLICT', message: 'invoice request not allowed in current status' });
       }
-      if (order.invoiceNo || order.invoiceIssuedAt) {
+      if (order.invoiceRequest || order.invoiceNo || order.invoiceIssuedAt || order.invoiceFileId) {
         throw new ConflictException({ code: 'CONFLICT', message: 'invoice already requested' });
       }
-      const updated = await this.prisma.order.update({
-        where: { id: normalizedOrderId },
-        data: { invoiceNo: `REQ-${Date.now()}` },
+      const created = await this.prisma.invoiceRequest.create({
+        data: {
+          orderId: normalizedOrderId,
+          userId: req.auth.userId,
+          titleType: payload.titleType,
+          titleName: payload.titleName,
+          taxNo: payload.taxNo,
+          email: payload.email,
+          phone: payload.phone,
+          remark: payload.remark,
+          status: 'APPLYING',
+        },
       });
+      const dto = this.toInvoiceRequestDto(created);
       await this.audit.log({
         actorUserId: req.auth.userId,
         action: 'INVOICE_REQUEST',
         targetType: 'ORDER',
-        targetId: updated.id,
-        afterJson: { invoiceNo: updated.invoiceNo },
+        targetId: normalizedOrderId,
+        afterJson: dto,
       });
       const ctx = await this.getOrderContext(normalizedOrderId);
       if (ctx) {
@@ -2112,7 +2255,7 @@ export class OrdersService {
           '发票',
         );
       }
-      return { orderId: updated.id, status: 'APPLYING' };
+      return { orderId: normalizedOrderId, requestId: created.id, status: 'APPLYING' };
     });
   }
 
@@ -2136,12 +2279,15 @@ export class OrdersService {
       where.id = this.parseUuidStrict(query?.orderId, 'orderId');
     }
     if (status === 'ISSUED') {
-      where.invoiceIssuedAt = { not: null };
+      where.invoiceFileId = { not: null };
     } else if (status === 'APPLYING') {
-      where.invoiceIssuedAt = null;
-      where.invoiceNo = { not: null };
+      where.invoiceFileId = null;
+      where.OR = [
+        { invoiceRequest: { is: { status: 'APPLYING' } } },
+        { invoiceNo: { not: null } },
+      ];
     } else if (status === 'WAIT_APPLY') {
-      where.invoiceIssuedAt = null;
+      where.invoiceFileId = null;
     }
 
     const [items, total] = await Promise.all([
@@ -2174,6 +2320,7 @@ export class OrdersService {
             },
           },
           invoiceFile: true,
+          invoiceRequest: true,
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
@@ -2189,18 +2336,21 @@ export class OrdersService {
         { dealAmount: it.dealAmount, depositAmount: it.depositAmount, finalAmount: it.finalAmount },
         rules,
       );
-      let invoiceStatus: InvoiceStatus = 'WAIT_APPLY';
-      if (it.invoiceFileId) invoiceStatus = 'ISSUED';
-      else if (it.invoiceNo) invoiceStatus = 'APPLYING';
+      const invoiceStatus = this.resolveInvoiceStatus(it);
       return {
         ...base,
         invoiceStatus,
         amountFen: it.commissionAmount ?? settlement.commissionAmount,
         itemName: '居间服务费',
-        invoiceNo: it.invoiceNo ?? null,
+        invoiceRequest: this.toInvoiceRequestDto(it.invoiceRequest),
+        invoiceNo: this.publicInvoiceNo(it.invoiceNo),
         issuedAt: it.invoiceIssuedAt ? it.invoiceIssuedAt.toISOString() : null,
         invoiceFileUrl: it.invoiceFile?.url ?? null,
-        requestedAt: it.invoiceNo ? it.updatedAt.toISOString() : null,
+        requestedAt: it.invoiceRequest?.createdAt
+          ? it.invoiceRequest.createdAt.toISOString()
+          : this.isLegacyInvoiceRequestNo(it.invoiceNo)
+            ? it.updatedAt.toISOString()
+            : null,
       };
     });
 
@@ -2241,6 +2391,7 @@ export class OrdersService {
             },
           },
         },
+        invoiceRequest: true,
         contract: { include: ORDER_CONTRACT_INCLUDE },
       },
     });
@@ -2795,8 +2946,8 @@ export class OrdersService {
     if (ctx) {
       await this.notifyUser(
         ctx.buyerUserId,
-        '发票已开具',
-        `《${ctx.listingTitle}》发票已开具，可在发票中心下载。`,
+        '发票号已生成',
+        `《${ctx.listingTitle}》发票号已生成，电子发票文件上传后可在发票中心下载。`,
         '发票通知',
       );
     }
@@ -2816,7 +2967,8 @@ export class OrdersService {
     if (!file) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'invoice file not found' });
 
     const hasInvoiceNo = this.hasOwn(body, 'invoiceNo');
-    const fallbackInvoiceNo = order.invoiceNo || `INV-${Date.now()}`;
+    const existingInvoiceNo = this.publicInvoiceNo(order.invoiceNo);
+    const fallbackInvoiceNo = existingInvoiceNo || `INV-${Date.now()}`;
     const parsedInvoiceNo = hasInvoiceNo
       ? this.parseNullableNonEmptyStringStrict(body?.invoiceNo, 'invoiceNo')
       : undefined;
@@ -2826,7 +2978,11 @@ export class OrdersService {
     const updated = await this.prisma.order.update({
       where: { id: normalizedOrderId },
       data: { invoiceFileId, invoiceNo, invoiceIssuedAt: issuedAt },
-      include: { invoiceFile: true },
+      include: { invoiceFile: true, invoiceRequest: true },
+    });
+    await this.prisma.invoiceRequest.updateMany({
+      where: { orderId: normalizedOrderId, status: { not: 'CANCELLED' } },
+      data: { status: 'ISSUED' },
     });
 
     await this.audit.log({
@@ -2846,7 +3002,11 @@ export class OrdersService {
       );
     }
 
-    return await this.buildOrderInvoice(updated, updated.invoiceFile ?? file);
+    const updatedForResponse = {
+      ...updated,
+      invoiceRequest: updated.invoiceRequest ? { ...updated.invoiceRequest, status: 'ISSUED' } : updated.invoiceRequest,
+    };
+    return await this.buildOrderInvoice(updatedForResponse, updated.invoiceFile ?? file);
   }
 
   async adminDeleteOrderInvoice(req: any, orderId: string) {
@@ -2858,6 +3018,10 @@ export class OrdersService {
     await this.prisma.order.update({
       where: { id: normalizedOrderId },
       data: { invoiceFileId: null, invoiceIssuedAt: null, invoiceNo: null },
+    });
+    await this.prisma.invoiceRequest.updateMany({
+      where: { orderId: normalizedOrderId, status: { not: 'CANCELLED' } },
+      data: { status: 'APPLYING' },
     });
 
     await this.audit.log({

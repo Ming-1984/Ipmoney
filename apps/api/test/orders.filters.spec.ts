@@ -457,6 +457,19 @@ describe('OrdersService list filter strictness suite', () => {
         invoiceFileId: null,
         listing: { title: 'Patent A', sellerUserId: 'seller-1', patent: { applicationNoDisplay: 'CN123' } },
         invoiceFile: null,
+        invoiceRequest: {
+          id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          orderId: '88888888-8888-4888-8888-888888888888',
+          titleType: 'ENTERPRISE',
+          titleName: 'Acme Tech Ltd',
+          taxNo: '91440101ABCDEFGH',
+          email: 'finance@example.com',
+          phone: '13800138000',
+          remark: null,
+          status: 'APPLYING',
+          createdAt: new Date('2026-03-13T00:30:00.000Z'),
+          updatedAt: new Date('2026-03-13T00:30:00.000Z'),
+        },
       },
     ]);
     prisma.order.count.mockResolvedValueOnce(1);
@@ -471,8 +484,11 @@ describe('OrdersService list filter strictness suite', () => {
       expect.objectContaining({
         where: {
           buyerUserId: 'u-1',
-          invoiceIssuedAt: null,
-          invoiceNo: { not: null },
+          invoiceFileId: null,
+          OR: [
+            { invoiceRequest: { is: { status: 'APPLYING' } } },
+            { invoiceNo: { not: null } },
+          ],
         },
         skip: 50,
         take: 50,
@@ -481,7 +497,13 @@ describe('OrdersService list filter strictness suite', () => {
     expect(result.items[0]).toMatchObject({
       id: '88888888-8888-4888-8888-888888888888',
       invoiceStatus: 'APPLYING',
-      invoiceNo: 'REQ-1',
+      invoiceNo: null,
+      requestedAt: '2026-03-13T00:30:00.000Z',
+      invoiceRequest: {
+        titleType: 'ENTERPRISE',
+        titleName: 'Acme Tech Ltd',
+        taxNo: '91440101ABCDEFGH',
+      },
     });
     expect(result.page).toEqual({ page: 2, pageSize: 50, total: 1 });
   });
@@ -505,6 +527,19 @@ describe('OrdersService list filter strictness suite', () => {
         invoiceFileId: 'f-1',
         listing: { title: 'Patent B', sellerUserId: 'seller-1', patent: { applicationNoDisplay: 'CN456' } },
         invoiceFile: { url: 'https://example.com/invoice-1.pdf' },
+        invoiceRequest: {
+          id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          orderId: '18888888-8888-4888-8888-888888888888',
+          titleType: 'PERSONAL',
+          titleName: 'Buyer Name',
+          taxNo: null,
+          email: null,
+          phone: null,
+          remark: null,
+          status: 'ISSUED',
+          createdAt: new Date('2026-03-13T00:30:00.000Z'),
+          updatedAt: new Date('2026-03-13T02:00:00.000Z'),
+        },
       },
     ]);
     prisma.order.count.mockResolvedValueOnce(1);
@@ -515,7 +550,7 @@ describe('OrdersService list filter strictness suite', () => {
       expect.objectContaining({
         where: {
           buyerUserId: 'u-1',
-          invoiceIssuedAt: { not: null },
+          invoiceFileId: { not: null },
         },
       }),
     );
@@ -524,7 +559,7 @@ describe('OrdersService list filter strictness suite', () => {
       invoiceStatus: 'ISSUED',
       amountFen: 500,
       invoiceFileUrl: 'https://example.com/invoice-1.pdf',
-      requestedAt: '2026-03-13T01:00:00.000Z',
+      requestedAt: '2026-03-13T00:30:00.000Z',
     });
   });
 
@@ -557,7 +592,7 @@ describe('OrdersService list filter strictness suite', () => {
       expect.objectContaining({
         where: {
           buyerUserId: 'u-1',
-          invoiceIssuedAt: null,
+          invoiceFileId: null,
         },
       }),
     );
@@ -599,14 +634,14 @@ describe('OrdersService list filter strictness suite', () => {
       expect.objectContaining({
         where: {
           buyerUserId: 'u-1',
-          invoiceIssuedAt: null,
+          invoiceFileId: null,
         },
       }),
     );
     expect(result.items[0]).toMatchObject({
       id: '38888888-8888-4888-8888-888888888888',
       invoiceStatus: 'APPLYING',
-      invoiceNo: 'REQ-2',
+      invoiceNo: null,
     });
   });
 
@@ -625,7 +660,7 @@ describe('OrdersService list filter strictness suite', () => {
         where: {
           buyerUserId: 'u-1',
           id: '48888888-8888-4888-8888-888888888888',
-          invoiceIssuedAt: { not: null },
+          invoiceFileId: { not: null },
         },
       }),
     );
@@ -633,7 +668,7 @@ describe('OrdersService list filter strictness suite', () => {
       where: {
         buyerUserId: 'u-1',
         id: '48888888-8888-4888-8888-888888888888',
-        invoiceIssuedAt: { not: null },
+        invoiceFileId: { not: null },
       },
     });
   });

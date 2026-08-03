@@ -15,6 +15,7 @@ const REFUND_ID = '99999999-9999-4999-8999-999999999999';
 const FILE_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const SIGNED_FILE_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const SIGNED_SUBMISSION_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+const INVOICE_REQUEST_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 const USER_ID = 'user-1';
 const SELLER_ID = 'seller-1';
 const ADMIN_ID = 'admin-1';
@@ -70,6 +71,7 @@ describe('OrdersService write-first suite', () => {
       refundRequest: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), findUnique: vi.fn(), findMany: vi.fn() },
       settlement: { upsert: vi.fn() },
       file: { findUnique: vi.fn() },
+      invoiceRequest: { create: vi.fn(), updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
       contract: { findUnique: vi.fn(), upsert: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
       contractSignedSubmission: {
         findFirst: vi.fn(),
@@ -114,6 +116,14 @@ describe('OrdersService write-first suite', () => {
   const adminReq = { auth: { userId: ADMIN_ID, isAdmin: true } };
   const assignedReq = {
     auth: { userId: 'cs-1', isAdmin: true, permissions: new Set(['order.assigned.contract.confirm']) },
+  };
+  const invoicePayload = {
+    titleType: 'ENTERPRISE',
+    titleName: 'Acme Tech Ltd',
+    taxNo: '91440101ABCDEFGH',
+    email: 'finance@example.com',
+    phone: '13800138000',
+    remark: 'Platform service fee invoice',
   };
 
   it('rejects unauthenticated createOrder', async () => {
@@ -775,53 +785,86 @@ describe('OrdersService write-first suite', () => {
   });
 
   it('validates requestInvoice auth/id/access/status', async () => {
-    await expect(service.requestInvoice({}, ORDER_ID)).rejects.toBeInstanceOf(ForbiddenException);
-    await expect(service.requestInvoice(buyerReq, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.requestInvoice({}, ORDER_ID, invoicePayload)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.requestInvoice(buyerReq, 'bad-id', invoicePayload)).rejects.toBeInstanceOf(BadRequestException);
 
     prisma.order.findUnique.mockResolvedValueOnce(null);
-    await expect(service.requestInvoice(buyerReq, ORDER_ID)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.requestInvoice(buyerReq, ORDER_ID, invoicePayload)).rejects.toBeInstanceOf(NotFoundException);
 
     prisma.order.findUnique.mockResolvedValueOnce(
       makeOrder({ status: 'COMPLETED', listing: { sellerUserId: SELLER_ID, title: 'Patent Listing' } }),
     );
-    await expect(service.requestInvoice({ auth: { userId: SELLER_ID } }, ORDER_ID)).rejects.toBeInstanceOf(
+    await expect(service.requestInvoice({ auth: { userId: SELLER_ID } }, ORDER_ID, invoicePayload)).rejects.toBeInstanceOf(
       ForbiddenException,
     );
 
     prisma.order.findUnique.mockResolvedValueOnce(
       makeOrder({ status: 'DEPOSIT_PAID', listing: { sellerUserId: SELLER_ID, title: 'Patent Listing' } }),
     );
-    await expect(service.requestInvoice(buyerReq, ORDER_ID)).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.requestInvoice(buyerReq, ORDER_ID, invoicePayload)).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('validates requestInvoice title payload strictly', async () => {
+    await expect(service.requestInvoice(buyerReq, ORDER_ID, {})).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.requestInvoice(buyerReq, ORDER_ID, { titleType: 'ENTERPRISE', titleName: 'Acme Tech Ltd' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.requestInvoice(buyerReq, ORDER_ID, { titleType: 'PERSONAL', titleName: 'A' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.order.findUnique).not.toHaveBeenCalled();
   });
 
   it('rejects requestInvoice when already requested', async () => {
     prisma.order.findUnique.mockResolvedValueOnce(
       makeOrder({ status: 'COMPLETED', invoiceNo: 'REQ-1', listing: { sellerUserId: SELLER_ID, title: 'Patent Listing' } }),
     );
-    await expect(service.requestInvoice(buyerReq, ORDER_ID)).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.requestInvoice(buyerReq, ORDER_ID, invoicePayload)).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('updates order invoiceNo on requestInvoice success', async () => {
+  it('creates structured invoice request on requestInvoice success', async () => {
+    const createdAt = new Date('2026-03-12T00:00:00.000Z');
     prisma.order.findUnique
       .mockResolvedValueOnce(
         makeOrder({ status: 'COMPLETED', invoiceNo: null, invoiceIssuedAt: null, listing: { sellerUserId: SELLER_ID, title: 'Patent Listing' } }),
       )
       .mockResolvedValueOnce(
-        makeOrder({ status: 'COMPLETED', invoiceNo: 'REQ-123', invoiceIssuedAt: null, listing: { sellerUserId: SELLER_ID, title: 'Patent Listing' } }),
+        makeOrder({ status: 'COMPLETED', invoiceNo: null, invoiceIssuedAt: null, listing: { sellerUserId: SELLER_ID, title: 'Patent Listing' } }),
       );
-    prisma.order.update.mockResolvedValueOnce(
-      makeOrder({ status: 'COMPLETED', invoiceNo: 'REQ-123', invoiceIssuedAt: null }),
-    );
-
-    const result = await service.requestInvoice(buyerReq, ORDER_ID);
-
-    expect(prisma.order.update).toHaveBeenCalledWith({
-      where: { id: ORDER_ID },
-      data: { invoiceNo: expect.stringMatching(/^REQ-/) },
+    prisma.invoiceRequest.create.mockResolvedValueOnce({
+      id: INVOICE_REQUEST_ID,
+      orderId: ORDER_ID,
+      userId: USER_ID,
+      titleType: 'ENTERPRISE',
+      titleName: 'Acme Tech Ltd',
+      taxNo: '91440101ABCDEFGH',
+      email: 'finance@example.com',
+      phone: '13800138000',
+      remark: 'Platform service fee invoice',
+      status: 'APPLYING',
+      createdAt,
+      updatedAt: createdAt,
     });
+
+    const result = await service.requestInvoice(buyerReq, ORDER_ID, invoicePayload);
+
+    expect(prisma.invoiceRequest.create).toHaveBeenCalledWith({
+      data: {
+        orderId: ORDER_ID,
+        userId: USER_ID,
+        titleType: 'ENTERPRISE',
+        titleName: 'Acme Tech Ltd',
+        taxNo: '91440101ABCDEFGH',
+        email: 'finance@example.com',
+        phone: '13800138000',
+        remark: 'Platform service fee invoice',
+        status: 'APPLYING',
+      },
+    });
+    expect(prisma.order.update).not.toHaveBeenCalled();
     expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'INVOICE_REQUEST', targetId: ORDER_ID }));
     expect(notifications.create).toHaveBeenCalledTimes(1);
-    expect(result).toEqual({ orderId: ORDER_ID, status: 'APPLYING' });
+    expect(result).toEqual({ orderId: ORDER_ID, requestId: INVOICE_REQUEST_ID, status: 'APPLYING' });
   });
 
   it('validates admin refund actions id/auth and required fields', async () => {
@@ -1590,7 +1633,7 @@ describe('OrdersService write-first suite', () => {
     expect(notifications.create).toHaveBeenCalledTimes(1);
   });
 
-  it('validates getOrderInvoice auth/id/not-found/access/invoice-missing strictly', async () => {
+  it('validates getOrderInvoice auth/id/not-found/access strictly', async () => {
     await expect(service.getOrderInvoice({}, ORDER_ID)).rejects.toBeInstanceOf(ForbiddenException);
     await expect(service.getOrderInvoice(buyerReq, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
 
@@ -1603,7 +1646,12 @@ describe('OrdersService write-first suite', () => {
     await expect(service.getOrderInvoice(buyerReq, ORDER_ID)).rejects.toBeInstanceOf(ForbiddenException);
 
     prisma.order.findUnique.mockResolvedValueOnce(makeOrder({ invoiceFileId: null, invoiceFile: null }));
-    await expect(service.getOrderInvoice(buyerReq, ORDER_ID)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.getOrderInvoice(buyerReq, ORDER_ID)).resolves.toMatchObject({
+      orderId: ORDER_ID,
+      status: 'WAIT_APPLY',
+      invoiceNo: null,
+      invoiceFile: null,
+    });
   });
 
   it('returns mapped order invoice for buyer access', async () => {
@@ -1718,7 +1766,11 @@ describe('OrdersService write-first suite', () => {
     expect(prisma.order.update).toHaveBeenCalledWith({
       where: { id: ORDER_ID },
       data: { invoiceFileId: FILE_ID, invoiceNo: 'INV-123', invoiceIssuedAt: new Date('2026-03-12T00:00:00.000Z') },
-      include: { invoiceFile: true },
+      include: { invoiceFile: true, invoiceRequest: true },
+    });
+    expect(prisma.invoiceRequest.updateMany).toHaveBeenCalledWith({
+      where: { orderId: ORDER_ID, status: { not: 'CANCELLED' } },
+      data: { status: 'ISSUED' },
     });
     expect(buildSpy).toHaveBeenCalledTimes(1);
     expect(notifications.create).toHaveBeenCalledTimes(1);
@@ -1742,6 +1794,10 @@ describe('OrdersService write-first suite', () => {
     expect(prisma.order.update).toHaveBeenCalledWith({
       where: { id: ORDER_ID },
       data: { invoiceFileId: null, invoiceIssuedAt: null, invoiceNo: null },
+    });
+    expect(prisma.invoiceRequest.updateMany).toHaveBeenCalledWith({
+      where: { orderId: ORDER_ID, status: { not: 'CANCELLED' } },
+      data: { status: 'APPLYING' },
     });
     expect(notifications.create).toHaveBeenCalledTimes(1);
   });
