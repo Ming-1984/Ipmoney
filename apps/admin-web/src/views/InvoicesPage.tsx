@@ -25,8 +25,13 @@ type OrderContext = {
 };
 
 type InvoiceItem = {
-  orderId: string;
   id?: string;
+  orderId?: string;
+  status?: string;
+  listingTitle?: string | null;
+  applicationNoDisplay?: string | null;
+  buyerDisplayName?: string | null;
+  sellerDisplayName?: string | null;
   invoiceStatus: InvoiceStatus;
   amountFen?: number | null;
   itemName?: string | null;
@@ -115,6 +120,16 @@ function canProcessInvoice(item?: InvoiceItem | null): item is InvoiceItem {
   return Boolean(item && item.invoiceStatus !== 'WAIT_APPLY');
 }
 
+function getInvoiceOrderId(item?: InvoiceItem | null): string {
+  return String(item?.orderId || item?.id || item?.order?.orderId || '').trim();
+}
+
+function isActiveInvoice(row: InvoiceItem, active?: InvoiceItem | null): boolean {
+  const rowOrderId = getInvoiceOrderId(row);
+  const activeOrderId = getInvoiceOrderId(active);
+  return Boolean(rowOrderId && activeOrderId && rowOrderId === activeOrderId);
+}
+
 export function InvoicesPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -166,7 +181,8 @@ export function InvoicesPage() {
       if (seq !== loadSeqRef.current) return;
       setData(next);
       setActive((current) => {
-        const currentItem = current ? next.items.find((it) => it.orderId === current.orderId) : null;
+        const currentOrderId = getInvoiceOrderId(current);
+        const currentItem = currentOrderId ? next.items.find((it) => getInvoiceOrderId(it) === currentOrderId) : null;
         const selected = canProcessInvoice(currentItem) ? currentItem : null;
         resetInvoiceForm(selected);
         return selected;
@@ -192,7 +208,8 @@ export function InvoicesPage() {
   }, [orderId, status]);
 
   const rows = useMemo(() => data?.items || [], [data?.items]);
-  const canSave = Boolean(active?.orderId && (invoiceFile?.id || active?.invoiceFileUrl));
+  const activeOrderId = getInvoiceOrderId(active);
+  const canSave = Boolean(activeOrderId && (invoiceFile?.id || active?.invoiceFileUrl));
 
   const refreshCurrentPage = useCallback(() => {
     void load({ page: data?.page.page || page, pageSize: data?.page.pageSize || pageSize });
@@ -223,9 +240,9 @@ export function InvoicesPage() {
           <Button onClick={() => void load({ page: 1 })}>查询</Button>
           <Button
             loading={issuing}
-            disabled={!active?.orderId && !orderId.trim()}
+            disabled={!activeOrderId && !orderId.trim()}
             onClick={async () => {
-              const targetOrderId = active?.orderId || orderId.trim();
+              const targetOrderId = activeOrderId || orderId.trim();
               if (!targetOrderId) {
                 message.warning(TEXT.missingOrderId);
                 return;
@@ -264,10 +281,10 @@ export function InvoicesPage() {
         {error ? <RequestErrorAlert error={error} onRetry={() => void load()} /> : <AuditHint text={TEXT.auditHint} />}
 
         <Table<InvoiceItem>
-          rowKey="orderId"
+          rowKey={(row) => getInvoiceOrderId(row) || row.invoiceNo || row.requestedAt || row.issuedAt || 'invoice-row'}
           loading={loading}
           dataSource={rows}
-          rowClassName={(row) => (row.orderId === active?.orderId ? 'ant-table-row-selected' : '')}
+          rowClassName={(row) => (isActiveInvoice(row, active) ? 'ant-table-row-selected' : '')}
           pagination={{
             current: data?.page.page || page,
             pageSize: data?.page.pageSize || pageSize,
@@ -291,17 +308,18 @@ export function InvoicesPage() {
               width: 430,
               render: (_, row) => (
                 <Space direction="vertical" size={2}>
-                  <Typography.Text>{displayAdminInfo(row.order?.listingTitle, '交易标的待确认')}</Typography.Text>
+                  <Typography.Text>{displayAdminInfo(row.order?.listingTitle ?? row.listingTitle, '交易标的待确认')}</Typography.Text>
                   <Typography.Text type="secondary">
-                    买方：{displayAdminInfo(row.order?.buyerDisplayName, '买方待确认')} · 卖方：{displayAdminInfo(row.order?.sellerDisplayName, '卖方待确认')}
+                    买方：{displayAdminInfo(row.order?.buyerDisplayName ?? row.buyerDisplayName, '买方待确认')} · 卖方：
+                    {displayAdminInfo(row.order?.sellerDisplayName ?? row.sellerDisplayName, '卖方待确认')}
                   </Typography.Text>
-                  <Typography.Text type="secondary" copyable={{ text: row.orderId }}>
-                    订单号：{row.orderId}
+                  <Typography.Text type="secondary" copyable={{ text: getInvoiceOrderId(row) }}>
+                    订单号：{displayAdminInfo(getInvoiceOrderId(row), '待确认')}
                   </Typography.Text>
                 </Space>
               ),
             },
-            { title: '订单状态', key: 'orderStatus', render: (_, row) => orderStatusLabel(row.order?.orderStatus as any) },
+            { title: '订单状态', key: 'orderStatus', render: (_, row) => orderStatusLabel((row.order?.orderStatus ?? row.status) as any) },
             { title: '开票状态', dataIndex: 'invoiceStatus', render: (v: InvoiceStatus) => invoiceStatusTag(v) },
             { title: '开票金额', dataIndex: 'amountFen', render: (v?: number | null) => moneyText(v) },
             {
@@ -325,10 +343,12 @@ export function InvoicesPage() {
               width: 210,
               render: (_, row) => (
                 <Space wrap>
-                  <Button onClick={() => navigate(`/orders/${row.orderId}`)}>查看订单</Button>
+                  <Button disabled={!getInvoiceOrderId(row)} onClick={() => navigate(`/orders/${getInvoiceOrderId(row)}`)}>
+                    查看订单
+                  </Button>
                   {canProcessInvoice(row) ? (
                     (() => {
-                      const selected = row.orderId === active?.orderId;
+                      const selected = isActiveInvoice(row, active);
                       return (
                         <Button
                           type={selected ? 'primary' : 'default'}
@@ -358,23 +378,23 @@ export function InvoicesPage() {
               <Upload
                 maxCount={1}
                 showUploadList={false}
-                disabled={!active}
+                disabled={!activeOrderId}
                 customRequest={async (options) => {
-                  const targetOrderId = active?.orderId || '';
+                  const targetOrderId = getInvoiceOrderId(active);
                   const seq = ++uploadSeqRef.current;
                   try {
                     const uploaded = await apiUploadFile(options.file as File, 'INVOICE');
-                    if (seq !== uploadSeqRef.current || active?.orderId !== targetOrderId) return;
+                    if (seq !== uploadSeqRef.current || getInvoiceOrderId(active) !== targetOrderId) return;
                     setInvoiceFile(uploaded);
                     options.onSuccess?.(uploaded as any);
                   } catch (e: any) {
-                    if (seq !== uploadSeqRef.current || active?.orderId !== targetOrderId) return;
+                    if (seq !== uploadSeqRef.current || getInvoiceOrderId(active) !== targetOrderId) return;
                     options.onError?.(e);
                     message.error(e?.message || TEXT.uploadFailed);
                   }
                 }}
               >
-                <Button disabled={!active}>{TEXT.uploadFile}</Button>
+                <Button disabled={!activeOrderId}>{TEXT.uploadFile}</Button>
               </Upload>
               <Typography.Text type="secondary">
                 {invoiceFile ? TEXT.uploadedPrefix : active?.invoiceFileUrl ? TEXT.currentFilePrefix : TEXT.noFile}
@@ -388,7 +408,8 @@ export function InvoicesPage() {
                 type="primary"
                 disabled={!canSave}
                 onClick={async () => {
-                  if (!active?.orderId) return;
+                  const targetOrderId = getInvoiceOrderId(active);
+                  if (!active || !targetOrderId) return;
                   const fileId = invoiceFile?.id;
                   if (!fileId && !active.invoiceFileUrl) {
                     message.warning(TEXT.uploadFirst);
@@ -409,13 +430,13 @@ export function InvoicesPage() {
                   const seq = ++saveSeqRef.current;
                   try {
                     await apiPut<OrderInvoice>(
-                      `/admin/orders/${active.orderId}/invoice`,
+                      `/admin/orders/${targetOrderId}/invoice`,
                       {
                         invoiceFileId: fileId,
                         invoiceNo: invoiceNo || undefined,
                         issuedAt: issuedAt || undefined,
                       },
-                      { idempotencyKey: `invoice-${active.orderId}` },
+                      { idempotencyKey: `invoice-${targetOrderId}` },
                     );
                     if (seq !== saveSeqRef.current) return;
                     message.success(TEXT.saveSuccess);
@@ -430,9 +451,10 @@ export function InvoicesPage() {
               </Button>
               <Button
                 danger
-                disabled={!active?.invoiceFileUrl}
+                disabled={!activeOrderId || !active?.invoiceFileUrl}
                 onClick={async () => {
-                  if (!active?.orderId) return;
+                  const targetOrderId = getInvoiceOrderId(active);
+                  if (!active || !targetOrderId) return;
                   const { ok } = await confirmActionWithReason({
                     title: TEXT.deleteTitle,
                     content: TEXT.deleteContent,
@@ -445,8 +467,8 @@ export function InvoicesPage() {
                   if (!ok) return;
                   const seq = ++deleteSeqRef.current;
                   try {
-                    await apiDelete(`/admin/orders/${active.orderId}/invoice`, {
-                      idempotencyKey: `invoice-del-${active.orderId}`,
+                    await apiDelete(`/admin/orders/${targetOrderId}/invoice`, {
+                      idempotencyKey: `invoice-del-${targetOrderId}`,
                     });
                     if (seq !== deleteSeqRef.current) return;
                     message.success(TEXT.deleteSuccess);
