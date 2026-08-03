@@ -4,6 +4,10 @@
   --ipm-primary-active: #e85a00;
   --ipm-primary-soft: rgba(255, 122, 0, 0.12);
   --ipm-primary-soft-strong: rgba(255, 122, 0, 0.2);
+  --ipm-table-row-bg: #ffffff;
+  --ipm-table-row-hover-bg: #fff3e6;
+  --ipm-table-row-selected-bg: #ffe9d6;
+  --ipm-table-row-selected-hover-bg: #ffdfc2;
   --ipm-gold: #ffc54d;
   --ipm-bg: #fff3e6;
   --ipm-bg-strong: #ffe3cc;
@@ -148,6 +152,40 @@ body {
 
 .ant-table-tbody > tr > td {
   color: var(--ipm-text);
+}
+
+.ant-table-tbody > tr > td.ant-table-cell-fix-left,
+.ant-table-tbody > tr > td.ant-table-cell-fix-right {
+  z-index: 3;
+  background: var(--ipm-table-row-bg) !important;
+  background-clip: padding-box;
+}
+
+.ant-table-tbody > tr:hover > td.ant-table-cell-fix-left,
+.ant-table-tbody > tr:hover > td.ant-table-cell-fix-right {
+  background: var(--ipm-table-row-hover-bg) !important;
+}
+
+.ant-table-tbody > tr.ant-table-row-selected > td.ant-table-cell-fix-left,
+.ant-table-tbody > tr.ant-table-row-selected > td.ant-table-cell-fix-right {
+  background: var(--ipm-table-row-selected-bg) !important;
+}
+
+.ant-table-tbody > tr.ant-table-row-selected:hover > td.ant-table-cell-fix-left,
+.ant-table-tbody > tr.ant-table-row-selected:hover > td.ant-table-cell-fix-right {
+  background: var(--ipm-table-row-selected-hover-bg) !important;
+}
+
+.ant-table-thead > tr > th.ant-table-cell-fix-left,
+.ant-table-thead > tr > th.ant-table-cell-fix-right {
+  z-index: 4;
+  background: var(--ipm-bg-elevated) !important;
+  background-clip: padding-box;
+}
+
+.ant-table-cell-fix-left-last::after,
+.ant-table-cell-fix-right-first::after {
+  pointer-events: none;
 }
 
 .ant-table-thead > tr > th,
