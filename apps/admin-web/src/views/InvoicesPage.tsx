@@ -367,6 +367,8 @@ export function InvoicesPage() {
           rowKey={(row) => getInvoiceOrderId(row) || row.invoiceNo || row.requestedAt || row.issuedAt || 'invoice-row'}
           loading={loading}
           dataSource={rows}
+          tableLayout="fixed"
+          scroll={{ x: 1540 }}
           rowClassName={(row) => (isActiveInvoice(row, active) ? 'ant-table-row-selected' : '')}
           pagination={{
             current: data?.page.page || page,
@@ -388,7 +390,7 @@ export function InvoicesPage() {
             {
               title: '订单摘要',
               key: 'summary',
-              width: 430,
+              width: 460,
               render: (_, row) => (
                 <Space direction="vertical" size={2}>
                   <Typography.Text>{displayAdminInfo(row.order?.listingTitle ?? row.listingTitle, '交易标的待确认')}</Typography.Text>
@@ -402,9 +404,23 @@ export function InvoicesPage() {
                 </Space>
               ),
             },
-            { title: '订单状态', key: 'orderStatus', render: (_, row) => orderStatusLabel((row.order?.orderStatus ?? row.status) as any) },
-            { title: '开票状态', dataIndex: 'invoiceStatus', render: (v: InvoiceStatus) => invoiceStatusTag(v) },
-            { title: '开票金额', dataIndex: 'amountFen', render: (v?: number | null) => moneyText(v) },
+            {
+              title: '订单状态',
+              key: 'orderStatus',
+              width: 96,
+              render: (_, row) => (
+                <Typography.Text style={{ whiteSpace: 'nowrap' }}>
+                  {orderStatusLabel((row.order?.orderStatus ?? row.status) as any)}
+                </Typography.Text>
+              ),
+            },
+            { title: '开票状态', dataIndex: 'invoiceStatus', width: 120, render: (v: InvoiceStatus) => invoiceStatusTag(v) },
+            {
+              title: '开票金额',
+              dataIndex: 'amountFen',
+              width: 120,
+              render: (v?: number | null) => <Typography.Text style={{ whiteSpace: 'nowrap' }}>{moneyText(v)}</Typography.Text>,
+            },
             {
               title: '开票抬头',
               key: 'invoiceRequest',
@@ -444,10 +460,15 @@ export function InvoicesPage() {
             {
               title: '发票信息',
               key: 'invoice',
+              width: 180,
               render: (_, row) => (
-                <Space direction="vertical" size={0}>
-                  <Typography.Text>{displayAdminInfo(normalizeLegacyInvoiceNo(row.invoiceNo), '发票号待生成')}</Typography.Text>
-                  <Typography.Text type="secondary">{row.issuedAt ? formatTimeSmart(row.issuedAt) : '开票时间待确认'}</Typography.Text>
+                <Space direction="vertical" size={0} style={{ minWidth: 150 }}>
+                  <Typography.Text style={{ whiteSpace: 'nowrap' }}>
+                    {displayAdminInfo(normalizeLegacyInvoiceNo(row.invoiceNo), '发票号待生成')}
+                  </Typography.Text>
+                  <Typography.Text type="secondary" style={{ whiteSpace: 'nowrap' }}>
+                    {row.issuedAt ? formatTimeSmart(row.issuedAt) : '开票时间待确认'}
+                  </Typography.Text>
                   {normalizeUserFacingText(row.invoiceFileUrl) ? (
                     <a href={row.invoiceFileUrl || ''} target="_blank" rel="noreferrer">
                       查看附件
@@ -459,7 +480,7 @@ export function InvoicesPage() {
             {
               title: '操作',
               key: 'actions',
-              width: 210,
+              width: 150,
               render: (_, row) => (
                 <Space wrap>
                   <Button disabled={!getInvoiceOrderId(row)} onClick={() => navigate(`/orders/${getInvoiceOrderId(row)}`)}>
