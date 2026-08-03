@@ -167,9 +167,9 @@ export function InvoicesPage() {
       setData(next);
       setActive((current) => {
         const currentItem = current ? next.items.find((it) => it.orderId === current.orderId) : null;
-        const selected = canProcessInvoice(currentItem) ? currentItem : next.items.find(canProcessInvoice);
-        resetInvoiceForm(selected || null);
-        return selected || null;
+        const selected = canProcessInvoice(currentItem) ? currentItem : null;
+        resetInvoiceForm(selected);
+        return selected;
       });
     } catch (e: any) {
       if (seq !== loadSeqRef.current) return;
@@ -327,15 +327,20 @@ export function InvoicesPage() {
                 <Space wrap>
                   <Button onClick={() => navigate(`/orders/${row.orderId}`)}>查看订单</Button>
                   {canProcessInvoice(row) ? (
-                    <Button
-                      type={row.orderId === active?.orderId ? 'primary' : 'default'}
-                      onClick={() => {
-                        setActive(row);
-                        resetInvoiceForm(row);
-                      }}
-                    >
-                      处理发票
-                    </Button>
+                    (() => {
+                      const selected = row.orderId === active?.orderId;
+                      return (
+                        <Button
+                          type={selected ? 'primary' : 'default'}
+                          onClick={() => {
+                            setActive(row);
+                            resetInvoiceForm(row);
+                          }}
+                        >
+                          {selected ? '已选中' : '处理发票'}
+                        </Button>
+                      );
+                    })()
                   ) : null}
                 </Space>
               ),
