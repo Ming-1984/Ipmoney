@@ -265,6 +265,15 @@ describe('ReportsService range filter strictness suite', () => {
       const savedFilename = String(files.createUserFile.mock.calls[0][0].filename);
       uploadPath = path.resolve(process.cwd(), 'uploads', savedFilename);
       const content = readFileSync(uploadPath, 'utf8');
+      expect(content.startsWith('\uFEFF订单明细\r\n')).toBe(true);
+      expect(content).toContain(
+        '订单编号,挂牌编号,挂牌标题,买家用户编号,卖家用户编号,订单状态,成交金额（元）,订金金额（元）,尾款金额（元）,佣金金额（元）,创建时间,更新时间',
+      );
+      expect(content).toContain('订金已付,10.00,3.00,7.00,0.80');
+      expect(content).toContain('退款申请明细');
+      expect(content).toContain('待审核,OTHER,"Need ""manual"", check"');
+      expect(content).toContain('结算放款明细');
+      expect(content).toContain('已放款,9.20,银行转账,"REF-""001"""');
       expect(content).toContain('"A,""B""\nC"');
       expect(content).toContain('"Need ""manual"", check"');
       expect(content).toContain('"REF-""001"""');

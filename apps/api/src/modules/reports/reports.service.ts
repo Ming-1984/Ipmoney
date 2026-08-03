@@ -49,15 +49,35 @@ const PATENT_TYPE_LABELS: Record<string, string> = {
 };
 
 const ORDER_STATUS_LABELS: Record<string, string> = {
-  DEPOSIT_PENDING: '待付定金',
-  DEPOSIT_PAID: '定金已付',
+  DEPOSIT_PENDING: '待付订金',
+  DEPOSIT_PAID: '订金已付',
   WAIT_FINAL_PAYMENT: '待付尾款',
-  FINAL_PAID_ESCROW: '尾款已托管',
+  FINAL_PAID_ESCROW: '尾款托管中',
   READY_TO_SETTLE: '待结算',
-  COMPLETED: '已成交',
+  COMPLETED: '已完成',
   CANCELLED: '已取消',
   REFUNDING: '退款中',
   REFUNDED: '已退款',
+};
+
+const REFUND_STATUS_LABELS: Record<string, string> = {
+  PENDING: '待审核',
+  APPROVED: '已通过',
+  REJECTED: '已驳回',
+  REFUNDING: '退款中',
+  REFUNDED: '已退款',
+};
+
+const SETTLEMENT_PAYOUT_STATUS_LABELS: Record<string, string> = {
+  PENDING: '待放款',
+  SUCCEEDED: '已放款',
+  FAILED: '放款失败',
+};
+
+const SETTLEMENT_PAYOUT_METHOD_LABELS: Record<string, string> = {
+  MANUAL: '人工放款',
+  WECHAT: '微信放款',
+  BANK: '银行转账',
 };
 
 const ORDER_STATUS_ORDER = [
@@ -155,6 +175,21 @@ export class ReportsService {
       return `"${raw.replace(/"/g, '""')}"`;
     }
     return raw;
+  }
+
+  private static csvRow(values: any[]) {
+    return values.map((value) => ReportsService.escapeCsv(value)).join(',');
+  }
+
+  private static formatFenAsYuan(value: any) {
+    if (value === null || value === undefined || value === '') return '';
+    const amount = Number(value);
+    if (!Number.isFinite(amount)) return '';
+    return (amount / 100).toFixed(2);
+  }
+
+  private static formatDateTime(value: Date | null | undefined) {
+    return value ? value.toISOString() : '';
   }
 
   private formatDayKey(date: Date) {
@@ -503,91 +538,91 @@ export class ReportsService {
     ]);
 
     const lines: string[] = [];
-    lines.push('Orders');
+    lines.push('订单明细');
     lines.push(
-      [
-        'orderId',
-        'listingId',
-        'listingTitle',
-        'buyerUserId',
-        'sellerUserId',
-        'status',
-        'dealAmountFen',
-        'depositAmountFen',
-        'finalAmountFen',
-        'commissionAmountFen',
-        'createdAt',
-        'updatedAt',
-      ].join(','),
+      ReportsService.csvRow([
+        '订单编号',
+        '挂牌编号',
+        '挂牌标题',
+        '买家用户编号',
+        '卖家用户编号',
+        '订单状态',
+        '成交金额（元）',
+        '订金金额（元）',
+        '尾款金额（元）',
+        '佣金金额（元）',
+        '创建时间',
+        '更新时间',
+      ]),
     );
     for (const o of orders) {
       lines.push(
-        [
+        ReportsService.csvRow([
           o.id,
           o.listingId,
-          ReportsService.escapeCsv(o.listing?.title ?? ''),
+          o.listing?.title ?? '',
           o.buyerUserId,
           o.listing?.sellerUserId ?? '',
-          o.status,
-          o.dealAmount ?? '',
-          o.depositAmount ?? '',
-          o.finalAmount ?? '',
-          o.commissionAmount ?? '',
-          o.createdAt.toISOString(),
-          o.updatedAt.toISOString(),
-        ].join(','),
+          ORDER_STATUS_LABELS[String(o.status)] ?? o.status,
+          ReportsService.formatFenAsYuan(o.dealAmount),
+          ReportsService.formatFenAsYuan(o.depositAmount),
+          ReportsService.formatFenAsYuan(o.finalAmount),
+          ReportsService.formatFenAsYuan(o.commissionAmount),
+          ReportsService.formatDateTime(o.createdAt),
+          ReportsService.formatDateTime(o.updatedAt),
+        ]),
       );
     }
 
     lines.push('');
-    lines.push('RefundRequests');
-    lines.push(['refundRequestId', 'orderId', 'status', 'reasonCode', 'reasonText', 'createdAt', 'updatedAt'].join(','));
+    lines.push('退款申请明细');
+    lines.push(ReportsService.csvRow(['退款申请编号', '订单编号', '退款状态', '退款原因编码', '退款原因说明', '创建时间', '更新时间']));
     for (const r of refunds) {
       lines.push(
-        [
+        ReportsService.csvRow([
           r.id,
           r.orderId,
-          r.status,
+          REFUND_STATUS_LABELS[String(r.status)] ?? r.status,
           r.reasonCode,
-          ReportsService.escapeCsv(r.reasonText ?? ''),
-          r.createdAt.toISOString(),
-          r.updatedAt.toISOString(),
-        ].join(','),
+          r.reasonText ?? '',
+          ReportsService.formatDateTime(r.createdAt),
+          ReportsService.formatDateTime(r.updatedAt),
+        ]),
       );
     }
 
     lines.push('');
-    lines.push('Settlements');
+    lines.push('结算放款明细');
     lines.push(
-      [
-        'settlementId',
-        'orderId',
-        'payoutStatus',
-        'payoutAmountFen',
-        'payoutMethod',
-        'payoutRef',
-        'payoutAt',
-        'createdAt',
-        'updatedAt',
-      ].join(','),
+      ReportsService.csvRow([
+        '结算编号',
+        '订单编号',
+        '放款状态',
+        '放款金额（元）',
+        '放款方式',
+        '放款流水号',
+        '放款时间',
+        '创建时间',
+        '更新时间',
+      ]),
     );
     for (const s of settlements) {
       lines.push(
-        [
+        ReportsService.csvRow([
           s.id,
           s.orderId,
-          s.payoutStatus,
-          s.payoutAmount,
-          s.payoutMethod,
-          ReportsService.escapeCsv(s.payoutRef ?? ''),
-          s.payoutAt ? s.payoutAt.toISOString() : '',
-          s.createdAt.toISOString(),
-          s.updatedAt.toISOString(),
-        ].join(','),
+          SETTLEMENT_PAYOUT_STATUS_LABELS[String(s.payoutStatus)] ?? s.payoutStatus,
+          ReportsService.formatFenAsYuan(s.payoutAmount),
+          SETTLEMENT_PAYOUT_METHOD_LABELS[String(s.payoutMethod)] ?? s.payoutMethod,
+          s.payoutRef ?? '',
+          ReportsService.formatDateTime(s.payoutAt),
+          ReportsService.formatDateTime(s.createdAt),
+          ReportsService.formatDateTime(s.updatedAt),
+        ]),
       );
     }
 
-    const content = `${lines.join('\n')}\n`;
+    const content = `\uFEFF${lines.join('\r\n')}\r\n`;
     const fileId = crypto.randomUUID();
     const filename = `${fileId}.csv`;
     const filePath = path.resolve(UPLOAD_DIR, filename);
