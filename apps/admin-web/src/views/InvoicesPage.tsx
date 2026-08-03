@@ -11,6 +11,21 @@ import { confirmActionWithReason } from '../ui/confirm';
 
 type InvoiceStatus = 'WAIT_APPLY' | 'APPLYING' | 'ISSUED';
 type InvoiceStatusFilter = InvoiceStatus | 'ALL';
+type InvoiceTitleType = 'PERSONAL' | 'ENTERPRISE';
+
+type InvoiceRequestInfo = {
+  id: string;
+  orderId: string;
+  titleType: InvoiceTitleType;
+  titleName: string;
+  taxNo?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  remark?: string | null;
+  status: 'APPLYING' | 'ISSUED' | 'CANCELLED';
+  createdAt: string;
+  updatedAt?: string | null;
+};
 
 type OrderContext = {
   orderId: string;
@@ -35,6 +50,7 @@ type InvoiceItem = {
   invoiceStatus: InvoiceStatus;
   amountFen?: number | null;
   itemName?: string | null;
+  invoiceRequest?: InvoiceRequestInfo | null;
   invoiceNo?: string | null;
   issuedAt?: string | null;
   invoiceFileUrl?: string | null;
@@ -89,6 +105,10 @@ const TEXT = {
   uploadedPrefix: '已上传发票文件',
   currentFilePrefix: '已有发票附件',
   noFile: '未上传文件',
+  previewInvoice: '预览发票',
+  previewOpening: '打开中...',
+  previewNoFile: '暂无发票文件',
+  previewFailed: '预览发票失败',
   invoiceNoPlaceholder: '发票号（可选）',
   issuedAtPlaceholder: '开票时间（可选）',
   saveInvoice: '保存发票',
@@ -116,6 +136,16 @@ function moneyText(value?: number | null): string {
   return value == null ? '-' : `¥${fenToYuan(value)}`;
 }
 
+function invoiceTitleTypeLabel(value?: string | null): string {
+  if (value === 'ENTERPRISE') return '企业';
+  return '个人';
+}
+
+function normalizeLegacyInvoiceNo(value?: string | null): string {
+  const raw = normalizeUserFacingText(value);
+  return /^REQ-/i.test(raw) ? '' : raw;
+}
+
 function canProcessInvoice(item?: InvoiceItem | null): item is InvoiceItem {
   return Boolean(item && item.invoiceStatus !== 'WAIT_APPLY');
 }
@@ -128,6 +158,19 @@ function isActiveInvoice(row: InvoiceItem, active?: InvoiceItem | null): boolean
   const rowOrderId = getInvoiceOrderId(row);
   const activeOrderId = getInvoiceOrderId(active);
   return Boolean(rowOrderId && activeOrderId && rowOrderId === activeOrderId);
+}
+
+function extractFileIdFromFileUrl(rawUrl?: string | null): string | null {
+  const input = String(rawUrl || '').trim();
+  if (!input) return null;
+  let pathname = input;
+  try {
+    pathname = new URL(input).pathname || input;
+  } catch {
+    pathname = input.split('?')[0] || input;
+  }
+  const match = pathname.match(/\/files\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:$|\/)/i);
+  return match?.[1] || null;
 }
 
 export function InvoicesPage() {
@@ -145,6 +188,7 @@ export function InvoicesPage() {
   const [invoiceNo, setInvoiceNo] = useState('');
   const [issuedAt, setIssuedAt] = useState('');
   const [issuing, setIssuing] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
   const loadSeqRef = useRef(0);
   const issueSeqRef = useRef(0);
   const saveSeqRef = useRef(0);
@@ -161,7 +205,7 @@ export function InvoicesPage() {
 
   const resetInvoiceForm = useCallback((item?: InvoiceItem | null) => {
     setInvoiceFile(null);
-    setInvoiceNo(item?.invoiceNo || '');
+    setInvoiceNo(normalizeLegacyInvoiceNo(item?.invoiceNo));
     setIssuedAt(item?.issuedAt || '');
   }, []);
 
@@ -210,10 +254,49 @@ export function InvoicesPage() {
   const rows = useMemo(() => data?.items || [], [data?.items]);
   const activeOrderId = getInvoiceOrderId(active);
   const canSave = Boolean(activeOrderId && (invoiceFile?.id || active?.invoiceFileUrl));
+  const invoicePreviewUrl = useMemo(
+    () => normalizeUserFacingText(invoiceFile?.url) || normalizeUserFacingText(active?.invoiceFileUrl),
+    [active?.invoiceFileUrl, invoiceFile?.url],
+  );
 
   const refreshCurrentPage = useCallback(() => {
     void load({ page: data?.page.page || page, pageSize: data?.page.pageSize || pageSize });
   }, [data?.page.page, data?.page.pageSize, load, page, pageSize]);
+
+  const openInvoicePreview = useCallback(async () => {
+    if (!invoicePreviewUrl) {
+      message.warning(TEXT.previewNoFile);
+      return;
+    }
+
+    const previewWindow = window.open('about:blank', '_blank');
+    if (previewWindow) previewWindow.opener = null;
+
+    setPreviewing(true);
+    try {
+      const fileId = extractFileIdFromFileUrl(invoicePreviewUrl);
+      let previewUrl = invoicePreviewUrl;
+      if (fileId) {
+        const temp = await apiPost<{ url: string }>(`/files/${fileId}/temporary-access`, {
+          scope: 'preview',
+          ttlSeconds: 300,
+        });
+        if (!temp?.url) throw new Error('empty preview url');
+        previewUrl = temp.url;
+      }
+
+      if (previewWindow) {
+        previewWindow.location.href = previewUrl;
+      } else {
+        window.open(previewUrl, '_blank', 'noopener,noreferrer');
+      }
+    } catch (e: any) {
+      if (previewWindow) previewWindow.close();
+      message.error(e?.message || TEXT.previewFailed);
+    } finally {
+      setPreviewing(false);
+    }
+  }, [invoicePreviewUrl]);
 
   return (
     <Card className="admin-invoices-page">
@@ -323,11 +406,47 @@ export function InvoicesPage() {
             { title: '开票状态', dataIndex: 'invoiceStatus', render: (v: InvoiceStatus) => invoiceStatusTag(v) },
             { title: '开票金额', dataIndex: 'amountFen', render: (v?: number | null) => moneyText(v) },
             {
+              title: '开票抬头',
+              key: 'invoiceRequest',
+              width: 330,
+              render: (_, row) => {
+                const request = row.invoiceRequest;
+                if (!request) {
+                  return row.invoiceStatus === 'APPLYING' ? <Typography.Text type="secondary">历史申请，需联系客服补充</Typography.Text> : '-';
+                }
+                return (
+                  <Space direction="vertical" size={0}>
+                    <Typography.Text>
+                      {invoiceTitleTypeLabel(request.titleType)} · {displayAdminInfo(request.titleName, '抬头待确认')}
+                    </Typography.Text>
+                    {request.titleType === 'ENTERPRISE' ? (
+                      <Typography.Text type="secondary" copyable={request.taxNo ? { text: request.taxNo } : false}>
+                        税号：{displayAdminInfo(request.taxNo, '待确认')}
+                      </Typography.Text>
+                    ) : null}
+                    {normalizeUserFacingText(request.email) ? (
+                      <Typography.Text type="secondary" copyable={{ text: request.email || '' }}>
+                        邮箱：{request.email}
+                      </Typography.Text>
+                    ) : null}
+                    {normalizeUserFacingText(request.phone) ? (
+                      <Typography.Text type="secondary" copyable={{ text: request.phone || '' }}>
+                        手机：{request.phone}
+                      </Typography.Text>
+                    ) : null}
+                    {normalizeUserFacingText(request.remark) ? (
+                      <Typography.Text type="secondary">备注：{request.remark}</Typography.Text>
+                    ) : null}
+                  </Space>
+                );
+              },
+            },
+            {
               title: '发票信息',
               key: 'invoice',
               render: (_, row) => (
                 <Space direction="vertical" size={0}>
-                  <Typography.Text>{displayAdminInfo(row.invoiceNo, '发票号待生成')}</Typography.Text>
+                  <Typography.Text>{displayAdminInfo(normalizeLegacyInvoiceNo(row.invoiceNo), '发票号待生成')}</Typography.Text>
                   <Typography.Text type="secondary">{row.issuedAt ? formatTimeSmart(row.issuedAt) : '开票时间待确认'}</Typography.Text>
                   {normalizeUserFacingText(row.invoiceFileUrl) ? (
                     <a href={row.invoiceFileUrl || ''} target="_blank" rel="noreferrer">
@@ -373,6 +492,36 @@ export function InvoicesPage() {
             <Typography.Text strong>
               上传/替换发票：{active ? `${displayAdminInfo(active.order?.listingTitle, '交易标的待确认')} / ${moneyText(active.amountFen)}` : '请选择订单'}
             </Typography.Text>
+            {active ? (
+              <Space direction="vertical" size={2}>
+                <Typography.Text type="secondary">
+                  开票抬头：
+                  {active.invoiceRequest
+                    ? `${invoiceTitleTypeLabel(active.invoiceRequest.titleType)} · ${displayAdminInfo(active.invoiceRequest.titleName, '抬头待确认')}`
+                    : active.invoiceStatus === 'APPLYING'
+                      ? '历史申请，需联系客服补充'
+                      : '未申请'}
+                </Typography.Text>
+                {active.invoiceRequest?.titleType === 'ENTERPRISE' ? (
+                  <Typography.Text type="secondary" copyable={active.invoiceRequest.taxNo ? { text: active.invoiceRequest.taxNo } : false}>
+                    纳税人识别号：{displayAdminInfo(active.invoiceRequest.taxNo, '待确认')}
+                  </Typography.Text>
+                ) : null}
+                {normalizeUserFacingText(active.invoiceRequest?.email) ? (
+                  <Typography.Text type="secondary" copyable={{ text: active.invoiceRequest?.email || '' }}>
+                    接收邮箱：{active.invoiceRequest?.email}
+                  </Typography.Text>
+                ) : null}
+                {normalizeUserFacingText(active.invoiceRequest?.phone) ? (
+                  <Typography.Text type="secondary" copyable={{ text: active.invoiceRequest?.phone || '' }}>
+                    联系手机号：{active.invoiceRequest?.phone}
+                  </Typography.Text>
+                ) : null}
+                {normalizeUserFacingText(active.invoiceRequest?.remark) ? (
+                  <Typography.Text type="secondary">备注：{active.invoiceRequest?.remark}</Typography.Text>
+                ) : null}
+              </Space>
+            ) : null}
 
             <Space wrap>
               <Upload
@@ -396,6 +545,9 @@ export function InvoicesPage() {
               >
                 <Button disabled={!activeOrderId}>{TEXT.uploadFile}</Button>
               </Upload>
+              <Button disabled={!invoicePreviewUrl} loading={previewing} onClick={() => void openInvoicePreview()}>
+                {previewing ? TEXT.previewOpening : TEXT.previewInvoice}
+              </Button>
               <Typography.Text type="secondary">
                 {invoiceFile ? TEXT.uploadedPrefix : active?.invoiceFileUrl ? TEXT.currentFilePrefix : TEXT.noFile}
               </Typography.Text>

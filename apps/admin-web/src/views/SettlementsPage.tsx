@@ -8,7 +8,7 @@ import { orderStatusLabel } from '../lib/labels';
 import { displayAdminInfo } from '../lib/userFacingText';
 import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
 
-type PayoutStatus = 'PENDING' | 'SUCCEEDED' | 'FAILED';
+type PayoutStatus = 'PENDING' | 'SUCCEEDED';
 
 type OrderContext = {
   orderId: string;
@@ -45,7 +45,6 @@ type PagedSettlement = {
 
 const STATUS_OPTIONS = [
   { value: 'PENDING', label: '待放款' },
-  { value: 'FAILED', label: '放款失败' },
   { value: 'SUCCEEDED', label: '已放款' },
   { value: '', label: '全部结算' },
 ];
@@ -80,7 +79,6 @@ function payoutMethodLabel(value?: Settlement['payoutMethod']): string {
 
 function payoutStatusTag(value?: PayoutStatus) {
   if (value === 'SUCCEEDED') return <Tag color="green">已放款</Tag>;
-  if (value === 'FAILED') return <Tag color="red">放款失败</Tag>;
   return <Tag color="gold">待放款</Tag>;
 }
 
