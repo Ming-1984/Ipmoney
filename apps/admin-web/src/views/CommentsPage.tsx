@@ -39,7 +39,8 @@ type PagedComment = {
 function contentTypeLabel(type?: CommentContentType | null): string {
   if (!type) return '-';
   if (type === 'ACHIEVEMENT') return '成果内容';
-  return '挂牌内容';
+  if (type === 'LISTING') return '挂牌内容';
+  return '内容类型待确认';
 }
 
 function statusTag(status?: CommentStatus | null) {
@@ -61,7 +62,7 @@ function userRoleLabel(value: unknown): string {
   if (role === 'OPERATOR') return '运营';
   if (role === 'SELLER') return '卖方';
   if (role === 'BUYER') return '买方';
-  return role;
+  return '角色待确认';
 }
 
 export function CommentsPage() {

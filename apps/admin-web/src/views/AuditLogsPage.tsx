@@ -6,6 +6,7 @@ import {
   Drawer,
   Empty,
   Input,
+  Segmented,
   Select,
   Space,
   Table,
@@ -70,6 +71,8 @@ type AuditFieldChange = {
   after: string;
   mode: 'added' | 'removed' | 'changed';
 };
+
+type AuditDetailVersion = 'ops' | 'tech';
 
 const ACTION_LABELS: Record<string, string> = {
   ACHIEVEMENT_APPROVE: '通过成果审核',
@@ -175,26 +178,52 @@ const TARGET_TYPE_LABELS: Record<string, string> = {
 
 const FIELD_LABELS: Record<string, string> = {
   auditStatus: '审核状态',
+  action: '操作',
+  afterJson: '变更后',
+  applicationNoDisplay: '申请号展示值',
+  applicationNoNorm: '申请号',
+  applicantNames: '申请人',
+  assigneeNames: '权利人',
+  abstract: '摘要',
   autoRefund: '自动退款',
   avatarUrl: '头像',
   badgeCodes: '标签',
+  beforeJson: '变更前',
   buyerUserId: '买方账号',
+  clearRanking: '清除上榜',
   comment: '备注',
+  consultationRouting: '咨询分配方式',
   contactName: '联系人',
+  coverFileId: '封面图',
   deliveryPeriod: '交付周期',
   description: '说明',
   displayName: '展示名称',
+  duplicatePolicy: '重复处理策略',
+  entityType: '实体类型',
   expiresAt: '有效期至',
   featuredLevel: '推荐位',
+  featuredRank: '推荐排名',
+  featuredRegionCode: '推荐地区',
+  featuredUntil: '推荐有效期',
   fileId: '文件',
+  fileName: '文件名',
+  grantDate: '授权日',
+  grantPublicationNoDisplay: '授权公告号',
   id: '编号',
   industryTags: '行业标签',
   input: '导入内容',
   intro: '简介',
+  inventorNames: '发明人',
   invoiceFileId: '发票文件',
   invoiceIssuedAt: '开票时间',
   invoiceNo: '发票号',
+  ipcCodes: 'IPC 分类号',
+  legalStatus: '法律状态',
+  legalStatusRaw: '原始法律状态',
+  licenseMode: '许可方式',
   listingId: '挂牌',
+  listingTopics: '专题标签',
+  locCodes: 'LOC 分类号',
   logoFileId: 'Logo',
   mode: '更新方式',
   module: '模块',
@@ -204,7 +233,11 @@ const FIELD_LABELS: Record<string, string> = {
   people: '人员数据',
   permissionIds: '权限',
   phone: '手机号',
+  patentNoDisplay: '专利号展示值',
+  patentType: '专利类型',
+  priceType: '报价方式',
   priceAmountFen: '金额',
+  publicationNoDisplay: '公开号展示值',
   publishedAt: '发布时间',
   ratingCount: '评分人数',
   ratingScore: '评分',
@@ -213,11 +246,17 @@ const FIELD_LABELS: Record<string, string> = {
   rejectReason: '驳回原因',
   remark: '备注',
   roleIds: '角色',
+  rollbackStatus: '撤回状态',
+  rollbackStrategy: '撤回策略',
   scope: '访问范围',
+  sellerUserId: '卖方账号',
+  source: '来源',
+  sourcePrimary: '专利来源',
   status: '状态',
   targetId: '对象编号',
   title: '标题',
   tradeNo: '交易流水号',
+  tradeMode: '交易方式',
   updatedAt: '更新时间',
   userId: '用户',
 };
@@ -225,43 +264,88 @@ const FIELD_LABELS: Record<string, string> = {
 const ENUM_VALUE_LABELS: Record<string, string> = {
   ACTIVE: '进行中',
   ALL: '全部账号',
+  ADMIN: '后台录入',
+  ADMIN_IMPORT: '后台导入',
   APPROVED: '已通过',
   ASSIGNMENT: '转让',
   AUTO: '自动处理',
+  AVAILABLE: '已可用',
   BATCH: '批量更新',
+  BLOCKED: '阻断/人工处理',
   CANCELLED: '已取消',
   CITY: '市级推荐',
   CLOSE: '关闭',
+  CLOSED: '已关闭',
   COMPLETED: '已完成',
   COMPANY: '企业',
+  CONFLICTED: '冲突',
   DEPOSIT_PAID: '订金已支付',
   DEPOSIT_PENDING: '待付订金',
+  DESIGN: '外观设计',
   DRAFT: '草稿',
   EXCLUSIVE: '独占许可',
+  EXPIRED: '已失效',
   FINAL_PAID_ESCROW: '尾款托管中',
   FIXED: '一口价',
+  GRANTED: '已授权',
+  HIGH: '高',
+  INVENTION: '发明',
+  INVALID: '校验失败',
+  INVALIDATED: '已无效',
+  IN_PROGRESS: '处理中',
+  LICENSE: '许可',
+  LOW: '低',
   MONTH_1_3: '1-3 个月',
   MONTH_3_6: '3-6 个月',
+  MEDIUM: '中',
+  MANUAL: '手动处理',
   NEGOTIABLE: '面议',
   NON_EXCLUSIVE: '普通许可',
+  ONLINE_ORDER: '线上订单',
+  OPEN: '待处理',
   OPEN_LICENSE: '开放许可',
+  OVERWRITE: '覆盖更新',
   NONE: '无',
   OFFLINE: '已下线',
+  OFFLINE_BANK: '线下银行转账',
+  OFFLINE_OTHER: '线下其他',
   OFF_SHELF: '已下架',
   OTHER: '其他',
+  OWNER: '权利人咨询',
   OVER_6_MONTHS: '6 个月以上',
+  PARTIAL_FAILED: '部分失败',
+  PARTIALLY_ROLLED_BACK: '部分撤回',
+  PARTIALLY_SUCCEEDED: '部分完成',
   PENDING: '待处理',
   PERSON: '个人',
+  PLATFORM: '平台客服',
   PROVINCE: '省级推荐',
+  PROVIDER: '外部数据源',
   READY_TO_SETTLE: '待结算',
   REFUNDED: '已退款',
   REFUNDING: '退款中',
   REJECTED: '已驳回',
   REPLACE: '替换',
+  ROLLBACKABLE: '可自动撤回',
+  ROLLBACK_FAILED: '撤回失败',
+  ROLLBACK_PRECHECKED: '已预检',
+  ROLLBACK_RUNNING: '撤回中',
+  ROLLED_BACK: '已撤回',
+  RUNNING: '执行中',
   SOLE: '排他许可',
   SOLD: '已成交',
   STAFF: '仅员工账号',
+  SUCCEEDED: '已完成',
+  TECH_MANAGER: '技术经理人',
+  TRANSFER: '转让',
+  UNKNOWN: '状态待确认',
+  UPSERT: '重复更新',
+  USER: '用户',
+  UTILITY_MODEL: '实用新型',
+  VALID: '校验通过',
   WAIT_FINAL_PAYMENT: '待付尾款',
+  WAIT_UPLOAD: '待上传',
+  WAIT_CONFIRM: '待确认',
   WITHIN_1_MONTH: '1 个月内',
 };
 
@@ -275,12 +359,35 @@ function normalizeCode(value: string): string {
 
 function auditActionLabel(value: string): string {
   const code = normalizeCode(value);
-  return ACTION_LABELS[code] || code || '操作待确认';
+  return ACTION_LABELS[code] || '操作待确认';
 }
 
 function auditTargetTypeLabel(value: string): string {
   const code = normalizeCode(value);
-  return TARGET_TYPE_LABELS[code] || code || '对象待确认';
+  return TARGET_TYPE_LABELS[code] || '对象待确认';
+}
+
+function auditFieldLabel(key: string): string {
+  return FIELD_LABELS[key] || '字段待确认';
+}
+
+function isEnumFieldKey(key: string): boolean {
+  const normalized = key.trim();
+  const lower = normalized.toLowerCase();
+  return (
+    lower.endsWith('status') ||
+    lower.endsWith('type') ||
+    lower.endsWith('mode') ||
+    lower.endsWith('policy') ||
+    lower.endsWith('level') ||
+    lower.endsWith('strategy') ||
+    lower === 'action' ||
+    lower === 'kind' ||
+    lower === 'operation' ||
+    lower === 'scope' ||
+    lower === 'source' ||
+    lower === 'sourceprimary'
+  );
 }
 
 function actionTagColor(value: string): string {
@@ -335,24 +442,24 @@ function shortId(value?: string): string {
   return text;
 }
 
-function formatEnumLike(value: string): string {
+function formatEnumLike(value: string): string | null {
   const code = normalizeCode(value);
   if (!code) return '';
   if (ENUM_VALUE_LABELS[code]) return ENUM_VALUE_LABELS[code];
-  if (/^[A-Z0-9_]+$/.test(code)) return code.split('_').join(' ').toLowerCase();
-  return value;
+  if (/^[A-Z0-9]+_[A-Z0-9_]+$/.test(code)) return '值待确认';
+  return null;
 }
 
 function formatArraySummary(values: unknown[], key: string, references: AuditReferenceData): string {
   if (!values.length) return '空';
   if (key === 'roleIds') {
     return values
-      .map((item) => normalizeUserFacingText(references.roleNameById[String(item || '')]) || shortId(String(item || '')))
+      .map((item) => normalizeUserFacingText(references.roleNameById[String(item || '')]) || '角色待确认')
       .join('、');
   }
   if (key === 'permissionIds') {
     return values
-      .map((item) => normalizeUserFacingText(references.permissionNameById[String(item || '')]) || String(item || ''))
+      .map((item) => normalizeUserFacingText(references.permissionNameById[String(item || '')]) || '权限待确认')
       .join('、');
   }
   if (key === 'badgeCodes' || key === 'industryTags') {
@@ -371,7 +478,7 @@ function formatObjectSummary(value: Record<string, unknown>, references: AuditRe
     .map((key) => {
       const item = value[key];
       if (item === undefined || item === null || item === '') return '';
-      return `${FIELD_LABELS[key] || key}：${formatAuditFieldValue(key, item, references)}`;
+      return `${auditFieldLabel(key)}：${formatAuditFieldValue(key, item, references)}`;
     })
     .filter(Boolean);
   if (picked.length) return picked.slice(0, 3).join('；');
@@ -393,10 +500,10 @@ function formatAuditFieldValue(key: string, value: unknown, references: AuditRef
   const text = String(value).trim();
   if (!text) return '空';
   if (key === 'roleIds') {
-    return normalizeUserFacingText(references.roleNameById[text]) || shortId(text);
+    return normalizeUserFacingText(references.roleNameById[text]) || '角色待确认';
   }
   if (key === 'permissionIds') {
-    return normalizeUserFacingText(references.permissionNameById[text]) || text;
+    return normalizeUserFacingText(references.permissionNameById[text]) || '权限待确认';
   }
   if (key === 'buyerUserId' || key === 'userId') {
     return normalizeUserFacingText(references.userNameById[text]) || shortId(text);
@@ -410,7 +517,10 @@ function formatAuditFieldValue(key: string, value: unknown, references: AuditRef
     return normalizeUserFacingText(references.roleNameById[text]) || shortId(text);
   }
   if (UUID_RE.test(text)) return shortId(text);
-  return formatEnumLike(text);
+  const enumText = formatEnumLike(text);
+  if (enumText) return enumText;
+  if (isEnumFieldKey(key)) return '值待确认';
+  return text;
 }
 
 function buildFieldChanges(log: AuditLog, references: AuditReferenceData): AuditFieldChange[] {
@@ -427,7 +537,7 @@ function buildFieldChanges(log: AuditLog, references: AuditReferenceData): Audit
       const mode = beforeExists && afterExists ? 'changed' : beforeExists ? 'removed' : 'added';
       return {
         key,
-        label: FIELD_LABELS[key] || key,
+        label: auditFieldLabel(key),
         before: beforeExists ? formatAuditFieldValue(key, before[key], references) : '未设置',
         after: afterExists ? formatAuditFieldValue(key, after[key], references) : '已移除',
         mode,
@@ -529,6 +639,7 @@ export function AuditLogsPage() {
 
   const [detailOpen, setDetailOpen] = useState(false);
   const [active, setActive] = useState<AuditLog | null>(null);
+  const [detailVersion, setDetailVersion] = useState<AuditDetailVersion>('ops');
 
   const loadReferences = useCallback(async () => {
     const [rolesResult, permissionsResult, usersResult] = await Promise.allSettled([
@@ -728,6 +839,7 @@ export function AuditLogsPage() {
                 <Button
                   onClick={() => {
                     setActive(row);
+                    setDetailVersion('ops');
                     setDetailOpen(true);
                   }}
                 >
@@ -741,106 +853,121 @@ export function AuditLogsPage() {
 
       <Drawer
         open={detailOpen}
-        onClose={() => setDetailOpen(false)}
+        onClose={() => {
+          setDetailOpen(false);
+          setDetailVersion('ops');
+        }}
         width={860}
         title={active ? `审计详情：${auditActionLabel(active.action)}` : '审计详情'}
+        extra={
+          active ? (
+            <Segmented
+              size="small"
+              value={detailVersion}
+              onChange={(value) => setDetailVersion(value as AuditDetailVersion)}
+              options={[
+                { label: '运营版本', value: 'ops' },
+                { label: '技术版本', value: 'tech' },
+              ]}
+            />
+          ) : null
+        }
         destroyOnClose
       >
         {active ? (
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
-            <Card size="small">
-              <Descriptions
-                column={1}
-                size="small"
-                items={detailMetaRows(active, references)}
-              />
-            </Card>
+            {detailVersion === 'ops' ? (
+              <>
+                <Card size="small">
+                  <Descriptions column={1} size="small" items={detailMetaRows(active, references)} />
+                </Card>
 
-            <Card
-              size="small"
-              title="关键变更"
-              extra={<Typography.Text type="secondary">{activeChanges.length ? `${activeChanges.length} 项` : '无'}</Typography.Text>}
-            >
-              {activeChanges.length ? (
-                <Space direction="vertical" size={10} style={{ width: '100%' }}>
-                  {activeChanges.map((item) => (
-                    <div
-                      key={item.key}
-                      style={{
-                        padding: '12px 14px',
-                        borderRadius: 10,
-                        background: 'rgba(255,255,255,0.9)',
-                        border: '1px solid var(--ipm-border)',
-                      }}
-                    >
-                      <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                        <Space size={8}>
-                          <Typography.Text strong>{item.label}</Typography.Text>
-                          <Tag color={item.mode === 'removed' ? 'red' : item.mode === 'added' ? 'green' : 'blue'}>
-                            {item.mode === 'removed' ? '删除' : item.mode === 'added' ? '新增' : '修改'}
-                          </Tag>
-                        </Space>
-                        {item.mode === 'changed' ? (
-                          <>
-                            <Typography.Text type="secondary">变更前：{item.before}</Typography.Text>
-                            <Typography.Text>变更后：{item.after}</Typography.Text>
-                          </>
-                        ) : item.mode === 'added' ? (
-                          <Typography.Text>设置为：{item.after}</Typography.Text>
-                        ) : (
-                          <Typography.Text>原值：{item.before}</Typography.Text>
-                        )}
-                      </Space>
-                    </div>
-                  ))}
-                </Space>
-              ) : (
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description="这条日志没有拆出可读字段，通常是系统只记录了原始对象。"
+                <Card
+                  size="small"
+                  title="关键变更"
+                  extra={<Typography.Text type="secondary">{activeChanges.length ? `${activeChanges.length} 项` : '无'}</Typography.Text>}
+                >
+                  {activeChanges.length ? (
+                    <Space direction="vertical" size={10} style={{ width: '100%' }}>
+                      {activeChanges.map((item) => (
+                        <div
+                          key={item.key}
+                          style={{
+                            padding: '12px 14px',
+                            borderRadius: 10,
+                            background: 'rgba(255,255,255,0.9)',
+                            border: '1px solid var(--ipm-border)',
+                          }}
+                        >
+                          <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                            <Space size={8}>
+                              <Typography.Text strong>{item.label}</Typography.Text>
+                              <Tag color={item.mode === 'removed' ? 'red' : item.mode === 'added' ? 'green' : 'blue'}>
+                                {item.mode === 'removed' ? '删除' : item.mode === 'added' ? '新增' : '修改'}
+                              </Tag>
+                            </Space>
+                            {item.mode === 'changed' ? (
+                              <>
+                                <Typography.Text type="secondary">变更前：{item.before}</Typography.Text>
+                                <Typography.Text>变更后：{item.after}</Typography.Text>
+                              </>
+                            ) : item.mode === 'added' ? (
+                              <Typography.Text>设置为：{item.after}</Typography.Text>
+                            ) : (
+                              <Typography.Text>原值：{item.before}</Typography.Text>
+                            )}
+                          </Space>
+                        </div>
+                      ))}
+                    </Space>
+                  ) : (
+                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="这条日志没有拆出可读字段，通常是系统只记录了原始对象。" />
+                  )}
+                </Card>
+              </>
+            ) : (
+              <>
+                <Card size="small" title="技术信息">
+                  <Descriptions
+                    column={1}
+                    size="small"
+                    items={[
+                      { key: 'action', label: '原始操作码', children: displayAdminInfo(active.action) },
+                      { key: 'targetType', label: '原始对象类型', children: displayAdminInfo(active.targetType) },
+                      { key: 'targetId', label: '对象编号', children: displayAdminInfo(active.targetId) },
+                      { key: 'actorId', label: '操作人编号', children: displayAdminInfo(active.actorUserId) },
+                      { key: 'requestId', label: '请求流水', children: displayAdminInfo(active.requestId) },
+                      { key: 'ip', label: 'IP', children: displayAdminInfo(active.ip) },
+                      { key: 'ua', label: 'User-Agent', children: displayAdminInfo(active.userAgent) },
+                    ]}
+                  />
+                </Card>
+
+                <Collapse
+                  defaultActiveKey={['raw-before', 'raw-after']}
+                  items={[
+                    {
+                      key: 'raw-before',
+                      label: '原始变更前 JSON',
+                      children: (
+                        <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                          {displayAdminInfo(safeJson(active.beforeJson), '未记录')}
+                        </pre>
+                      ),
+                    },
+                    {
+                      key: 'raw-after',
+                      label: '原始变更后 JSON',
+                      children: (
+                        <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                          {displayAdminInfo(safeJson(active.afterJson), '未记录')}
+                        </pre>
+                      ),
+                    },
+                  ]}
                 />
-              )}
-            </Card>
-
-            <Collapse
-              items={[
-                {
-                  key: 'tech-meta',
-                  label: '技术信息（排障时再看）',
-                  children: (
-                    <Descriptions
-                      column={1}
-                      size="small"
-                      items={[
-                        { key: 'targetId', label: '对象编号', children: displayAdminInfo(active.targetId) },
-                        { key: 'actorId', label: '操作人编号', children: displayAdminInfo(active.actorUserId) },
-                        { key: 'requestId', label: '请求流水', children: displayAdminInfo(active.requestId) },
-                        { key: 'ip', label: 'IP', children: displayAdminInfo(active.ip) },
-                        { key: 'ua', label: 'User-Agent', children: displayAdminInfo(active.userAgent) },
-                      ]}
-                    />
-                  ),
-                },
-                {
-                  key: 'raw-before',
-                  label: '原始变更前 JSON',
-                  children: (
-                    <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                      {displayAdminInfo(safeJson(active.beforeJson), '未记录')}
-                    </pre>
-                  ),
-                },
-                {
-                  key: 'raw-after',
-                  label: '原始变更后 JSON',
-                  children: (
-                    <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                      {displayAdminInfo(safeJson(active.afterJson), '未记录')}
-                    </pre>
-                  ),
-                },
-              ]}
-            />
+              </>
+            )}
           </Space>
         ) : null}
       </Drawer>

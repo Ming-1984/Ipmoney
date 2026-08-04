@@ -94,6 +94,15 @@ function achievementStatusText(row: AchievementItem): string {
   return contentStatusLabel(row.status);
 }
 
+function fileModerationLabel(status?: string | null): string {
+  const text = String(status || '').trim().toUpperCase();
+  if (text === 'APPROVED') return '已通过';
+  if (text === 'PENDING') return '待审核';
+  if (text === 'REJECTED') return '已驳回';
+  if (text === 'NOT_REQUIRED') return '无需审核';
+  return '状态待确认';
+}
+
 function achievementActionMode(row: AchievementItem): 'REVIEW' | 'OFF_SHELF' | 'PUBLISH' | 'NONE' {
   if (row.status === 'DRAFT') return 'NONE';
   if (row.auditStatus === 'PENDING') return 'REVIEW';
@@ -777,7 +786,7 @@ export function AchievementsPage() {
                     <Space direction="vertical" size={4} style={{ width: '100%' }}>
                       <Space wrap>
                         <Typography.Text strong>{displayAdminTitle(item.fileName || item.id, '成果材料')}</Typography.Text>
-                        <Tag>{String(item.moderationStatus || 'NOT_REQUIRED').toUpperCase()}</Tag>
+                        <Tag>{fileModerationLabel(item.moderationStatus)}</Tag>
                       </Space>
                       <Typography.Text type="secondary">{item.mimeType || '未知类型'}</Typography.Text>
                       {item.moderationReason ? <Typography.Text type="danger">原因：{displayAdminInfo(item.moderationReason)}</Typography.Text> : null}

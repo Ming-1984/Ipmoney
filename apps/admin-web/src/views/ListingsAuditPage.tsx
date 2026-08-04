@@ -24,13 +24,13 @@ import type { components } from '@ipmoney/api-types';
 
 import { apiGet, apiPatch, apiPost, apiUploadFile } from '../lib/api';
 import { fenToYuan, fenToYuanNumber, formatTimeSmart, yuanToFen } from '../lib/format';
-import { displayAdminInfo, normalizeUserFacingText } from '../lib/userFacingText';
+import { displayAdminInfo, formatRegionCodeDisplay, normalizeUserFacingText } from '../lib/userFacingText';
 import {
   DEFAULT_LISTING_TOPIC_OPTIONS,
   fetchAdminListingTopicOptions,
   topicLabelFromOptions,
 } from '../lib/homeLandingConfig';
-import { auditStatusLabel, listingStatusLabel, tradeModeLabel } from '../lib/labels';
+import { auditStatusLabel, licenseModeLabel, listingStatusLabel, patentTypeLabel, priceTypeLabel, tradeModeLabel } from '../lib/labels';
 import { RequestErrorAlert } from '../ui/RequestState';
 import { confirmAction, confirmActionWithReason } from '../ui/confirm';
 
@@ -219,15 +219,37 @@ function summarizeImportValue(value: unknown): string {
   return normalizeUserFacingText(value);
 }
 
-function importRowNormalizedSummary(value: Record<string, any> | null | undefined): string {
+function listingTopicSummary(
+  value: unknown,
+  options: ReadonlyArray<{ value: ListingTopic; label: string }>,
+): string {
+  const values = Array.isArray(value) ? value : value ? [value] : [];
+  return values
+    .map((item) => {
+      const topic = String(item || '')
+        .trim()
+        .toUpperCase() as ListingTopic;
+      if (!topic) return '';
+      const found = options.find((option) => option.value === topic) || DEFAULT_LISTING_TOPIC_OPTIONS.find((option) => option.value === topic);
+      return found?.label || '专题待确认';
+    })
+    .filter(Boolean)
+    .join('、');
+}
+
+function importRowNormalizedSummary(
+  value: Record<string, any> | null | undefined,
+  listingTopicOptions: ReadonlyArray<{ value: ListingTopic; label: string }>,
+): string {
   if (!value) return '';
   const fields: Array<[string, unknown]> = [
     ['标题', value.title],
     ['申请号', value.applicationNoDisplay || value.applicationNoNorm],
-    ['地区', value.regionCode],
-    ['交易模式', value.tradeMode],
-    ['价格方式', value.priceType],
-    ['专题标签', value.listingTopics],
+    ['地区', value.regionCode ? formatRegionCodeDisplay(value.regionCode) : ''],
+    ['交易方式', value.tradeMode ? tradeModeLabel(value.tradeMode as any, { empty: '' }) : ''],
+    ['许可方式', value.licenseMode ? licenseModeLabel(value.licenseMode as any, { empty: '' }) : ''],
+    ['报价方式', value.priceType ? priceTypeLabel(value.priceType as any, { empty: '' }) : ''],
+    ['专题标签', listingTopicSummary(value.listingTopics, listingTopicOptions)],
   ];
   const summary = fields
     .map(([label, raw]) => {
@@ -283,19 +305,19 @@ const listingImportTemplateSample: Record<string, string> = {
   '专利号/申请号/公开号': 'CN202410000000.1',
   专利标题: '高效储能控制方法',
   摘要: '适用于新能源储能场景的控制方法，可提升系统稳定性。',
-  来源: 'PLATFORM',
+  来源: '平台导入',
   卖家用户ID: '',
-  咨询路由: 'PLATFORM',
-  交易方式: 'ASSIGNMENT',
+  咨询路由: '平台客服',
+  交易方式: '转让',
   许可方式: '',
-  价格类型: 'NEGOTIABLE',
+  价格类型: '面议',
   价格元: '',
   保证金元: '0',
   地区编码: '110000',
-  特色标签: 'SLEEPING',
+  特色标签: '沉睡专利',
   行业标签: '新能源,储能',
-  上架状态: 'DRAFT',
-  审核状态: 'PENDING',
+  上架状态: '草稿',
+  审核状态: '待审核',
 };
 
 function escapeCsv(value: unknown): string {
@@ -324,14 +346,6 @@ function downloadTextFile(filename: string, content: string, mimeType: string) {
   anchor.click();
   document.body.removeChild(anchor);
   window.URL.revokeObjectURL(objectUrl);
-}
-
-function licenseModeLabel(value?: Listing['licenseMode']): string {
-  if (value === 'EXCLUSIVE') return '独占许可';
-  if (value === 'SOLE') return '排他许可';
-  if (value === 'NON_EXCLUSIVE') return '普通许可';
-  if (value === 'OPEN_LICENSE') return '开放许可';
-  return '-';
 }
 
 function priceDisplay(row?: Listing | null): string {
@@ -1410,7 +1424,7 @@ export function ListingsAuditPage() {
             先下载模板整理数据，再上传文件批量导入挂牌数据。系统会自动完成检查和处理，结果可在下方处理记录中查看，并下载错误文件。
           </Typography.Paragraph>
           <Typography.Text type="secondary">
-            模板首列必须填写专利号、申请号或公开号；来源、交易方式、报价类型、状态等枚举字段请使用模板中的英文值。
+            模板首列必须填写专利号、申请号或公开号；来源、交易方式、报价类型、状态等字段请按模板中的中文示例填写。
           </Typography.Text>
           <Form layout="vertical">
             <Row gutter={12}>
@@ -1651,7 +1665,7 @@ export function ListingsAuditPage() {
                   ? '平台导入'
                   : '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="地区">{displayText(activeListing.regionCode)}</Descriptions.Item>
+              <Descriptions.Item label="地区">{formatRegionCodeDisplay(activeListing.regionCode)}</Descriptions.Item>
               <Descriptions.Item label="交易方式">{tradeModeLabel(activeListing.tradeMode)}</Descriptions.Item>
               <Descriptions.Item label="许可方式">{licenseModeLabel(activeListing.licenseMode)}</Descriptions.Item>
               <Descriptions.Item label="价格">{priceDisplay(activeListing)}</Descriptions.Item>
@@ -1711,7 +1725,7 @@ export function ListingsAuditPage() {
               <Descriptions.Item label="专利号">{displayText(activeListing.patentNoDisplay)}</Descriptions.Item>
               <Descriptions.Item label="公开号">{displayText(activeListing.publicationNoDisplay)}</Descriptions.Item>
               <Descriptions.Item label="授权公告号">{displayText(activeListing.grantPublicationNoDisplay)}</Descriptions.Item>
-              <Descriptions.Item label="专利类型">{displayText(activeListing.patentType)}</Descriptions.Item>
+              <Descriptions.Item label="专利类型">{patentTypeLabel(activeListing.patentType as any)}</Descriptions.Item>
               <Descriptions.Item label="IPC">{displayList(activeListing.ipcCodes)}</Descriptions.Item>
               <Descriptions.Item label="发明人" span={2}>{displayList(activeListing.inventorNames)}</Descriptions.Item>
               <Descriptions.Item label="申请人" span={2}>{displayList(activeListing.applicantNames)}</Descriptions.Item>
@@ -1869,7 +1883,7 @@ export function ListingsAuditPage() {
               render: (v: Record<string, any> | null | undefined) =>
                 v ? (
                   <Typography.Text code style={{ whiteSpace: 'pre-wrap' }}>
-                    {importRowNormalizedSummary(v)}
+                    {importRowNormalizedSummary(v, listingTopicOptions)}
                   </Typography.Text>
                 ) : (
                   '-'

@@ -38,6 +38,13 @@ const LISTING_TOPIC_VALUE_SET = new Set<ListingTopic>([
   'FIVE_STAR',
   'OPEN_LICENSE',
 ]);
+const LISTING_TOPIC_ALIASES: Record<string, ListingTopic> = {
+  退役专利: 'HIGH_TECH_RETIRED',
+  沉睡专利: 'SLEEPING',
+  获奖专利: 'AWARD_WINNING',
+  五星专利: 'FIVE_STAR',
+  开放许可: 'OPEN_LICENSE',
+};
 
 type ListingAdminDto = {
   id: string;
@@ -249,7 +256,11 @@ export class ListingsService {
 
   }
   private normalizeContentSource(value: any): ContentSource | undefined {
+    const text = String(value || '').trim();
     const source = String(value || '').trim().toUpperCase();
+    if (text === '用户发布' || text === '用户上传' || text === '用户提交') return 'USER';
+    if (text === '后台录入' || text === '后台导入') return 'ADMIN';
+    if (text === '平台导入' || text === '平台同步') return 'PLATFORM';
     if (source === 'USER' || source === 'ADMIN' || source === 'PLATFORM') return source as ContentSource;
     return undefined;
   }
@@ -403,7 +414,10 @@ export class ListingsService {
   }
 
   private normalizeTradeMode(value: unknown): 'ASSIGNMENT' | 'LICENSE' | undefined {
+    const text = String(value || '').trim();
     const mode = String(value || '').trim().toUpperCase();
+    if (text === '转让') return 'ASSIGNMENT';
+    if (text === '许可' || text === '授权许可') return 'LICENSE';
     if (mode === 'ASSIGNMENT' || mode === 'LICENSE') return mode as 'ASSIGNMENT' | 'LICENSE';
     return undefined;
   }
@@ -413,6 +427,9 @@ export class ListingsService {
     const mode = text.toUpperCase();
     if (!mode) return undefined;
     if (text.includes('开放')) return 'OPEN_LICENSE';
+    if (text.includes('独占')) return 'EXCLUSIVE';
+    if (text.includes('排他')) return 'SOLE';
+    if (text.includes('普通') || text.includes('非独占')) return 'NON_EXCLUSIVE';
     if (mode === 'EXCLUSIVE' || mode === 'SOLE' || mode === 'NON_EXCLUSIVE' || mode === 'OPEN_LICENSE') {
       return mode as 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | 'OPEN_LICENSE';
     }
@@ -457,8 +474,11 @@ export class ListingsService {
   }
 
   private normalizeConsultationRouting(value: unknown): 'PLATFORM' | 'OWNER' | undefined {
+    const text = String(value || '').trim();
     const routing = String(value || '').trim().toUpperCase();
     if (!routing) return undefined;
+    if (text === '平台客服' || text === '平台咨询' || text === '平台分配') return 'PLATFORM';
+    if (text === '权利人咨询' || text === '卖家接待' || text === '卖家咨询') return 'OWNER';
     if (routing === 'PLATFORM' || routing === 'OWNER') {
       return routing as 'PLATFORM' | 'OWNER';
     }
@@ -503,7 +523,12 @@ export class ListingsService {
   }
 
   private normalizeListingStatus(value: any): ListingStatus | undefined {
+    const text = String(value || '').trim();
     const s = String(value || '').trim().toUpperCase();
+    if (text === '草稿') return 'DRAFT';
+    if (text === '已上架' || text === '上架中' || text === '上架') return 'ACTIVE';
+    if (text === '已下架' || text === '下架') return 'OFF_SHELF';
+    if (text === '已成交' || text === '成交') return 'SOLD';
     if (s === 'DRAFT' || s === 'ACTIVE' || s === 'OFF_SHELF' || s === 'SOLD') return s as ListingStatus;
     return undefined;
   }
@@ -517,7 +542,11 @@ export class ListingsService {
   }
 
   private normalizeAuditStatus(value: any): AuditStatus | undefined {
+    const text = String(value || '').trim();
     const s = String(value || '').trim().toUpperCase();
+    if (text === '待审核' || text === '待处理') return 'PENDING';
+    if (text === '已通过' || text === '通过' || text === '审核通过') return 'APPROVED';
+    if (text === '已驳回' || text === '驳回' || text === '审核驳回') return 'REJECTED';
     if (s === 'PENDING' || s === 'APPROVED' || s === 'REJECTED') return s as AuditStatus;
     return undefined;
   }
@@ -530,9 +559,18 @@ export class ListingsService {
     return normalized;
   }
 
-  private parsePriceTypeStrict(value: unknown, fieldName: string): 'FIXED' | 'NEGOTIABLE' {
-    const normalized = String(value || '').trim().toUpperCase();
+  private normalizePriceType(value: unknown): 'FIXED' | 'NEGOTIABLE' | undefined {
+    const text = String(value || '').trim();
+    const normalized = text.toUpperCase();
+    if (text === '面议' || text === '可议价') return 'NEGOTIABLE';
+    if (text === '一口价' || text === '固定价' || text === '固定价格') return 'FIXED';
     if (normalized === 'FIXED' || normalized === 'NEGOTIABLE') return normalized as 'FIXED' | 'NEGOTIABLE';
+    return undefined;
+  }
+
+  private parsePriceTypeStrict(value: unknown, fieldName: string): 'FIXED' | 'NEGOTIABLE' {
+    const normalized = this.normalizePriceType(value);
+    if (normalized) return normalized;
     throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
   }
 
@@ -667,7 +705,10 @@ export class ListingsService {
     return Array.from(
       new Set(
         this.normalizeStringArray(input)
-          .map((v: any) => String(v || '').trim().toUpperCase())
+          .map((v: any) => {
+            const text = String(v || '').trim();
+            return LISTING_TOPIC_ALIASES[text] || text.toUpperCase();
+          })
           .filter((v: any) => LISTING_TOPIC_VALUE_SET.has(v as ListingTopic)),
       ),
     ) as ListingTopic[];

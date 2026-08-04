@@ -96,7 +96,8 @@ function statusTag(status: RefundRequestStatus) {
   if (status === 'REJECTED') return <Tag color="red">已驳回</Tag>;
   if (status === 'REFUNDING') return <Tag color="orange">退款中</Tag>;
   if (status === 'REFUNDED') return <Tag color="blue">已退款</Tag>;
-  return <Tag color="gold">待处理</Tag>;
+  if (status === 'PENDING') return <Tag color="gold">待处理</Tag>;
+  return <Tag>状态待确认</Tag>;
 }
 
 function moneyText(value?: number | null): string {

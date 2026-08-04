@@ -254,7 +254,7 @@ export function RbacPage() {
               render: (ids: string[]) => (
                 <Space wrap>
                   {ids?.slice(0, 6).map((id) => (
-                    <Tag key={id}>{permissionNameMap[id] || id}</Tag>
+                    <Tag key={id}>{permissionNameMap[id] || '权限待确认'}</Tag>
                   ))}
                 </Space>
               ),

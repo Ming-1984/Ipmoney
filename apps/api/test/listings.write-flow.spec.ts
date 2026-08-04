@@ -247,6 +247,34 @@ describe('ListingsService write flow suite', () => {
     );
   });
 
+  it('create accepts Chinese listing enum aliases used by admin templates', async () => {
+    prisma.listing.create.mockResolvedValueOnce(
+      buildListing({
+        title: 'Listing Chinese Aliases',
+        tradeMode: 'ASSIGNMENT',
+        priceType: 'NEGOTIABLE',
+        listingTopicsJson: ['SLEEPING'],
+      }),
+    );
+
+    await service.createListing(USER_REQ, {
+      title: 'Listing Chinese Aliases',
+      tradeMode: '转让',
+      priceType: '面议',
+      listingTopics: ['沉睡专利'],
+    });
+
+    expect(prisma.listing.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          tradeMode: 'ASSIGNMENT',
+          priceType: 'NEGOTIABLE',
+          listingTopicsJson: ['SLEEPING'],
+        }),
+      }),
+    );
+  });
+
   it('create rejects OPEN_LICENSE when tradeMode is not LICENSE', async () => {
     await expect(
       service.createListing(USER_REQ, {

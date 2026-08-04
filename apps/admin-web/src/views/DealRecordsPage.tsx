@@ -173,25 +173,25 @@ const IMPORT_ROW_STATUS_LABELS: Record<ImportRowStatus, string> = {
 };
 
 function sourceTag(source: DealRecordSource) {
-  return <Tag color={source === 'ONLINE_ORDER' ? 'green' : 'blue'}>{SOURCE_LABELS[source] || source}</Tag>;
+  return <Tag color={source === 'ONLINE_ORDER' ? 'green' : 'blue'}>{SOURCE_LABELS[source] || '来源待确认'}</Tag>;
 }
 
 function statusTag(status: DealRecordStatus) {
-  return <Tag color={status === 'ACTIVE' ? 'success' : 'default'}>{STATUS_LABELS[status] || status}</Tag>;
+  return <Tag color={status === 'ACTIVE' ? 'success' : 'default'}>{STATUS_LABELS[status] || '状态待确认'}</Tag>;
 }
 
 function importJobStatusTag(status: ImportJobStatus) {
   if (status === 'SUCCEEDED') return <Tag color="success">{IMPORT_JOB_STATUS_LABELS[status]}</Tag>;
   if (status === 'FAILED') return <Tag color="error">{IMPORT_JOB_STATUS_LABELS[status]}</Tag>;
   if (status === 'PARTIAL_FAILED') return <Tag color="warning">{IMPORT_JOB_STATUS_LABELS[status]}</Tag>;
-  return <Tag>{IMPORT_JOB_STATUS_LABELS[status] || status}</Tag>;
+  return <Tag>{IMPORT_JOB_STATUS_LABELS[status] || '状态待确认'}</Tag>;
 }
 
 function importRowStatusTag(status: ImportRowStatus) {
   if (status === 'SUCCEEDED' || status === 'VALID') return <Tag color="success">{IMPORT_ROW_STATUS_LABELS[status]}</Tag>;
   if (status === 'FAILED' || status === 'INVALID') return <Tag color="error">{IMPORT_ROW_STATUS_LABELS[status]}</Tag>;
   if (status === 'SKIPPED') return <Tag color="warning">{IMPORT_ROW_STATUS_LABELS[status]}</Tag>;
-  return <Tag>{IMPORT_ROW_STATUS_LABELS[status] || status}</Tag>;
+  return <Tag>{IMPORT_ROW_STATUS_LABELS[status] || '状态待确认'}</Tag>;
 }
 
 function importJobSummary(job: ImportJob) {
@@ -418,7 +418,7 @@ export function DealRecordsPage() {
       title: '类型',
       dataIndex: 'tradeType',
       width: 90,
-      render: (value: DealTradeType) => TRADE_TYPE_LABELS[value] || value,
+      render: (value: DealTradeType) => TRADE_TYPE_LABELS[value] || '类型待确认',
     },
     {
       title: '价格',
@@ -465,7 +465,7 @@ export function DealRecordsPage() {
       render: (value: string, row: ImportJob) => (
         <Space direction="vertical" size={2}>
           <Typography.Text copyable={{ text: value }}>{value}</Typography.Text>
-          <Typography.Text type="secondary">策略：{DUPLICATE_POLICY_LABELS[row.duplicatePolicy] || row.duplicatePolicy}</Typography.Text>
+          <Typography.Text type="secondary">策略：{DUPLICATE_POLICY_LABELS[row.duplicatePolicy] || '策略待确认'}</Typography.Text>
         </Space>
       ),
     },
@@ -775,7 +775,7 @@ export function DealRecordsPage() {
           {activeImportJob ? (
             <Descriptions bordered size="small" column={2}>
               <Descriptions.Item label="批次状态">{importJobStatusTag(activeImportJob.status)}</Descriptions.Item>
-              <Descriptions.Item label="重复策略">{DUPLICATE_POLICY_LABELS[activeImportJob.duplicatePolicy]}</Descriptions.Item>
+              <Descriptions.Item label="重复策略">{DUPLICATE_POLICY_LABELS[activeImportJob.duplicatePolicy] || '策略待确认'}</Descriptions.Item>
               <Descriptions.Item label="创建时间">{formatTimeSmart(activeImportJob.createdAt)}</Descriptions.Item>
               <Descriptions.Item label="完成时间">{formatTimeSmart(activeImportJob.finishedAt)}</Descriptions.Item>
               <Descriptions.Item label="导入统计" span={2}>

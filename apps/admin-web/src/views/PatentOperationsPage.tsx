@@ -8,6 +8,7 @@ import {
   DEFAULT_LISTING_TOPIC_OPTIONS,
   fetchAdminListingTopicOptions,
 } from '../lib/homeLandingConfig';
+import { legalStatusLabel, patentTypeLabel } from '../lib/labels';
 import { displayAdminInfo, formatRegionCodeDisplay, normalizeUserFacingText } from '../lib/userFacingText';
 import { RequestErrorAlert } from '../ui/RequestState';
 
@@ -202,7 +203,14 @@ function patentMapRegionLevelLabel(level: PatentMapRegionLevel) {
 function patentMapFeaturedLevelLabel(level: PatentMapFeaturedLevel) {
   if (level === 'PROVINCE') return '省级';
   if (level === 'CITY') return '市级';
-  return '未上榜';
+  if (level === 'NONE') return '未上榜';
+  return '上榜状态待确认';
+}
+
+function patentMapDataScopeLabel(scope?: PatentMapDataScope | null): string {
+  if (scope === 'ACTIVE_APPROVED') return '在售挂牌';
+  if (scope === 'ALL') return '全部交易数据';
+  return '范围待确认';
 }
 
 const duplicatePolicyOptions = [
@@ -263,8 +271,8 @@ const rowStatusOptions: Array<{ value: ImportRowStatus | ''; label: string }> = 
 const patentImportTemplateFields: ImportTemplateField[] = [
   { header: '申请号', required: true, description: '专利申请号，支持带点或不带点', example: '202311340972.0' },
   { header: '发明名称', required: true, description: '专利标题', example: '一种高效散热装置' },
-  { header: '专利类型', required: true, description: 'INVENTION / UTILITY_MODEL / DESIGN，或中文类型', example: 'INVENTION' },
-  { header: '法律状态', required: false, description: '可选：PENDING / GRANTED / EXPIRED / INVALIDATED / UNKNOWN', example: 'GRANTED' },
+  { header: '专利类型', required: true, description: '可填写：发明、实用新型、外观设计', example: '发明' },
+  { header: '法律状态', required: false, description: '可填写：已授权、失效、无效、公开/受理；留空时系统待确认', example: '已授权' },
   { header: '申请日', required: false, description: '支持 YYYY-MM-DD / Excel 日期 / 中文日期', example: '2023-11-01' },
   { header: '授权日', required: false, description: '支持 YYYY-MM-DD / Excel 日期 / 中文日期', example: '2024-10-18' },
   { header: '公开(公告)号', required: false, description: '公开(公告)号展示值', example: 'CN117123456A' },
@@ -278,8 +286,8 @@ const patentImportTemplateFields: ImportTemplateField[] = [
 const patentImportTemplateSample: Record<string, string> = {
   申请号: '202311340972.0',
   发明名称: '一种高效散热装置',
-  专利类型: 'INVENTION',
-  法律状态: 'GRANTED',
+  专利类型: '发明',
+  法律状态: '已授权',
   申请日: '2023-11-01',
   授权日: '2024-10-18',
   '公开(公告)号': 'CN117123456A',
@@ -405,6 +413,18 @@ function duplicatePolicyLabel(policy?: DuplicatePolicy | null): string {
   return '策略待确认';
 }
 
+function patentTypeText(value: unknown, fallback = ''): string {
+  const text = normalizeUserFacingText(value).toUpperCase();
+  if (!text) return fallback;
+  return patentTypeLabel(text as any, { empty: fallback || '类型待确认' });
+}
+
+function legalStatusText(value: unknown, fallback = ''): string {
+  const text = normalizeUserFacingText(value).toUpperCase();
+  if (!text) return fallback;
+  return legalStatusLabel(text as any, { empty: fallback || '状态待确认' });
+}
+
 function summarizeDisplayValue(value: unknown): string {
   if (value === null) return '清空';
   if (value === undefined) return '';
@@ -435,14 +455,19 @@ function patentMapPatchLabel(key: string): string {
   if (key === 'featuredRank') return '上榜名次';
   if (key === 'featuredUntil') return '上榜截止时间';
   if (key === 'clearRanking') return '清除上榜';
-  return key;
+  return '变更项';
+}
+
+function summarizePatentMapPatchValue(key: string, value: unknown): string {
+  if (key === 'featuredLevel') return patentMapFeaturedLevelLabel(String(value || '') as PatentMapFeaturedLevel);
+  return summarizeDisplayValue(value);
 }
 
 function patentMapPatchSummary(patch: Record<string, unknown>): string {
   return (
     Object.entries(patch)
       .map(([key, value]) => {
-        const text = summarizeDisplayValue(value);
+        const text = summarizePatentMapPatchValue(key, value);
         return text ? `${patentMapPatchLabel(key)}：${text}` : '';
       })
       .filter(Boolean)
@@ -456,8 +481,8 @@ function patentImportRowSummary(row: PatentImportJobRow): string {
   const fields: Array<[string, unknown]> = [
     ['申请号', normalized.applicationNoDisplay || normalized.applicationNoNorm],
     ['标题', normalized.title],
-    ['专利类型', normalized.patentType],
-    ['法律状态', normalized.legalStatus],
+    ['专利类型', patentTypeText(normalized.patentType)],
+    ['法律状态', legalStatusText(normalized.legalStatus)],
     ['申请人', normalized.applicants],
     ['发明人', normalized.inventors],
   ];
@@ -1316,7 +1341,7 @@ export function PatentOperationsPage() {
 
           {mapOverview ? (
             <Space wrap>
-              <Tag color="purple">\u8303\u56f4 {mapOverview.filters.scope}</Tag>
+              <Tag color="purple">范围 {patentMapDataScopeLabel(mapOverview.filters.scope)}</Tag>
               <Tag color="blue">\u6302\u724c {mapOverview.summary.totalListingCount}</Tag>
               <Tag color="green">\u4e13\u5229 {mapOverview.summary.totalPatentCount}</Tag>
               <Tag color="gold">\u6d3b\u8dc3\u4e0a\u699c {mapOverview.summary.activeRankedListingCount}</Tag>
@@ -1460,7 +1485,7 @@ export function PatentOperationsPage() {
                 title: '专利类型',
                 dataIndex: 'patentType',
                 width: 110,
-                render: (value: PatentMapRegionDetail['items'][number]['patentType']) => displayAdminInfo(value),
+                render: (value: PatentMapRegionDetail['items'][number]['patentType']) => patentTypeText(value, '-'),
               },
               {
                 title: '上榜状态',

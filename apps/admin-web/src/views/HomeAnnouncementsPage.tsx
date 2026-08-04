@@ -67,7 +67,8 @@ type AnnouncementFormValues = {
 function statusTag(status: HomeAnnouncementStatus) {
   if (status === 'PUBLISHED') return <Tag color="green">已发布</Tag>;
   if (status === 'OFFLINE') return <Tag>已下线</Tag>;
-  return <Tag color="blue">草稿</Tag>;
+  if (status === 'DRAFT') return <Tag color="blue">草稿</Tag>;
+  return <Tag>状态待确认</Tag>;
 }
 
 function isValidDateTimeOrEmpty(value: unknown) {

@@ -132,8 +132,8 @@ describe('ReportsService showcase summary suite', () => {
           { key: 'DESIGN', label: '外观设计', value: 1 },
         ],
         orderStatuses: [
-          { key: 'DEPOSIT_PAID', label: '定金已付', value: 1 },
-          { key: 'COMPLETED', label: '已成交', value: 3 },
+          { key: 'DEPOSIT_PAID', label: '订金已付', value: 1 },
+          { key: 'COMPLETED', label: '已完成', value: 3 },
           { key: 'CANCELLED', label: '已取消', value: 1 },
         ],
       },

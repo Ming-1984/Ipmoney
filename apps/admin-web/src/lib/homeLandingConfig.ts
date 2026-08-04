@@ -70,7 +70,7 @@ export function topicLabelFromOptions(
 ): string {
   if (!topic) return '';
   const found = options.find((item) => item.value === topic);
-  return found?.label || topic;
+  return found?.label || '专题待确认';
 }
 
 export async function fetchAdminHomeLandingConfig(): Promise<HomeLandingConfig> {

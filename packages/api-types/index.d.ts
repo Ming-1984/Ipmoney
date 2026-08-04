@@ -4003,6 +4003,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/deal-records/imports/{jobId}/rows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List deal record import job rows */
+        get: operations["adminListDealRecordImportJobRows"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/deal-records/import/preview": {
         parameters: {
             query?: never;
@@ -4031,6 +4048,108 @@ export interface paths {
         put?: never;
         /** Execute deal record import */
         post: operations["adminExecuteDealRecordImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/import-batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List import batches */
+        get: operations["adminListImportBatches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/import-batches/{batchId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get import batch detail */
+        get: operations["adminGetImportBatch"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/import-batches/{batchId}/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List import batch changes */
+        get: operations["adminListImportBatchChanges"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/import-batches/{batchId}/rollback-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview import batch rollback */
+        post: operations["adminPreviewImportBatchRollback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/import-batches/{batchId}/rollback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Execute import batch rollback */
+        post: operations["adminRollbackImportBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/import-batches/{batchId}/rollback-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get import batch rollback report */
+        get: operations["adminGetImportBatchRollbackReport"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5789,6 +5908,8 @@ export interface components {
         DealRecordImportDuplicatePolicy: "SKIP" | "UPSERT";
         /** @enum {string} */
         DealRecordImportJobStatus: "PENDING" | "SUCCEEDED" | "FAILED" | "PARTIAL_FAILED";
+        /** @enum {string} */
+        DealRecordImportRowStatus: "VALID" | "INVALID" | "SUCCEEDED" | "FAILED" | "SKIPPED";
         DealRecordPayload: {
             patentId?: components["schemas"]["Uuid"];
             patentNoNorm: string;
@@ -5884,6 +6005,150 @@ export interface components {
         PagedDealRecordImportJob: {
             items: components["schemas"]["DealRecordImportJob"][];
             page: components["schemas"]["PageMeta"];
+        };
+        DealRecordImportRow: {
+            id: components["schemas"]["Uuid"];
+            jobId: components["schemas"]["Uuid"];
+            rowNo: number;
+            status: components["schemas"]["DealRecordImportRowStatus"];
+            rawJson?: {
+                [key: string]: unknown;
+            } | null;
+            normalizedJson?: {
+                [key: string]: unknown;
+            } | null;
+            dealRecordId?: components["schemas"]["Uuid"];
+            errorCode?: string | null;
+            errorMessage?: string | null;
+            /** Format: date-time */
+            processedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        PagedDealRecordImportRow: {
+            items: components["schemas"]["DealRecordImportRow"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        /** @enum {string} */
+        ImportBatchKind: "PEOPLE_ACHIEVEMENTS" | "PATENT" | "LISTING" | "DEAL_RECORD" | "LISTING_BATCH_ACTION";
+        /** @enum {string} */
+        ImportBatchStatus: "PENDING" | "RUNNING" | "SUCCEEDED" | "FAILED" | "PARTIALLY_SUCCEEDED" | "ROLLBACK_PRECHECKED" | "ROLLBACK_RUNNING" | "ROLLED_BACK" | "PARTIALLY_ROLLED_BACK" | "ROLLBACK_FAILED";
+        /** @enum {string} */
+        ImportEntityType: "USER" | "USER_VERIFICATION" | "TECH_MANAGER_PROFILE" | "TECH_MANAGER_BADGE" | "ACHIEVEMENT" | "PATENT" | "LISTING" | "DEAL_RECORD";
+        /** @enum {string} */
+        ImportChangeOperation: "CREATE" | "UPDATE" | "APPEND" | "REPLACE" | "SOFT_DELETE" | "VOID";
+        /** @enum {string} */
+        ImportRollbackStrategy: "DELETE" | "RESTORE" | "SOFT_OFF_SHELF" | "VOID" | "EXPIRE_BADGE" | "MANUAL_ONLY";
+        /** @enum {string} */
+        ImportRollbackStatus: "PENDING" | "ROLLBACKABLE" | "BLOCKED" | "CONFLICTED" | "ROLLED_BACK" | "FAILED" | "SKIPPED";
+        ImportBatch: {
+            id: components["schemas"]["Uuid"];
+            kind: components["schemas"]["ImportBatchKind"];
+            sourceBatch: string | null;
+            operatorUserId: components["schemas"]["Uuid"];
+            operatorName: string | null;
+            operatorPhone: string | null;
+            status: components["schemas"]["ImportBatchStatus"];
+            legacyJobType: string | null;
+            legacyJobId: string | null;
+            createdCount: number;
+            updatedCount: number;
+            skippedCount: number;
+            failedCount: number;
+            rollbackableCount: number;
+            conflictedCount: number;
+            blockedCount: number;
+            rolledBackCount: number;
+            fileId: components["schemas"]["Uuid"];
+            errorFileId: components["schemas"]["Uuid"];
+            /** Format: date-time */
+            executedAt: string | null;
+            /** Format: date-time */
+            rollbackAt: string | null;
+            rollbackReason: string | null;
+            /** Format: date-time */
+            lastPrecheckedAt: string | null;
+            lastRollbackError: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PagedImportBatch: {
+            items: components["schemas"]["ImportBatch"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        ImportChange: {
+            id: components["schemas"]["Uuid"];
+            batchId: components["schemas"]["Uuid"];
+            rowNo?: number | null;
+            entityType: components["schemas"]["ImportEntityType"];
+            entityId?: components["schemas"]["Uuid"];
+            operation: components["schemas"]["ImportChangeOperation"];
+            rollbackStrategy: components["schemas"]["ImportRollbackStrategy"];
+            rollbackStatus: components["schemas"]["ImportRollbackStatus"];
+            blockedReason?: string | null;
+            dependencyJson?: {
+                [key: string]: unknown;
+            } | null;
+            /** Format: date-time */
+            rolledBackAt?: string | null;
+            rollbackError?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PagedImportChange: {
+            items: components["schemas"]["ImportChange"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        ImportBatchRollbackPreviewSummary: {
+            totalCount: number;
+            rollbackableCount: number;
+            conflictedCount: number;
+            blockedCount: number;
+            manualOnlyCount: number;
+            rolledBackCount: number;
+            skippedCount: number;
+            failedCount: number;
+        };
+        ImportBatchRollbackPreviewGroup: {
+            entityType: components["schemas"]["ImportEntityType"];
+            total: number;
+            created: number;
+            updated: number;
+            rollbackable: number;
+            conflicted: number;
+            blocked: number;
+            manualOnly: number;
+            rolledBack: number;
+        };
+        ImportBatchRollbackPreviewChange: {
+            changeId: components["schemas"]["Uuid"];
+            rowNo?: number | null;
+            entityType: components["schemas"]["ImportEntityType"];
+            entityId?: components["schemas"]["Uuid"];
+            entityLabel?: string | null;
+            operation: components["schemas"]["ImportChangeOperation"];
+            rollbackStrategy: components["schemas"]["ImportRollbackStrategy"];
+            rollbackStatus: components["schemas"]["ImportRollbackStatus"];
+            blockedReason?: string | null;
+            dependency?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        ImportBatchRollbackPreview: {
+            batch: components["schemas"]["ImportBatch"];
+            canRollback: boolean;
+            summary: components["schemas"]["ImportBatchRollbackPreviewSummary"];
+            groups: components["schemas"]["ImportBatchRollbackPreviewGroup"][];
+            warnings: string[];
+            changes: components["schemas"]["ImportBatchRollbackPreviewChange"][];
+        };
+        ImportBatchRollbackRequest: {
+            reason: string;
+            confirmationText: string;
         };
         DealRecordImportExecuteResponse: {
             job: components["schemas"]["DealRecordImportJob"];
@@ -15208,6 +15473,36 @@ export interface operations {
             403: components["responses"]["Forbidden"];
         };
     };
+    adminListDealRecordImportJobRows: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                status?: components["schemas"]["DealRecordImportRowStatus"];
+            };
+            header?: never;
+            path: {
+                jobId: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedDealRecordImportRow"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     adminPreviewDealRecordImport: {
         parameters: {
             query?: never;
@@ -15270,6 +15565,181 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+        };
+    };
+    adminListImportBatches: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                kind?: components["schemas"]["ImportBatchKind"];
+                status?: components["schemas"]["ImportBatchStatus"];
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedImportBatch"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminGetImportBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatch"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminListImportBatchChanges: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                rollbackStatus?: components["schemas"]["ImportRollbackStatus"];
+            };
+            header?: never;
+            path: {
+                batchId: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedImportChange"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminPreviewImportBatchRollback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatchRollbackPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminRollbackImportBatch: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                batchId: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportBatchRollbackRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatchRollbackPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminGetImportBatchRollbackReport: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                rollbackStatus?: components["schemas"]["ImportRollbackStatus"];
+            };
+            header?: never;
+            path: {
+                batchId: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedImportChange"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     adminBackfillCompletedOrderDealRecords: {

@@ -1243,6 +1243,7 @@ export class OrdersService {
     const pageSize = Math.min(50, pageSizeInput);
     const hasStatus = this.hasOwn(query, 'status');
     const hasStatusGroup = this.hasOwn(query, 'statusGroup');
+    const q = String(query?.q || '').trim();
     const status = hasStatus ? this.normalizeOrderStatus(query?.status) : undefined;
     const statusGroup = hasStatusGroup ? this.normalizeOrderStatusGroup(query?.statusGroup) : undefined;
 
@@ -1268,6 +1269,24 @@ export class OrdersService {
                 ? ['COMPLETED', 'CANCELLED']
                 : [];
       if (inStatuses.length) where.status = { in: inStatuses };
+    }
+    if (q) {
+      const keywordFilters: Prisma.OrderWhereInput[] = [
+        { listing: { title: { contains: q, mode: 'insensitive' } } },
+        { listing: { patent: { title: { contains: q, mode: 'insensitive' } } } },
+        { listing: { patent: { applicationNoDisplay: { contains: q, mode: 'insensitive' } } } },
+        { listing: { patent: { applicationNoNorm: { contains: q, mode: 'insensitive' } } } },
+        { listing: { patent: { publicationNoDisplay: { contains: q, mode: 'insensitive' } } } },
+        { listing: { patent: { patentNoDisplay: { contains: q, mode: 'insensitive' } } } },
+        { buyer: { nickname: { contains: q, mode: 'insensitive' } } },
+        { buyer: { verifications: { some: { displayName: { contains: q, mode: 'insensitive' } } } } },
+        { listing: { seller: { nickname: { contains: q, mode: 'insensitive' } } } },
+        { listing: { seller: { verifications: { some: { displayName: { contains: q, mode: 'insensitive' } } } } } },
+      ];
+      if (UUID_RE.test(q)) {
+        keywordFilters.unshift({ id: q }, { listingId: q }, { buyerUserId: q }, { listing: { sellerUserId: q } });
+      }
+      where.OR = keywordFilters;
     }
 
     const [items, total] = await Promise.all([

@@ -1,4 +1,4 @@
-import { Button, Card, Form, Input, InputNumber, Modal, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import { CloseCircleOutlined } from '@ant-design/icons';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -22,6 +22,8 @@ type OrderStatus =
   | 'CANCELLED'
   | 'REFUNDING'
   | 'REFUNDED';
+type OrderStatusFilter = OrderStatus | 'ALL';
+type OrderStatusGroupFilter = 'ALL' | 'PAYMENT_PENDING' | 'IN_PROGRESS' | 'REFUND' | 'DONE';
 
 type ContractStatus = 'WAIT_UPLOAD' | 'WAIT_CONFIRM' | 'AVAILABLE';
 type ContractSignedSubmissionStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'SUPERSEDED';
@@ -74,6 +76,27 @@ type RejectSignedSubmissionResponse = {
   ok?: boolean;
   submission?: ContractSignedSubmission | null;
 };
+
+const ORDER_STATUS_GROUP_OPTIONS: Array<{ value: OrderStatusGroupFilter; label: string }> = [
+  { value: 'ALL', label: '全部分组' },
+  { value: 'PAYMENT_PENDING', label: '待付款' },
+  { value: 'IN_PROGRESS', label: '处理中' },
+  { value: 'REFUND', label: '退款' },
+  { value: 'DONE', label: '已完成/关闭' },
+];
+
+const ORDER_STATUS_OPTIONS: Array<{ value: OrderStatusFilter; label: string }> = [
+  { value: 'ALL', label: '全部状态' },
+  { value: 'DEPOSIT_PENDING', label: '待付订金' },
+  { value: 'DEPOSIT_PAID', label: '订金已付' },
+  { value: 'WAIT_FINAL_PAYMENT', label: '待付尾款' },
+  { value: 'FINAL_PAID_ESCROW', label: '尾款托管中' },
+  { value: 'READY_TO_SETTLE', label: '待结算' },
+  { value: 'COMPLETED', label: '已完成' },
+  { value: 'CANCELLED', label: '已取消' },
+  { value: 'REFUNDING', label: '退款中' },
+  { value: 'REFUNDED', label: '已退款' },
+];
 
 const TEXT = {
   loadFailed: '\u52a0\u8f7d\u5931\u8d25',
@@ -203,6 +226,9 @@ export function OrdersPage() {
   const [data, setData] = useState<PagedOrder | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [keyword, setKeyword] = useState('');
+  const [statusGroupFilter, setStatusGroupFilter] = useState<OrderStatusGroupFilter>('ALL');
+  const [statusFilter, setStatusFilter] = useState<OrderStatusFilter>('ALL');
   const [contractModalOpen, setContractModalOpen] = useState(false);
   const [contractSubmitting, setContractSubmitting] = useState(false);
   const [contractTarget, setContractTarget] = useState<Order | null>(null);
@@ -230,7 +256,13 @@ export function OrdersPage() {
       setLoading(true);
       setError(null);
       try {
-        const next = await apiGet<PagedOrder>('/admin/orders', { page: nextPage, pageSize: nextPageSize });
+        const next = await apiGet<PagedOrder>('/admin/orders', {
+          page: nextPage,
+          pageSize: nextPageSize,
+          q: keyword.trim() || undefined,
+          status: statusFilter === 'ALL' ? undefined : statusFilter,
+          statusGroup: statusFilter === 'ALL' && statusGroupFilter !== 'ALL' ? statusGroupFilter : undefined,
+        });
         if (seq !== loadSeqRef.current) return;
         setData(next);
       } catch (e: any) {
@@ -243,12 +275,16 @@ export function OrdersPage() {
         setLoading(false);
       }
     },
-    [page, pageSize],
+    [keyword, page, pageSize, statusFilter, statusGroupFilter],
   );
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [keyword, statusFilter, statusGroupFilter]);
 
   const rows = useMemo(() => data?.items || [], [data?.items]);
 
@@ -318,6 +354,41 @@ export function OrdersPage() {
         ) : (
           <AuditHint text={TEXT.auditHint} />
         )}
+
+        <Space wrap>
+          <Select
+            value={statusGroupFilter}
+            options={ORDER_STATUS_GROUP_OPTIONS}
+            style={{ width: 150 }}
+            disabled={statusFilter !== 'ALL'}
+            onChange={(value) => setStatusGroupFilter(value)}
+          />
+          <Select
+            value={statusFilter}
+            options={ORDER_STATUS_OPTIONS}
+            style={{ width: 160 }}
+            onChange={(value) => setStatusFilter(value)}
+          />
+          <Input
+            value={keyword}
+            allowClear
+            placeholder="订单号 / 买卖方 / 标的 / 申请号"
+            style={{ width: 340 }}
+            onChange={(event) => setKeyword(event.target.value)}
+            onPressEnter={() => void load({ page: 1 })}
+          />
+          <Button onClick={() => void load({ page: 1 })}>查询</Button>
+          <Button
+            onClick={() => {
+              setKeyword('');
+              setStatusGroupFilter('ALL');
+              setStatusFilter('ALL');
+              setPage(1);
+            }}
+          >
+            重置
+          </Button>
+        </Space>
 
         <Table<Order>
           rowKey="id"

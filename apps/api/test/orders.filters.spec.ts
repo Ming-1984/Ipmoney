@@ -222,6 +222,34 @@ describe('OrdersService list filter strictness suite', () => {
     expect(result.page).toEqual({ page: 2, pageSize: 50, total: 0 });
   });
 
+  it('applies admin order keyword filters with normalized status', async () => {
+    const req = { auth: { userId: 'admin-1', isAdmin: true } };
+    prisma.order.findMany.mockResolvedValueOnce([]);
+    prisma.order.count.mockResolvedValueOnce(0);
+
+    await service.listAdminOrders(req, {
+      q: '  zhou  ',
+      status: 'deposit_paid',
+    });
+
+    const expectedWhere = {
+      status: 'DEPOSIT_PAID',
+      OR: expect.arrayContaining([
+        { listing: { title: { contains: 'zhou', mode: 'insensitive' } } },
+        { listing: { patent: { applicationNoDisplay: { contains: 'zhou', mode: 'insensitive' } } } },
+        { buyer: { nickname: { contains: 'zhou', mode: 'insensitive' } } },
+        { buyer: { verifications: { some: { displayName: { contains: 'zhou', mode: 'insensitive' } } } } },
+        { listing: { seller: { nickname: { contains: 'zhou', mode: 'insensitive' } } } },
+      ]),
+    };
+    expect(prisma.order.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expectedWhere,
+      }),
+    );
+    expect(prisma.order.count).toHaveBeenCalledWith({ where: expectedWhere });
+  });
+
   it('maps admin order list contract and latest signed submission fields', async () => {
     const req = { auth: { userId: 'admin-1', isAdmin: true } };
     prisma.order.findMany.mockResolvedValueOnce([

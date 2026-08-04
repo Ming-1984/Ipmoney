@@ -1,5 +1,5 @@
-import { Button, Card, Descriptions, Divider, Drawer, Input, Space, Table, Tag, Typography, message } from 'antd';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Button, Card, Descriptions, Divider, Drawer, Input, Select, Space, Table, Tag, Typography, message } from 'antd';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { apiGet, apiPatch, apiPost, type FileObject } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
@@ -17,6 +17,8 @@ type VerificationType =
   | 'ASSOCIATION'
   | 'TECH_MANAGER';
 type VerificationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+type VerificationTypeFilter = VerificationType | 'ALL';
+type VerificationStatusFilter = VerificationStatus | 'ALL';
 
 type UserVerification = {
   id: string;
@@ -57,6 +59,23 @@ type AuditLog = {
   createdAt?: string;
 };
 
+const VERIFICATION_TYPE_OPTIONS: Array<{ value: VerificationTypeFilter; label: string }> = [
+  { value: 'ALL', label: '全部类型' },
+  { value: 'PERSON', label: '个人' },
+  { value: 'COMPANY', label: '企业' },
+  { value: 'ACADEMY', label: '科研院校' },
+  { value: 'GOVERNMENT', label: '政府' },
+  { value: 'ASSOCIATION', label: '行业协会/学会' },
+  { value: 'TECH_MANAGER', label: '技术经理人' },
+];
+
+const VERIFICATION_STATUS_OPTIONS: Array<{ value: VerificationStatusFilter; label: string }> = [
+  { value: 'ALL', label: '全部状态' },
+  { value: 'PENDING', label: '待审核' },
+  { value: 'APPROVED', label: '已通过' },
+  { value: 'REJECTED', label: '已驳回' },
+];
+
 function statusTag(status: VerificationStatus) {
   if (status === 'APPROVED') return <Tag color="green">已通过</Tag>;
   if (status === 'REJECTED') return <Tag color="red">已驳回</Tag>;
@@ -83,7 +102,7 @@ function auditActionLabel(value: unknown): string {
   if (action === 'PROFILE_UPDATED') return '公开资料已更新';
   if (action === 'LOGO_UPDATED') return 'Logo 已更新';
   if (action === 'LOGO_CLEARED') return 'Logo 已清除';
-  return action;
+  return '审核操作待确认';
 }
 
 function materialKindLabel(value: unknown): string {
@@ -95,7 +114,7 @@ function materialKindLabel(value: unknown): string {
   if (kind === 'QUALIFICATION') return '资质材料';
   if (kind === 'AUTHORIZATION') return '授权文件';
   if (kind === 'LOGO') return 'Logo';
-  return kind;
+  return '材料类型待确认';
 }
 
 export function VerificationsPage() {
@@ -104,6 +123,9 @@ export function VerificationsPage() {
   const [data, setData] = useState<PagedUserVerification | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [keyword, setKeyword] = useState('');
+  const [typeFilter, setTypeFilter] = useState<VerificationTypeFilter>('ALL');
+  const [statusFilter, setStatusFilter] = useState<VerificationStatusFilter>('ALL');
   const [detailOpen, setDetailOpen] = useState(false);
   const [active, setActive] = useState<UserVerification | null>(null);
   const [materials, setMaterials] = useState<AuditMaterial[]>([]);
@@ -114,30 +136,42 @@ export function VerificationsPage() {
   const [editContactName, setEditContactName] = useState('');
   const [editRegionCode, setEditRegionCode] = useState('');
   const [editIntro, setEditIntro] = useState('');
+  const loadSeqRef = useRef(0);
 
   const load = useCallback(async (opts?: { page?: number; pageSize?: number }) => {
     const nextPage = opts?.page ?? page;
     const nextPageSize = opts?.pageSize ?? pageSize;
+    const seq = ++loadSeqRef.current;
     setLoading(true);
     setError(null);
     try {
       const d = await apiGet<PagedUserVerification>('/admin/user-verifications', {
         page: nextPage,
         pageSize: nextPageSize,
+        q: keyword.trim() || undefined,
+        type: typeFilter === 'ALL' ? undefined : typeFilter,
+        status: statusFilter === 'ALL' ? undefined : statusFilter,
       });
+      if (seq !== loadSeqRef.current) return;
       setData(d);
     } catch (e: any) {
+      if (seq !== loadSeqRef.current) return;
       setError(e);
       message.error(e?.message || '加载失败');
       setData(null);
     } finally {
+      if (seq !== loadSeqRef.current) return;
       setLoading(false);
     }
-  }, [page, pageSize]);
+  }, [keyword, page, pageSize, statusFilter, typeFilter]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [keyword, statusFilter, typeFilter]);
 
   const rows = useMemo(() => data?.items || [], [data?.items]);
 
@@ -266,6 +300,40 @@ export function VerificationsPage() {
         </div>
 
         {error ? <RequestErrorAlert error={error} onRetry={load} /> : <AuditHint text="通过/驳回将影响小程序端展示，建议二次确认并记录原因。" />}
+
+        <Space wrap>
+          <Select
+            value={statusFilter}
+            options={VERIFICATION_STATUS_OPTIONS}
+            style={{ width: 140 }}
+            onChange={(value) => setStatusFilter(value)}
+          />
+          <Select
+            value={typeFilter}
+            options={VERIFICATION_TYPE_OPTIONS}
+            style={{ width: 170 }}
+            onChange={(value) => setTypeFilter(value)}
+          />
+          <Input
+            value={keyword}
+            allowClear
+            placeholder="主体名称 / 手机号"
+            style={{ width: 260 }}
+            onChange={(event) => setKeyword(event.target.value)}
+            onPressEnter={() => void load({ page: 1 })}
+          />
+          <Button onClick={() => void load({ page: 1 })}>查询</Button>
+          <Button
+            onClick={() => {
+              setKeyword('');
+              setTypeFilter('ALL');
+              setStatusFilter('ALL');
+              setPage(1);
+            }}
+          >
+            重置
+          </Button>
+        </Space>
 
         <Table<UserVerification>
           rowKey="id"

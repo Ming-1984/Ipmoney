@@ -121,16 +121,18 @@ function namesToText(values?: string[]): string {
 function typeTag(value: PatentType) {
   if (value === 'DESIGN') return <Tag color="purple">外观设计</Tag>;
   if (value === 'UTILITY_MODEL') return <Tag color="blue">实用新型</Tag>;
-  return <Tag color="gold">发明</Tag>;
+  if (value === 'INVENTION') return <Tag color="gold">发明</Tag>;
+  return <Tag>类型待确认</Tag>;
 }
 
 function legalStatusTag(value?: LegalStatus) {
+  if (!value) return <Typography.Text type="secondary">-</Typography.Text>;
   if (value === 'GRANTED') return <Tag color="green">已授权</Tag>;
   if (value === 'PENDING') return <Tag color="gold">审查中</Tag>;
   if (value === 'EXPIRED') return <Tag color="default">已失效</Tag>;
   if (value === 'INVALIDATED') return <Tag color="red">已无效</Tag>;
   if (value === 'UNKNOWN') return <Tag>状态待确认</Tag>;
-  return <Typography.Text type="secondary">-</Typography.Text>;
+  return <Tag>状态待确认</Tag>;
 }
 
 function renderPatentNumber(value?: string, fallback?: string): string {

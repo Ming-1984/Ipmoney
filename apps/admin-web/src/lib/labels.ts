@@ -1,6 +1,7 @@
 import type { components } from '@ipmoney/api-types';
 
 type PatentType = components['schemas']['PatentType'];
+type LegalStatus = components['schemas']['LegalStatus'];
 type TradeMode = components['schemas']['TradeMode'];
 type PriceType = components['schemas']['PriceType'];
 type LicenseMode = components['schemas']['LicenseMode'];
@@ -16,6 +17,7 @@ type ArtworkCategory = 'CALLIGRAPHY' | 'PAINTING';
 type CalligraphyScript = 'KAISHU' | 'XINGSHU' | 'CAOSHU' | 'LISHU' | 'ZHUANSHU';
 type PaintingGenre = 'FIGURE' | 'LANDSCAPE' | 'BIRD_FLOWER' | 'OTHER';
 type DeliveryPeriod = 'WITHIN_1_MONTH' | 'MONTH_1_3' | 'MONTH_3_6' | 'OVER_6_MONTHS' | 'OTHER';
+type PatentSourcePrimary = 'USER' | 'ADMIN' | 'PROVIDER';
 
 export function patentTypeLabel(t?: PatentType | null, options?: { empty?: string }): string {
   const empty = options?.empty ?? '-';
@@ -26,16 +28,40 @@ export function patentTypeLabel(t?: PatentType | null, options?: { empty?: strin
   return '类型待确认';
 }
 
+export function legalStatusLabel(status?: LegalStatus | null, options?: { empty?: string }): string {
+  const empty = options?.empty ?? '-';
+  if (!status) return empty;
+  if (status === 'PENDING') return '审查中';
+  if (status === 'GRANTED') return '已授权';
+  if (status === 'EXPIRED') return '已失效';
+  if (status === 'INVALIDATED') return '已无效';
+  if (status === 'UNKNOWN') return '状态待确认';
+  return '状态待确认';
+}
+
+export function patentSourcePrimaryLabel(source?: PatentSourcePrimary | null, options?: { empty?: string }): string {
+  const empty = options?.empty ?? '-';
+  if (!source) return empty;
+  if (source === 'ADMIN') return '后台录入';
+  if (source === 'USER') return '用户上传';
+  if (source === 'PROVIDER') return '外部数据源';
+  return '来源待确认';
+}
+
 export function tradeModeLabel(t?: TradeMode | null, options?: { empty?: string }): string {
   const empty = options?.empty ?? '-';
   if (!t) return empty;
-  return t === 'ASSIGNMENT' ? '转让' : '许可';
+  if (t === 'ASSIGNMENT') return '转让';
+  if (t === 'LICENSE') return '许可';
+  return '交易方式待确认';
 }
 
 export function priceTypeLabel(t?: PriceType | null, options?: { empty?: string }): string {
   const empty = options?.empty ?? '-';
   if (!t) return empty;
-  return t === 'NEGOTIABLE' ? '面议' : '一口价';
+  if (t === 'NEGOTIABLE') return '面议';
+  if (t === 'FIXED') return '一口价';
+  return '报价方式待确认';
 }
 
 export function licenseModeLabel(t?: LicenseMode | null, options?: { empty?: string }): string {
@@ -53,7 +79,8 @@ export function auditStatusLabel(status?: AuditStatus | null, options?: { empty?
   if (!status) return empty;
   if (status === 'APPROVED') return '已通过';
   if (status === 'REJECTED') return '已驳回';
-  return '待审核';
+  if (status === 'PENDING') return '待审核';
+  return '审核状态待确认';
 }
 
 export function contentStatusLabel(status?: ContentStatus | null, options?: { empty?: string }): string {
@@ -61,7 +88,8 @@ export function contentStatusLabel(status?: ContentStatus | null, options?: { em
   if (!status) return empty;
   if (status === 'ACTIVE') return '已上架';
   if (status === 'OFF_SHELF') return '已下架';
-  return '草稿';
+  if (status === 'DRAFT') return '草稿';
+  return '展示状态待确认';
 }
 
 export function listingStatusLabel(status?: ListingStatus | null, options?: { empty?: string }): string {
@@ -70,7 +98,8 @@ export function listingStatusLabel(status?: ListingStatus | null, options?: { em
   if (status === 'ACTIVE') return '已上架';
   if (status === 'OFF_SHELF') return '已下架';
   if (status === 'SOLD') return '已成交';
-  return '草稿';
+  if (status === 'DRAFT') return '草稿';
+  return '挂牌状态待确认';
 }
 
 export function artworkStatusLabel(status?: ArtworkStatus | null, options?: { empty?: string }): string {
@@ -79,7 +108,8 @@ export function artworkStatusLabel(status?: ArtworkStatus | null, options?: { em
   if (status === 'ACTIVE') return '已上架';
   if (status === 'OFF_SHELF') return '已下架';
   if (status === 'SOLD') return '已成交';
-  return '草稿';
+  if (status === 'DRAFT') return '草稿';
+  return '展示状态待确认';
 }
 
 export function artworkCategoryLabel(t?: ArtworkCategory | null, options?: { empty?: string }): string {
@@ -151,7 +181,8 @@ export function verificationStatusLabel(status?: VerificationStatus | null, opti
   if (!status) return empty;
   if (status === 'APPROVED') return '已通过';
   if (status === 'REJECTED') return '已驳回';
-  return '待审核';
+  if (status === 'PENDING') return '待审核';
+  return '认证状态待确认';
 }
 
 export function deliveryPeriodLabel(period?: DeliveryPeriod | null, options?: { empty?: string }): string {

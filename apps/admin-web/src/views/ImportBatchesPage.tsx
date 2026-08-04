@@ -174,13 +174,39 @@ const ROLLBACK_STATUS_LABELS: Record<RollbackStatus, string> = {
   SKIPPED: '跳过',
 };
 
+const OPERATION_LABELS: Record<string, string> = {
+  CREATE: '新增',
+  UPDATE: '更新',
+  APPEND: '追加',
+  REPLACE: '替换',
+  SOFT_DELETE: '软删除',
+  VOID: '作废',
+};
+
+const ROLLBACK_STRATEGY_LABELS: Record<string, string> = {
+  DELETE: '删除新增数据',
+  RESTORE: '恢复原数据',
+  SOFT_OFF_SHELF: '下架新增挂牌',
+  VOID: '作废新增记录',
+  EXPIRE_BADGE: '移除新增标签',
+  MANUAL_ONLY: '仅人工处理',
+};
+
+function importChangeOperationLabel(value?: string | null): string {
+  return OPERATION_LABELS[String(value || '').trim().toUpperCase()] || '操作待确认';
+}
+
+function rollbackStrategyLabel(value?: string | null): string {
+  return ROLLBACK_STRATEGY_LABELS[String(value || '').trim().toUpperCase()] || '策略待确认';
+}
+
 function statusTag(status: ImportBatchStatus) {
   if (status === 'SUCCEEDED') return <Tag color="green">{STATUS_LABELS[status]}</Tag>;
   if (status === 'FAILED' || status === 'ROLLBACK_FAILED') return <Tag color="red">{STATUS_LABELS[status]}</Tag>;
   if (status === 'PARTIALLY_SUCCEEDED' || status === 'PARTIALLY_ROLLED_BACK') return <Tag color="orange">{STATUS_LABELS[status]}</Tag>;
   if (status === 'ROLLBACK_PRECHECKED' || status === 'ROLLBACK_RUNNING') return <Tag color="blue">{STATUS_LABELS[status]}</Tag>;
   if (status === 'ROLLED_BACK') return <Tag>{STATUS_LABELS[status]}</Tag>;
-  return <Tag>{STATUS_LABELS[status] || status}</Tag>;
+  return <Tag>{STATUS_LABELS[status] || '状态待确认'}</Tag>;
 }
 
 function rollbackStatusTag(status: RollbackStatus) {
@@ -188,7 +214,7 @@ function rollbackStatusTag(status: RollbackStatus) {
   if (status === 'CONFLICTED') return <Tag color="orange">{ROLLBACK_STATUS_LABELS[status]}</Tag>;
   if (status === 'BLOCKED' || status === 'FAILED') return <Tag color="red">{ROLLBACK_STATUS_LABELS[status]}</Tag>;
   if (status === 'ROLLED_BACK') return <Tag color="blue">{ROLLBACK_STATUS_LABELS[status]}</Tag>;
-  return <Tag>{ROLLBACK_STATUS_LABELS[status] || status}</Tag>;
+  return <Tag>{ROLLBACK_STATUS_LABELS[status] || '状态待确认'}</Tag>;
 }
 
 function escapeCsv(value: unknown): string {
@@ -211,11 +237,11 @@ function buildReportCsv(rows: ImportChange[]): string {
   const lines = rows.map((row) =>
     [
       row.rowNo ?? '',
-      ENTITY_LABELS[row.entityType] || row.entityType,
+      ENTITY_LABELS[row.entityType] || '实体待确认',
       row.entityId || '',
-      row.operation,
-      row.rollbackStrategy,
-      ROLLBACK_STATUS_LABELS[row.rollbackStatus] || row.rollbackStatus,
+      importChangeOperationLabel(row.operation),
+      rollbackStrategyLabel(row.rollbackStrategy),
+      ROLLBACK_STATUS_LABELS[row.rollbackStatus] || '状态待确认',
       row.rollbackError || row.blockedReason || '',
       row.rolledBackAt ? formatTimeSmart(row.rolledBackAt) : '',
     ]
@@ -358,7 +384,7 @@ export function ImportBatchesPage() {
       title: '类型',
       dataIndex: 'kind',
       width: 130,
-      render: (value: ImportBatchKind) => <Tag color="blue">{KIND_LABELS[value] || value}</Tag>,
+      render: (value: ImportBatchKind) => <Tag color="blue">{KIND_LABELS[value] || '类型待确认'}</Tag>,
     },
     {
       title: '状态',
@@ -509,7 +535,7 @@ export function ImportBatchesPage() {
         {activePreview ? (
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
             <Descriptions bordered size="small" column={2}>
-              <Descriptions.Item label="批次类型">{KIND_LABELS[activePreview.batch.kind]}</Descriptions.Item>
+              <Descriptions.Item label="批次类型">{KIND_LABELS[activePreview.batch.kind] || '类型待确认'}</Descriptions.Item>
               <Descriptions.Item label="批次状态">{statusTag(activePreview.batch.status)}</Descriptions.Item>
               <Descriptions.Item label="操作者">
                 {displayAdminInfo(activePreview.batch.operatorName || activePreview.batch.operatorPhone || activePreview.batch.operatorUserId, '平台成员')}
@@ -548,7 +574,7 @@ export function ImportBatchesPage() {
                 {
                   title: '分组',
                   dataIndex: 'entityType',
-                  render: (value: ImportEntityType) => ENTITY_LABELS[value] || value,
+                  render: (value: ImportEntityType) => ENTITY_LABELS[value] || '实体待确认',
                 },
                 { title: '总数', dataIndex: 'total' },
                 { title: '新增', dataIndex: 'created' },
@@ -571,7 +597,7 @@ export function ImportBatchesPage() {
                 {
                   title: '实体',
                   width: 140,
-                  render: (_: unknown, row) => ENTITY_LABELS[row.entityType] || row.entityType,
+                  render: (_: unknown, row) => ENTITY_LABELS[row.entityType] || '实体待确认',
                 },
                 {
                   title: '名称',

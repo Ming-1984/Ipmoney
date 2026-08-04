@@ -79,7 +79,8 @@ function payoutMethodLabel(value?: Settlement['payoutMethod']): string {
 
 function payoutStatusTag(value?: PayoutStatus) {
   if (value === 'SUCCEEDED') return <Tag color="green">已放款</Tag>;
-  return <Tag color="gold">待放款</Tag>;
+  if (value === 'PENDING') return <Tag color="gold">待放款</Tag>;
+  return <Tag>状态待确认</Tag>;
 }
 
 function moneyText(value?: number | null): string {

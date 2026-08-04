@@ -8347,6 +8347,42 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+  /admin/deal-records/imports/{jobId}/rows:
+    get:
+      tags:
+        - Admin
+      summary: List deal record import job rows
+      operationId: adminListDealRecordImportJobRows
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/DealRecordImportRowStatus'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedDealRecordImportRow'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /admin/deal-records/import/preview:
     post:
       tags:
@@ -8413,6 +8449,214 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+  /admin/import-batches:
+    get:
+      tags:
+        - Admin
+      summary: List import batches
+      operationId: adminListImportBatches
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: kind
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/ImportBatchKind'
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/ImportBatchStatus'
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 100
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedImportBatch'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admin/import-batches/{batchId}:
+    get:
+      tags:
+        - Admin
+      summary: Get import batch detail
+      operationId: adminGetImportBatch
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportBatch'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/import-batches/{batchId}/changes:
+    get:
+      tags:
+        - Admin
+      summary: List import batch changes
+      operationId: adminListImportBatchChanges
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: rollbackStatus
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/ImportRollbackStatus'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedImportChange'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/import-batches/{batchId}/rollback-preview:
+    post:
+      tags:
+        - Admin
+      summary: Preview import batch rollback
+      operationId: adminPreviewImportBatchRollback
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportBatchRollbackPreview'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/import-batches/{batchId}/rollback:
+    post:
+      tags:
+        - Admin
+      summary: Execute import batch rollback
+      operationId: adminRollbackImportBatch
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportBatchRollbackRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportBatchRollbackPreview'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /admin/import-batches/{batchId}/rollback-report:
+    get:
+      tags:
+        - Admin
+      summary: Get import batch rollback report
+      operationId: adminGetImportBatchRollbackReport
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: rollbackStatus
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/ImportRollbackStatus'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedImportChange'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /admin/deal-records/backfill/completed-orders:
     post:
       tags:
@@ -13544,6 +13788,14 @@ components:
         - SUCCEEDED
         - FAILED
         - PARTIAL_FAILED
+    DealRecordImportRowStatus:
+      type: string
+      enum:
+        - VALID
+        - INVALID
+        - SUCCEEDED
+        - FAILED
+        - SKIPPED
     DealRecordPayload:
       type: object
       required:
@@ -13827,6 +14079,454 @@ components:
             $ref: '#/components/schemas/DealRecordImportJob'
         page:
           $ref: '#/components/schemas/PageMeta'
+    DealRecordImportRow:
+      type: object
+      required:
+        - id
+        - jobId
+        - rowNo
+        - status
+        - createdAt
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        jobId:
+          $ref: '#/components/schemas/Uuid'
+        rowNo:
+          type: integer
+          minimum: 1
+        status:
+          $ref: '#/components/schemas/DealRecordImportRowStatus'
+        rawJson:
+          type: object
+          additionalProperties: true
+          nullable: true
+        normalizedJson:
+          type: object
+          additionalProperties: true
+          nullable: true
+        dealRecordId:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+        errorCode:
+          type: string
+          nullable: true
+        errorMessage:
+          type: string
+          nullable: true
+        processedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    PagedDealRecordImportRow:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DealRecordImportRow'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    ImportBatchKind:
+      type: string
+      enum:
+        - PEOPLE_ACHIEVEMENTS
+        - PATENT
+        - LISTING
+        - DEAL_RECORD
+        - LISTING_BATCH_ACTION
+    ImportBatchStatus:
+      type: string
+      enum:
+        - PENDING
+        - RUNNING
+        - SUCCEEDED
+        - FAILED
+        - PARTIALLY_SUCCEEDED
+        - ROLLBACK_PRECHECKED
+        - ROLLBACK_RUNNING
+        - ROLLED_BACK
+        - PARTIALLY_ROLLED_BACK
+        - ROLLBACK_FAILED
+    ImportEntityType:
+      type: string
+      enum:
+        - USER
+        - USER_VERIFICATION
+        - TECH_MANAGER_PROFILE
+        - TECH_MANAGER_BADGE
+        - ACHIEVEMENT
+        - PATENT
+        - LISTING
+        - DEAL_RECORD
+    ImportChangeOperation:
+      type: string
+      enum:
+        - CREATE
+        - UPDATE
+        - APPEND
+        - REPLACE
+        - SOFT_DELETE
+        - VOID
+    ImportRollbackStrategy:
+      type: string
+      enum:
+        - DELETE
+        - RESTORE
+        - SOFT_OFF_SHELF
+        - VOID
+        - EXPIRE_BADGE
+        - MANUAL_ONLY
+    ImportRollbackStatus:
+      type: string
+      enum:
+        - PENDING
+        - ROLLBACKABLE
+        - BLOCKED
+        - CONFLICTED
+        - ROLLED_BACK
+        - FAILED
+        - SKIPPED
+    ImportBatch:
+      type: object
+      required:
+        - id
+        - kind
+        - sourceBatch
+        - operatorUserId
+        - operatorName
+        - operatorPhone
+        - status
+        - legacyJobType
+        - legacyJobId
+        - createdCount
+        - updatedCount
+        - skippedCount
+        - failedCount
+        - rollbackableCount
+        - conflictedCount
+        - blockedCount
+        - rolledBackCount
+        - fileId
+        - errorFileId
+        - executedAt
+        - rollbackAt
+        - rollbackReason
+        - lastPrecheckedAt
+        - lastRollbackError
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        kind:
+          $ref: '#/components/schemas/ImportBatchKind'
+        sourceBatch:
+          type: string
+          nullable: true
+        operatorUserId:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+        operatorName:
+          type: string
+          nullable: true
+        operatorPhone:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/ImportBatchStatus'
+        legacyJobType:
+          type: string
+          nullable: true
+        legacyJobId:
+          type: string
+          nullable: true
+        createdCount:
+          type: integer
+          minimum: 0
+        updatedCount:
+          type: integer
+          minimum: 0
+        skippedCount:
+          type: integer
+          minimum: 0
+        failedCount:
+          type: integer
+          minimum: 0
+        rollbackableCount:
+          type: integer
+          minimum: 0
+        conflictedCount:
+          type: integer
+          minimum: 0
+        blockedCount:
+          type: integer
+          minimum: 0
+        rolledBackCount:
+          type: integer
+          minimum: 0
+        fileId:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+        errorFileId:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+        executedAt:
+          type: string
+          format: date-time
+          nullable: true
+        rollbackAt:
+          type: string
+          format: date-time
+          nullable: true
+        rollbackReason:
+          type: string
+          nullable: true
+        lastPrecheckedAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastRollbackError:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PagedImportBatch:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportBatch'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    ImportChange:
+      type: object
+      required:
+        - id
+        - batchId
+        - entityType
+        - operation
+        - rollbackStrategy
+        - rollbackStatus
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        batchId:
+          $ref: '#/components/schemas/Uuid'
+        rowNo:
+          type: integer
+          minimum: 1
+          nullable: true
+        entityType:
+          $ref: '#/components/schemas/ImportEntityType'
+        entityId:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+        operation:
+          $ref: '#/components/schemas/ImportChangeOperation'
+        rollbackStrategy:
+          $ref: '#/components/schemas/ImportRollbackStrategy'
+        rollbackStatus:
+          $ref: '#/components/schemas/ImportRollbackStatus'
+        blockedReason:
+          type: string
+          nullable: true
+        dependencyJson:
+          type: object
+          additionalProperties: true
+          nullable: true
+        rolledBackAt:
+          type: string
+          format: date-time
+          nullable: true
+        rollbackError:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PagedImportChange:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportChange'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    ImportBatchRollbackPreviewSummary:
+      type: object
+      required:
+        - totalCount
+        - rollbackableCount
+        - conflictedCount
+        - blockedCount
+        - manualOnlyCount
+        - rolledBackCount
+        - skippedCount
+        - failedCount
+      properties:
+        totalCount:
+          type: integer
+          minimum: 0
+        rollbackableCount:
+          type: integer
+          minimum: 0
+        conflictedCount:
+          type: integer
+          minimum: 0
+        blockedCount:
+          type: integer
+          minimum: 0
+        manualOnlyCount:
+          type: integer
+          minimum: 0
+        rolledBackCount:
+          type: integer
+          minimum: 0
+        skippedCount:
+          type: integer
+          minimum: 0
+        failedCount:
+          type: integer
+          minimum: 0
+    ImportBatchRollbackPreviewGroup:
+      type: object
+      required:
+        - entityType
+        - total
+        - created
+        - updated
+        - rollbackable
+        - conflicted
+        - blocked
+        - manualOnly
+        - rolledBack
+      properties:
+        entityType:
+          $ref: '#/components/schemas/ImportEntityType'
+        total:
+          type: integer
+          minimum: 0
+        created:
+          type: integer
+          minimum: 0
+        updated:
+          type: integer
+          minimum: 0
+        rollbackable:
+          type: integer
+          minimum: 0
+        conflicted:
+          type: integer
+          minimum: 0
+        blocked:
+          type: integer
+          minimum: 0
+        manualOnly:
+          type: integer
+          minimum: 0
+        rolledBack:
+          type: integer
+          minimum: 0
+    ImportBatchRollbackPreviewChange:
+      type: object
+      required:
+        - changeId
+        - entityType
+        - operation
+        - rollbackStrategy
+        - rollbackStatus
+      properties:
+        changeId:
+          $ref: '#/components/schemas/Uuid'
+        rowNo:
+          type: integer
+          minimum: 1
+          nullable: true
+        entityType:
+          $ref: '#/components/schemas/ImportEntityType'
+        entityId:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+        entityLabel:
+          type: string
+          nullable: true
+        operation:
+          $ref: '#/components/schemas/ImportChangeOperation'
+        rollbackStrategy:
+          $ref: '#/components/schemas/ImportRollbackStrategy'
+        rollbackStatus:
+          $ref: '#/components/schemas/ImportRollbackStatus'
+        blockedReason:
+          type: string
+          nullable: true
+        dependency:
+          type: object
+          additionalProperties: true
+          nullable: true
+    ImportBatchRollbackPreview:
+      type: object
+      required:
+        - batch
+        - canRollback
+        - summary
+        - groups
+        - warnings
+        - changes
+      properties:
+        batch:
+          $ref: '#/components/schemas/ImportBatch'
+        canRollback:
+          type: boolean
+        summary:
+          $ref: '#/components/schemas/ImportBatchRollbackPreviewSummary'
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportBatchRollbackPreviewGroup'
+        warnings:
+          type: array
+          items:
+            type: string
+        changes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportBatchRollbackPreviewChange'
+    ImportBatchRollbackRequest:
+      type: object
+      required:
+        - reason
+        - confirmationText
+      properties:
+        reason:
+          type: string
+          maxLength: 500
+        confirmationText:
+          type: string
+          maxLength: 200
     DealRecordImportExecuteResponse:
       type: object
       required:

@@ -39,7 +39,8 @@ const statusOptions: Array<{ value: ClaimStatus | ''; label: string }> = [
 function statusTag(status: ClaimStatus) {
   if (status === 'APPROVED') return <Tag color="green">已通过</Tag>;
   if (status === 'REJECTED') return <Tag color="red">已驳回</Tag>;
-  return <Tag color="gold">待审核</Tag>;
+  if (status === 'PENDING') return <Tag color="gold">待审核</Tag>;
+  return <Tag>状态待确认</Tag>;
 }
 
 function displayClaimText(value: unknown, fallback = '待确认'): string {

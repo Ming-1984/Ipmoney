@@ -172,6 +172,7 @@ const TEXT = {
   transferCompleted: '权属变更完成',
   settlementReady: '结算准备',
   settlementPaid: '结算放款',
+  milestonePending: '节点待确认',
   done: '已完成',
   skipped: '已跳过',
   inProgress: '进行中',
@@ -299,7 +300,7 @@ function milestoneNameLabel(name?: string | null): string {
   if (name === 'TRANSFER_COMPLETED') return TEXT.transferCompleted;
   if (name === 'SETTLEMENT_READY') return TEXT.settlementReady;
   if (name === 'SETTLEMENT_PAID') return TEXT.settlementPaid;
-  return displayText(name);
+  return TEXT.milestonePending;
 }
 
 function milestoneStatusLabel(status?: string | null): string {

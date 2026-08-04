@@ -173,6 +173,7 @@ const TEXT = {
   transferSubmitted: '\u6743\u5c5e\u63d0\u4ea4',
   settlementReady: '\u7ed3\u7b97\u51c6\u5907',
   settlementPaid: '\u7ed3\u7b97\u653e\u6b3e',
+  milestonePending: '节点待确认',
   done: '\u5df2\u5b8c\u6210',
   skipped: '\u5df2\u8df3\u8fc7',
   inProgress: '\u8fdb\u884c\u4e2d',
@@ -255,7 +256,7 @@ function milestoneNameLabel(name?: string | null): string {
   if (name === 'TRANSFER_COMPLETED') return TEXT.transferCompleted;
   if (name === 'SETTLEMENT_READY') return TEXT.settlementReady;
   if (name === 'SETTLEMENT_PAID') return TEXT.settlementPaid;
-  return displayDetailText(name);
+  return TEXT.milestonePending;
 }
 
 function milestoneStatusLabel(status?: string | null): string {

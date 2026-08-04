@@ -4,15 +4,15 @@
 
 ## Summary
 
-- OpenAPI operations: 286
+- OpenAPI operations: 293
 - Frontend-used operations (client): 96
-- Frontend-used operations (admin): 150
+- Frontend-used operations (admin): 156
 - Fixture scenarios: 7
 
 ## Key Gaps
 
 - Frontend-used but missing from OpenAPI: 0
-- OpenAPI-defined but unused by frontend: 47
+- OpenAPI-defined but unused by frontend: 48
   - GET /WW_verify_YpAqDE4xoAPsmGSK.txt
   - GET /admin/achievements/:param/audit-logs
   - GET /admin/ai/parse-results
@@ -22,7 +22,8 @@
   - GET /admin/config/sensitive-words
   - GET /admin/config/taxonomy
   - GET /admin/deal-records/:param
-  - GET /admin/deal-records/imports
+  - GET /admin/import-batches/:param
+  - GET /admin/import-batches/:param/changes
   - GET /admin/listings/:param/audit-logs
   - GET /admin/listings/:param/materials
   - GET /admin/listings/jobs/batch/:param
@@ -60,7 +61,7 @@
   - PUT /admin/config/sensitive-words
   - PUT /admin/config/taxonomy
   - PUT /admin/listings/:param/featured
-- Frontend-used but missing in happy fixtures: 234
+- Frontend-used but missing in happy fixtures: 240
   - DELETE /achievements/:param/favorites
   - DELETE /admin/config/home-announcements/items/:param
   - DELETE /admin/config/home-announcements/templates/:param
@@ -87,7 +88,11 @@
   - GET /admin/conversations/platform
   - GET /admin/dashboard/showcase-summary
   - GET /admin/deal-records
+  - GET /admin/deal-records/imports
+  - GET /admin/deal-records/imports/:param/rows
   - GET /admin/deal-records/summary
+  - GET /admin/import-batches
+  - GET /admin/import-batches/:param/rollback-report
   - GET /admin/imports/people-achievements/history
   - GET /admin/industry-tags
   - GET /admin/invoices
@@ -107,11 +112,7 @@
   - GET /admin/patent-maintenance/orders/:param/events
   - GET /admin/patent-maintenance/schedules
   - GET /admin/patent-maintenance/tasks
-  - GET /admin/patents
-  - GET /admin/patents/:param
-  - GET /admin/patents/jobs/import
-  - GET /admin/patents/jobs/import/:param/rows
-  - ... (184 more)
+  - ... (190 more)
 
 ## Coverage Details (by operation)
 
@@ -151,8 +152,13 @@
 | adminGetDashboardShowcaseSummary | GET | /admin/dashboard/showcase-summary |  | Y |  |  |  |  |  |  |  |
 | adminListDealRecords | GET | /admin/deal-records |  | Y |  |  |  |  |  |  |  |
 | adminGetDealRecordById | GET | /admin/deal-records/:param |  |  |  |  |  |  |  |  |  |
-| adminListDealRecordImportJobs | GET | /admin/deal-records/imports |  |  |  |  |  |  |  |  |  |
+| adminListDealRecordImportJobs | GET | /admin/deal-records/imports |  | Y |  |  |  |  |  |  |  |
+| adminListDealRecordImportJobRows | GET | /admin/deal-records/imports/:param/rows |  | Y |  |  |  |  |  |  |  |
 | adminGetDealRecordSummary | GET | /admin/deal-records/summary |  | Y |  |  |  |  |  |  |  |
+| adminListImportBatches | GET | /admin/import-batches |  | Y |  |  |  |  |  |  |  |
+| adminGetImportBatch | GET | /admin/import-batches/:param |  |  |  |  |  |  |  |  |  |
+| adminListImportBatchChanges | GET | /admin/import-batches/:param/changes |  |  |  |  |  |  |  |  |  |
+| adminGetImportBatchRollbackReport | GET | /admin/import-batches/:param/rollback-report |  | Y |  |  |  |  |  |  |  |
 | adminListPeopleAchievementsImportHistory | GET | /admin/imports/people-achievements/history |  | Y |  |  |  |  |  |  |  |
 | adminListIndustryTags | GET | /admin/industry-tags |  | Y |  |  |  |  |  |  |  |
 | adminListInvoices | GET | /admin/invoices |  | Y |  |  |  |  |  |  |  |
@@ -304,6 +310,8 @@
 | adminExecuteDealRecordImport | POST | /admin/deal-records/import/execute |  | Y |  |  |  |  |  |  |  |
 | adminPreviewDealRecordImport | POST | /admin/deal-records/import/preview |  | Y |  |  |  |  |  |  |  |
 | adminUpdateFileModeration | POST | /admin/files/:param/moderation |  | Y |  |  |  |  |  |  |  |
+| adminRollbackImportBatch | POST | /admin/import-batches/:param/rollback |  | Y |  |  |  |  |  |  |  |
+| adminPreviewImportBatchRollback | POST | /admin/import-batches/:param/rollback-preview |  | Y |  |  |  |  |  |  |  |
 | adminExecutePeopleAchievementsImport | POST | /admin/imports/people-achievements/execute |  | Y |  |  |  |  |  |  |  |
 | adminPreviewPeopleAchievementsImport | POST | /admin/imports/people-achievements/preview |  | Y |  |  |  |  |  |  |  |
 | adminCreateIndustryTag | POST | /admin/industry-tags |  | Y |  |  |  |  |  |  |  |
