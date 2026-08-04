@@ -1,5 +1,3 @@
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-
 CREATE TYPE "ImportBatchKind" AS ENUM (
   'PEOPLE_ACHIEVEMENTS',
   'PATENT',
@@ -61,7 +59,7 @@ CREATE TYPE "ImportRollbackStatus" AS ENUM (
 );
 
 CREATE TABLE "import_batches" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "kind" "ImportBatchKind" NOT NULL,
   "source_batch" TEXT,
   "operator_user_id" UUID,
@@ -90,7 +88,7 @@ CREATE TABLE "import_batches" (
 );
 
 CREATE TABLE "import_change_logs" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "batch_id" UUID NOT NULL,
   "row_no" INTEGER,
   "entity_type" "ImportEntityType" NOT NULL,
