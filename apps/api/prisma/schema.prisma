@@ -497,6 +497,66 @@ enum DealRecordImportRowStatus {
   SKIPPED
 }
 
+enum ImportBatchKind {
+  PEOPLE_ACHIEVEMENTS
+  PATENT
+  LISTING
+  DEAL_RECORD
+  LISTING_BATCH_ACTION
+}
+
+enum ImportBatchStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  PARTIALLY_SUCCEEDED
+  ROLLBACK_PRECHECKED
+  ROLLBACK_RUNNING
+  ROLLED_BACK
+  PARTIALLY_ROLLED_BACK
+  ROLLBACK_FAILED
+}
+
+enum ImportEntityType {
+  USER
+  USER_VERIFICATION
+  TECH_MANAGER_PROFILE
+  TECH_MANAGER_BADGE
+  ACHIEVEMENT
+  PATENT
+  LISTING
+  DEAL_RECORD
+}
+
+enum ImportChangeOperation {
+  CREATE
+  UPDATE
+  APPEND
+  REPLACE
+  SOFT_DELETE
+  VOID
+}
+
+enum ImportRollbackStrategy {
+  DELETE
+  RESTORE
+  SOFT_OFF_SHELF
+  VOID
+  EXPIRE_BADGE
+  MANUAL_ONLY
+}
+
+enum ImportRollbackStatus {
+  PENDING
+  ROLLBACKABLE
+  BLOCKED
+  CONFLICTED
+  ROLLED_BACK
+  FAILED
+  SKIPPED
+}
+
 model User {
   id           String   @id @default(uuid()) @db.Uuid
   phone        String?  @unique
@@ -1566,6 +1626,69 @@ model DealRecordImportJobRow {
   @@index([jobId, status])
   @@index([dealRecordId])
   @@map("deal_record_import_job_rows")
+}
+
+model ImportBatch {
+  id                  String            @id @default(uuid()) @db.Uuid
+  kind                ImportBatchKind
+  sourceBatch         String?           @map("source_batch")
+  operatorUserId      String?           @map("operator_user_id") @db.Uuid
+  status              ImportBatchStatus @default(PENDING)
+  legacyJobType       String?           @map("legacy_job_type")
+  legacyJobId         String?           @map("legacy_job_id") @db.Uuid
+  createdCount        Int               @default(0) @map("created_count")
+  updatedCount        Int               @default(0) @map("updated_count")
+  skippedCount        Int               @default(0) @map("skipped_count")
+  failedCount         Int               @default(0) @map("failed_count")
+  rollbackableCount   Int               @default(0) @map("rollbackable_count")
+  conflictedCount     Int               @default(0) @map("conflicted_count")
+  blockedCount        Int               @default(0) @map("blocked_count")
+  rolledBackCount     Int               @default(0) @map("rolled_back_count")
+  fileId              String?           @map("file_id") @db.Uuid
+  errorFileId         String?           @map("error_file_id") @db.Uuid
+  executedAt          DateTime?         @map("executed_at")
+  rollbackAt          DateTime?         @map("rollback_at")
+  rollbackReason      String?           @map("rollback_reason")
+  lastPrecheckedAt    DateTime?         @map("last_prechecked_at")
+  lastRollbackError   String?           @map("last_rollback_error")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+
+  changeLogs ImportChangeLog[]
+
+  @@unique([legacyJobType, legacyJobId])
+  @@index([kind, createdAt])
+  @@index([status, createdAt])
+  @@index([sourceBatch, createdAt])
+  @@index([operatorUserId, createdAt])
+  @@map("import_batches")
+}
+
+model ImportChangeLog {
+  id               String                 @id @default(uuid()) @db.Uuid
+  batchId          String                 @map("batch_id") @db.Uuid
+  rowNo            Int?                   @map("row_no")
+  entityType       ImportEntityType       @map("entity_type")
+  entityId         String?                @map("entity_id") @db.Uuid
+  operation        ImportChangeOperation
+  beforeJson       Json?                  @map("before_json")
+  afterJson        Json?                  @map("after_json")
+  dependencyJson   Json?                  @map("dependency_json")
+  afterHash        String?                @map("after_hash")
+  rollbackStrategy ImportRollbackStrategy @map("rollback_strategy")
+  rollbackStatus   ImportRollbackStatus   @default(PENDING) @map("rollback_status")
+  blockedReason    String?                @map("blocked_reason")
+  rolledBackAt     DateTime?              @map("rolled_back_at")
+  rollbackError    String?                @map("rollback_error")
+  createdAt        DateTime               @default(now()) @map("created_at")
+  updatedAt        DateTime               @updatedAt @map("updated_at")
+
+  batch ImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, entityType, entityId, rowNo])
+  @@index([batchId, rollbackStatus])
+  @@index([entityType, entityId])
+  @@map("import_change_logs")
 }
 
 model Payment {

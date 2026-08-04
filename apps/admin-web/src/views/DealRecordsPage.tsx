@@ -2,6 +2,8 @@ import {
   Alert,
   Button,
   Card,
+  Descriptions,
+  Drawer,
   Form,
   Input,
   Select,
@@ -15,6 +17,7 @@ import {
 } from 'antd';
 import {
   DownloadOutlined,
+  EyeOutlined,
   ReloadOutlined,
   StopOutlined,
   UploadOutlined,
@@ -29,6 +32,8 @@ type DealRecordSource = 'ONLINE_ORDER' | 'ADMIN_IMPORT';
 type DealRecordStatus = 'ACTIVE' | 'VOIDED';
 type DealTradeType = 'LICENSE' | 'TRANSFER' | 'UNKNOWN';
 type DuplicatePolicy = 'SKIP' | 'UPSERT';
+type ImportJobStatus = 'PENDING' | 'SUCCEEDED' | 'FAILED' | 'PARTIAL_FAILED';
+type ImportRowStatus = 'VALID' | 'INVALID' | 'SUCCEEDED' | 'FAILED' | 'SKIPPED';
 
 type DealRecord = {
   id: string;
@@ -49,6 +54,10 @@ type DealRecord = {
 
 type PagedDealRecords = {
   items: DealRecord[];
+  page: { page: number; pageSize: number; total: number };
+};
+type Paged<T> = {
+  items: T[];
   page: { page: number; pageSize: number; total: number };
 };
 
@@ -73,7 +82,7 @@ type PreviewResult = {
 
 type ImportJob = {
   id: string;
-  status: string;
+  status: ImportJobStatus;
   duplicatePolicy: DuplicatePolicy;
   totalCount: number;
   validCount: number;
@@ -83,6 +92,27 @@ type ImportJob = {
   failedCount: number;
   createdAt: string;
   finishedAt?: string | null;
+};
+
+type ImportJobRow = {
+  id: string;
+  jobId: string;
+  rowNo: number;
+  status: ImportRowStatus;
+  rawJson?: Record<string, unknown> | null;
+  normalizedJson?: (Partial<DealRecord> & {
+    patentTitle?: string;
+    patentNoDisplay?: string;
+    sellerPartyName?: string;
+    buyerPartyName?: string;
+    priceFen?: number;
+    dealAt?: string;
+  }) | null;
+  dealRecordId?: string | null;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+  processedAt?: string | null;
+  createdAt: string;
 };
 
 type ImportExecuteResult = {
@@ -122,12 +152,57 @@ const TRADE_TYPE_LABELS: Record<DealTradeType, string> = {
   UNKNOWN: '未知',
 };
 
+const DUPLICATE_POLICY_LABELS: Record<DuplicatePolicy, string> = {
+  SKIP: '重复跳过',
+  UPSERT: '重复更新',
+};
+
+const IMPORT_JOB_STATUS_LABELS: Record<ImportJobStatus, string> = {
+  PENDING: '待处理',
+  SUCCEEDED: '已完成',
+  FAILED: '失败',
+  PARTIAL_FAILED: '部分失败',
+};
+
+const IMPORT_ROW_STATUS_LABELS: Record<ImportRowStatus, string> = {
+  VALID: '有效',
+  INVALID: '无效',
+  SUCCEEDED: '成功',
+  FAILED: '失败',
+  SKIPPED: '跳过',
+};
+
 function sourceTag(source: DealRecordSource) {
   return <Tag color={source === 'ONLINE_ORDER' ? 'green' : 'blue'}>{SOURCE_LABELS[source] || source}</Tag>;
 }
 
 function statusTag(status: DealRecordStatus) {
   return <Tag color={status === 'ACTIVE' ? 'success' : 'default'}>{STATUS_LABELS[status] || status}</Tag>;
+}
+
+function importJobStatusTag(status: ImportJobStatus) {
+  if (status === 'SUCCEEDED') return <Tag color="success">{IMPORT_JOB_STATUS_LABELS[status]}</Tag>;
+  if (status === 'FAILED') return <Tag color="error">{IMPORT_JOB_STATUS_LABELS[status]}</Tag>;
+  if (status === 'PARTIAL_FAILED') return <Tag color="warning">{IMPORT_JOB_STATUS_LABELS[status]}</Tag>;
+  return <Tag>{IMPORT_JOB_STATUS_LABELS[status] || status}</Tag>;
+}
+
+function importRowStatusTag(status: ImportRowStatus) {
+  if (status === 'SUCCEEDED' || status === 'VALID') return <Tag color="success">{IMPORT_ROW_STATUS_LABELS[status]}</Tag>;
+  if (status === 'FAILED' || status === 'INVALID') return <Tag color="error">{IMPORT_ROW_STATUS_LABELS[status]}</Tag>;
+  if (status === 'SKIPPED') return <Tag color="warning">{IMPORT_ROW_STATUS_LABELS[status]}</Tag>;
+  return <Tag>{IMPORT_ROW_STATUS_LABELS[status] || status}</Tag>;
+}
+
+function importJobSummary(job: ImportJob) {
+  return `总 ${job.totalCount} / 有效 ${job.validCount} / 无效 ${job.invalidCount} / 成功 ${job.successCount} / 跳过 ${job.skippedCount} / 失败 ${job.failedCount}`;
+}
+
+function importRowSummary(row: ImportJobRow) {
+  const data = row.normalizedJson || {};
+  const parties = [data.sellerPartyName, data.buyerPartyName].filter(Boolean).join(' → ');
+  const amount = data.priceFen === undefined || data.priceFen === null ? '-' : `¥${fenToYuan(data.priceFen)}`;
+  return [data.patentTitle || data.patentNoDisplay, parties, amount].filter(Boolean).join(' · ') || '-';
 }
 
 function downloadTemplate() {
@@ -156,6 +231,15 @@ export function DealRecordsPage() {
   const [preview, setPreview] = useState<PreviewResult | null>(null);
   const [importing, setImporting] = useState(false);
   const [lastImport, setLastImport] = useState<ImportExecuteResult | null>(null);
+  const [importJobs, setImportJobs] = useState<ImportJob[]>([]);
+  const [importJobsPage, setImportJobsPage] = useState({ page: 1, pageSize: 10, total: 0 });
+  const [importJobsLoading, setImportJobsLoading] = useState(false);
+  const [importRowsOpen, setImportRowsOpen] = useState(false);
+  const [activeImportJob, setActiveImportJob] = useState<ImportJob | null>(null);
+  const [importRows, setImportRows] = useState<ImportJobRow[]>([]);
+  const [importRowsPage, setImportRowsPage] = useState({ page: 1, pageSize: 20, total: 0 });
+  const [importRowsStatus, setImportRowsStatus] = useState<ImportRowStatus | undefined>();
+  const [importRowsLoading, setImportRowsLoading] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -178,6 +262,61 @@ export function DealRecordsPage() {
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  const loadImportJobs = useCallback(async () => {
+    setImportJobsLoading(true);
+    try {
+      const res = await apiGet<Paged<ImportJob>>('/admin/deal-records/imports', {
+        page: importJobsPage.page,
+        pageSize: importJobsPage.pageSize,
+      });
+      setImportJobs(res.items || []);
+      setImportJobsPage((prev) => ({ ...prev, total: res.page?.total || 0, page: res.page?.page || prev.page }));
+    } catch (e: any) {
+      message.error(e?.message || '导入记录加载失败');
+    } finally {
+      setImportJobsLoading(false);
+    }
+  }, [importJobsPage.page, importJobsPage.pageSize]);
+
+  useEffect(() => {
+    void loadImportJobs();
+  }, [loadImportJobs]);
+
+  const fetchImportRows = useCallback(
+    async (jobId: string, nextPage: number, nextPageSize: number, status?: ImportRowStatus) => {
+      setImportRowsLoading(true);
+      try {
+        const res = await apiGet<Paged<ImportJobRow>>(`/admin/deal-records/imports/${jobId}/rows`, {
+          page: nextPage,
+          pageSize: nextPageSize,
+          status,
+        });
+        setImportRows(res.items || []);
+        setImportRowsPage({ page: res.page?.page || nextPage, pageSize: res.page?.pageSize || nextPageSize, total: res.page?.total || 0 });
+      } catch (e: any) {
+        message.error(e?.message || '导入明细加载失败');
+      } finally {
+        setImportRowsLoading(false);
+      }
+    },
+    [],
+  );
+
+  const openImportRows = useCallback(
+    async (job: ImportJob) => {
+      setActiveImportJob(job);
+      setImportRowsOpen(true);
+      setImportRowsStatus(undefined);
+      await fetchImportRows(job.id, 1, importRowsPage.pageSize);
+    },
+    [fetchImportRows, importRowsPage.pageSize],
+  );
+
+  const reloadActiveImportRows = useCallback(async () => {
+    if (!activeImportJob) return;
+    await fetchImportRows(activeImportJob.id, importRowsPage.page, importRowsPage.pageSize, importRowsStatus);
+  }, [activeImportJob, fetchImportRows, importRowsPage.page, importRowsPage.pageSize, importRowsStatus]);
 
   const importPayload = useMemo(
     () => ({ fileId: uploadedFileId, duplicatePolicy }),
@@ -225,12 +364,13 @@ export function DealRecordsPage() {
       setPreview(null);
       message.success('导入完成');
       void loadData();
+      void loadImportJobs();
     } catch (e: any) {
       message.error(e?.message || '导入失败');
     } finally {
       setImporting(false);
     }
-  }, [ensureUploadedFile, importPayload, loadData]);
+  }, [ensureUploadedFile, importPayload, loadData, loadImportJobs]);
 
   const handleVoid = useCallback(
     async (record: DealRecord) => {
@@ -318,6 +458,81 @@ export function DealRecordsPage() {
     },
   ];
 
+  const importJobColumns = [
+    {
+      title: '导入批次',
+      dataIndex: 'id',
+      render: (value: string, row: ImportJob) => (
+        <Space direction="vertical" size={2}>
+          <Typography.Text copyable={{ text: value }}>{value}</Typography.Text>
+          <Typography.Text type="secondary">策略：{DUPLICATE_POLICY_LABELS[row.duplicatePolicy] || row.duplicatePolicy}</Typography.Text>
+        </Space>
+      ),
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      width: 110,
+      render: (value: ImportJobStatus) => importJobStatusTag(value),
+    },
+    {
+      title: '导入统计',
+      width: 280,
+      render: (_: unknown, row: ImportJob) => importJobSummary(row),
+    },
+    {
+      title: '创建时间',
+      dataIndex: 'createdAt',
+      width: 150,
+      render: (value: string) => formatTimeSmart(value),
+    },
+    {
+      title: '完成时间',
+      dataIndex: 'finishedAt',
+      width: 150,
+      render: (value?: string | null) => formatTimeSmart(value),
+    },
+    {
+      title: '操作',
+      width: 110,
+      render: (_: unknown, row: ImportJob) => (
+        <Button size="small" icon={<EyeOutlined />} onClick={() => void openImportRows(row)}>
+          明细
+        </Button>
+      ),
+    },
+  ];
+
+  const importRowColumns = [
+    { title: '行号', dataIndex: 'rowNo', width: 80 },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      width: 100,
+      render: (value: ImportRowStatus) => importRowStatusTag(value),
+    },
+    {
+      title: '成交摘要',
+      render: (_: unknown, row: ImportJobRow) => (
+        <Space direction="vertical" size={2}>
+          <Typography.Text>{importRowSummary(row)}</Typography.Text>
+          <Typography.Text type="secondary">{row.dealRecordId ? `成交记录：${row.dealRecordId}` : '-'}</Typography.Text>
+        </Space>
+      ),
+    },
+    {
+      title: '处理时间',
+      dataIndex: 'processedAt',
+      width: 150,
+      render: (value?: string | null) => formatTimeSmart(value),
+    },
+    {
+      title: '错误信息',
+      width: 220,
+      render: (_: unknown, row: ImportJobRow) => row.errorMessage || row.errorCode || '-',
+    },
+  ];
+
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Space align="start" style={{ width: '100%', justifyContent: 'space-between' }}>
@@ -325,7 +540,7 @@ export function DealRecordsPage() {
           <Typography.Title level={3} style={{ margin: 0 }}>
             成交记录
           </Typography.Title>
-          <Typography.Text type="secondary">统一管理后台导入成交与线上完成订单的成交事实。</Typography.Text>
+          <Typography.Text type="secondary">统一管理线下实际成交导入与线上订单形成的成交事实。</Typography.Text>
         </div>
         <Space>
           <Button icon={<DownloadOutlined />} onClick={downloadTemplate}>
@@ -493,6 +708,36 @@ export function DealRecordsPage() {
         </Space>
       </Card>
 
+      <Card
+        title="导入记录"
+        extra={
+          <Button icon={<ReloadOutlined />} onClick={() => void loadImportJobs()} loading={importJobsLoading}>
+            刷新导入记录
+          </Button>
+        }
+      >
+        <Table<ImportJob>
+          rowKey="id"
+          loading={importJobsLoading}
+          columns={importJobColumns}
+          dataSource={importJobs}
+          pagination={{
+            current: importJobsPage.page,
+            pageSize: importJobsPage.pageSize,
+            total: importJobsPage.total,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50'],
+          }}
+          onChange={(pagination) => {
+            setImportJobsPage({
+              page: pagination.current || 1,
+              pageSize: pagination.pageSize || 10,
+              total: pagination.total || 0,
+            });
+          }}
+        />
+      </Card>
+
       <Card>
         <Table
           rowKey="id"
@@ -514,6 +759,74 @@ export function DealRecordsPage() {
           }}
         />
       </Card>
+
+      <Drawer
+        title={activeImportJob ? `导入明细：${activeImportJob.id}` : '导入明细'}
+        open={importRowsOpen}
+        width={960}
+        onClose={() => setImportRowsOpen(false)}
+        extra={
+          <Button icon={<ReloadOutlined />} onClick={() => void reloadActiveImportRows()} loading={importRowsLoading} disabled={!activeImportJob}>
+            刷新
+          </Button>
+        }
+      >
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          {activeImportJob ? (
+            <Descriptions bordered size="small" column={2}>
+              <Descriptions.Item label="批次状态">{importJobStatusTag(activeImportJob.status)}</Descriptions.Item>
+              <Descriptions.Item label="重复策略">{DUPLICATE_POLICY_LABELS[activeImportJob.duplicatePolicy]}</Descriptions.Item>
+              <Descriptions.Item label="创建时间">{formatTimeSmart(activeImportJob.createdAt)}</Descriptions.Item>
+              <Descriptions.Item label="完成时间">{formatTimeSmart(activeImportJob.finishedAt)}</Descriptions.Item>
+              <Descriptions.Item label="导入统计" span={2}>
+                {importJobSummary(activeImportJob)}
+              </Descriptions.Item>
+            </Descriptions>
+          ) : null}
+
+          <Space wrap>
+            <Select
+              allowClear
+              placeholder="行状态"
+              value={importRowsStatus}
+              style={{ width: 150 }}
+              options={Object.entries(IMPORT_ROW_STATUS_LABELS).map(([value, label]) => ({ value, label }))}
+              onChange={(value) => {
+                const nextStatus = (value || undefined) as ImportRowStatus | undefined;
+                setImportRowsStatus(nextStatus);
+                if (activeImportJob) void fetchImportRows(activeImportJob.id, 1, importRowsPage.pageSize, nextStatus);
+              }}
+            />
+            <Button
+              onClick={() => {
+                setImportRowsStatus(undefined);
+                if (activeImportJob) void fetchImportRows(activeImportJob.id, 1, importRowsPage.pageSize);
+              }}
+            >
+              重置
+            </Button>
+          </Space>
+
+          <Table<ImportJobRow>
+            rowKey="id"
+            loading={importRowsLoading}
+            columns={importRowColumns}
+            dataSource={importRows}
+            pagination={{
+              current: importRowsPage.page,
+              pageSize: importRowsPage.pageSize,
+              total: importRowsPage.total,
+              showSizeChanger: true,
+              pageSizeOptions: ['20', '50', '100', '200'],
+            }}
+            onChange={(pagination) => {
+              const nextPage = pagination.current || 1;
+              const nextPageSize = pagination.pageSize || 20;
+              if (activeImportJob) void fetchImportRows(activeImportJob.id, nextPage, nextPageSize, importRowsStatus);
+            }}
+          />
+        </Space>
+      </Drawer>
     </Space>
   );
 }

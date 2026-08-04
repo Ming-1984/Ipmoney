@@ -72,6 +72,7 @@ const DEAL_RECORD_STATUSES = ['ACTIVE', 'VOIDED'] as const;
 const DEAL_RECORD_SOURCES = ['ONLINE_ORDER', 'ADMIN_IMPORT'] as const;
 const DEAL_TRADE_TYPES = ['LICENSE', 'TRANSFER', 'UNKNOWN'] as const;
 const IMPORT_DUPLICATE_POLICIES = ['SKIP', 'UPSERT'] as const;
+const IMPORT_ROW_STATUSES = ['VALID', 'INVALID', 'SUCCEEDED', 'FAILED', 'SKIPPED'] as const;
 
 @Injectable()
 export class DealRecordsService {
@@ -142,6 +143,12 @@ export class DealRecordsService {
       return raw as DealRecordImportDuplicatePolicy;
     }
     throw new BadRequestException({ code: 'BAD_REQUEST', message: 'duplicatePolicy is invalid' });
+  }
+
+  private parseImportRowStatus(value: unknown): DealRecordImportRowStatus | undefined {
+    const raw = String(value ?? '').trim().toUpperCase();
+    if ((IMPORT_ROW_STATUSES as readonly string[]).includes(raw)) return raw as DealRecordImportRowStatus;
+    return undefined;
   }
 
   private normalizeCell(value: unknown): string {
@@ -753,6 +760,32 @@ export class DealRecordsService {
       this.prisma.dealRecordImportJob.count(),
     ]);
     return { items: items.map((item) => this.toImportJobDto(item)), page: { page, pageSize, total } };
+  }
+
+  async listImportJobRows(req: any, jobId: string, query: any) {
+    this.ensureAdmin(req);
+    const normalizedJobId = this.parseUuidStrict(jobId, 'jobId');
+    const exists = await this.prisma.dealRecordImportJob.findUnique({ where: { id: normalizedJobId }, select: { id: true } });
+    if (!exists) throw new NotFoundException({ code: 'NOT_FOUND', message: 'import job not found' });
+    const page = this.hasOwn(query, 'page') ? this.parsePositiveIntStrict(query.page, 'page') : 1;
+    const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(200, pageSizeInput);
+    const status = this.hasOwn(query, 'status') ? this.parseImportRowStatus(query.status) : undefined;
+    if (this.hasOwn(query, 'status') && !status) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
+    }
+    const where: any = { jobId: normalizedJobId };
+    if (status) where.status = status;
+    const [items, total] = await Promise.all([
+      this.prisma.dealRecordImportJobRow.findMany({
+        where,
+        orderBy: [{ rowNo: 'asc' }, { id: 'asc' }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.dealRecordImportJobRow.count({ where }),
+    ]);
+    return { items: items.map((item) => this.toImportRowDto(item)), page: { page, pageSize, total } };
   }
 
   async voidDealRecord(req: any, dealRecordId: string, body: any) {

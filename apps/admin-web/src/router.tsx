@@ -115,6 +115,10 @@ const BulkImportPage = lazy(async () => {
   const mod = await import('./views/BulkImportPage');
   return { default: mod.BulkImportPage };
 });
+const ImportBatchesPage = lazy(async () => {
+  const mod = await import('./views/ImportBatchesPage');
+  return { default: mod.ImportBatchesPage };
+});
 const PatentClaimsPage = lazy(async () => {
   const mod = await import('./views/PatentClaimsPage');
   return { default: mod.PatentClaimsPage };
@@ -165,6 +169,7 @@ export const router = createBrowserRouter([
       { path: 'patents', element: <PatentsPage /> },
       { path: 'patents/operations', element: <PatentOperationsPage /> },
       { path: 'imports/bulk', element: <BulkImportPage /> },
+      { path: 'imports/batches', element: <ImportBatchesPage /> },
       { path: 'patents/claims', element: <PatentClaimsPage /> },
       { path: 'conversations/platform', element: <PlatformConversationsPage /> },
     ],

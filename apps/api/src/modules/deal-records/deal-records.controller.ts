@@ -23,6 +23,13 @@ export class DealRecordsController {
   }
 
   @UseGuards(BearerAuthGuard)
+  @Get('/admin/deal-records/imports/:jobId/rows')
+  async listImportJobRows(@Req() req: any, @Param('jobId') jobId: string, @Query() query: any) {
+    requirePermission(req, 'dealRecord.read');
+    return await this.dealRecords.listImportJobRows(req, jobId, query || {});
+  }
+
+  @UseGuards(BearerAuthGuard)
   @Post('/admin/deal-records/import/preview')
   async previewImport(@Req() req: any, @Body() body: any) {
     requirePermission(req, 'dealRecord.import');

@@ -62,6 +62,7 @@ const menuConfig: AppMenuItem[] = [
   { key: 'patent-claims', icon: <BookOutlined />, label: '专利认领审核', to: '/patents/claims', permission: 'patent.claim.review', group: 'content' },
   { key: 'patent-ops', icon: <BookOutlined />, label: '专利批量处理', to: '/patents/operations', permission: 'patent.import', group: 'content' },
   { key: 'bulk-import', icon: <BookOutlined />, label: '成果/经理人导入', to: '/imports/bulk', permission: 'patent.import', group: 'content' },
+  { key: 'import-batches', icon: <RollbackOutlined />, label: '导入批次中心', to: '/imports/batches', permission: 'importBatch.view', group: 'content' },
   { key: 'orders', icon: <ShoppingCartOutlined />, label: '订单管理', to: '/orders', permission: 'order.read', group: 'commerce' },
   { key: 'assigned-orders', icon: <ScheduleOutlined />, label: '我的订单跟进', to: '/orders/assigned', permission: 'order.assigned.read', group: 'commerce' },
   { key: 'cases', icon: <SolutionOutlined />, label: '工单/争议', to: '/cases', permission: 'case.manage', group: 'commerce' },
@@ -275,6 +276,8 @@ function AppLayoutShell() {
             ? 'patent-ops'
             : currentKey.startsWith('imports/bulk')
               ? 'bulk-import'
+              : currentKey.startsWith('imports/batches')
+                ? 'import-batches'
             : currentKey.startsWith('patents/claims')
               ? 'patent-claims'
               : currentKey.startsWith('patents/')
@@ -299,6 +302,7 @@ function AppLayoutShell() {
     if (path.startsWith('home-banners')) return ['home-landing-config'];
     if (path.startsWith('patents/operations')) return ['patent-ops'];
     if (path.startsWith('imports/bulk')) return ['bulk-import'];
+    if (path.startsWith('imports/batches')) return ['import-batches'];
     if (path.startsWith('patents/claims')) return ['patent-claims'];
     if (path.startsWith('patents/')) return ['patents'];
     if (path.startsWith('conversations/platform')) return ['platform-conversations'];
