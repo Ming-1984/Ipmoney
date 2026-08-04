@@ -395,7 +395,7 @@ function DonutChart({
   }
 
   return (
-    <svg viewBox="0 0 132 132" width="180" height="180" role="img" aria-label="distribution chart">
+    <svg className="ipm-showcase-donut-chart" viewBox="0 0 132 132" width="220" height="220" role="img" aria-label="distribution chart">
       <circle cx="66" cy="66" r={radius} fill="none" stroke="rgba(15, 23, 42, 0.08)" strokeWidth="20" />
       {items.map((item, index) => {
         const value = toNumber(item.value);

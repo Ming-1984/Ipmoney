@@ -544,14 +544,21 @@ body {
 }
 
 .ipm-showcase-donut-empty {
-  width: 180px;
-  height: 180px;
+  width: 220px;
+  height: 220px;
+  max-width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
   color: var(--ipm-muted);
   background: rgba(255, 106, 0, 0.06);
+}
+
+.ipm-showcase-donut-chart {
+  width: min(220px, 100%);
+  height: auto;
+  aspect-ratio: 1;
 }
 
 .ipm-showcase-donut-total {
