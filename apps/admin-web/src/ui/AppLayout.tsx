@@ -317,7 +317,16 @@ function AppLayoutShell() {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider className="ipm-sider" theme="light" collapsible collapsed={collapsed} onCollapse={setCollapsed} width={240}>
+      <Sider
+        className="ipm-sider"
+        theme="light"
+        collapsible
+        breakpoint="lg"
+        collapsedWidth={0}
+        collapsed={collapsed}
+        onCollapse={setCollapsed}
+        width={240}
+      >
         <div className="ipm-logo">
           <div className="ipm-logo-mark" aria-hidden="true">
             <img src={logoPng} alt="" />

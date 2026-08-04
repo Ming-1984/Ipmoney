@@ -1,4 +1,4 @@
-import { Alert, Button, Card, Col, Collapse, List, Progress, Row, Segmented, Space, Statistic, Tag, Typography, message } from 'antd';
+import { Alert, Button, Card, Col, Collapse, List, Modal, Progress, Row, Segmented, Space, Statistic, Tag, Typography, message } from 'antd';
 import {
   ArrowRightOutlined,
   CheckSquareOutlined,
@@ -20,6 +20,7 @@ import { fenToYuan, formatTimeSmart } from '../lib/format';
 import { normalizeUserFacingText } from '../lib/userFacingText';
 import { useLiveNoticePush, type LiveNotice } from '../ui/liveNotices';
 import type { DashboardAnalysisData, DashboardDistributionItem, DashboardOperationsSnapshot, DashboardTrendPoint } from './dashboard/DashboardAnalyticsSection';
+import { buildDistributionOverviewItems, type DistributionOverviewItem } from './dashboard/distribution';
 
 type FinanceSummary = components['schemas']['FinanceReportSummary'];
 type HealthResponse = { ok?: boolean; checks?: Record<string, { ok?: boolean; error?: string }> };
@@ -380,7 +381,7 @@ function DonutChart({
   total,
   label,
 }: {
-  items: DashboardDistributionItem[];
+  items: DistributionOverviewItem[];
   total: number;
   label: string;
 }) {
@@ -408,7 +409,7 @@ function DonutChart({
             cy="66"
             r={radius}
             fill="none"
-            stroke={CHART_COLORS[index % CHART_COLORS.length]}
+            stroke={item.grouped ? '#8c8c8c' : CHART_COLORS[index % CHART_COLORS.length]}
             strokeWidth="20"
             strokeDasharray={`${length} ${circumference - length}`}
             strokeDashoffset={dashOffset}
@@ -428,62 +429,128 @@ function DonutChart({
 
 function DistributionPanel({
   title,
-  total,
   totalLabel,
   nameLabel,
   unitLabel,
-  items,
+  overviewItems,
+  detailItems,
 }: {
   title: string;
-  total: number;
   totalLabel: string;
   nameLabel: string;
   unitLabel: string;
-  items: DashboardDistributionItem[];
+  overviewItems: DistributionOverviewItem[];
+  detailItems: DashboardDistributionItem[];
 }) {
-  const itemTotal = items.reduce((acc, item) => acc + toNumber(item.value), 0);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const overviewTotal = overviewItems.reduce((acc, item) => acc + toNumber(item.value), 0);
+  const detailTotal = detailItems.reduce((acc, item) => acc + toNumber(item.value), 0);
+  const hasMoreDetail = detailItems.length > overviewItems.length;
+  const groupedDetailKeys = useMemo(
+    () => new Set(overviewItems.flatMap((item) => (item.grouped ? item.children || [] : []).map((child) => child.key))),
+    [overviewItems],
+  );
+
+  const renderPercent = (value: number, denominator: number) => (denominator > 0 ? `${((value / denominator) * 100).toFixed(1)}%` : '-');
 
   return (
-    <div className="ipm-showcase-panel ipm-showcase-distribution-panel">
-      <div className="ipm-showcase-panel-head">
-        <Typography.Title level={4}>{title}</Typography.Title>
+    <>
+      <div className="ipm-showcase-panel ipm-showcase-distribution-panel">
+        <div className="ipm-showcase-panel-head">
+          <Typography.Title level={4}>{title}</Typography.Title>
+        </div>
+        <div className="ipm-showcase-distribution-body">
+          <DonutChart items={overviewItems} total={overviewTotal} label={totalLabel} />
+          <div className="ipm-showcase-distribution-overview" aria-label={`${title}概览`}>
+            {overviewItems.length > 0 ? (
+              overviewItems.map((item, index) => {
+                const value = toNumber(item.value);
+                const percent = renderPercent(value, overviewTotal);
+                const color = item.grouped ? '#8c8c8c' : CHART_COLORS[index % CHART_COLORS.length];
+                const content = (
+                  <>
+                    <span className="ipm-showcase-distribution-item-label">
+                      <i style={{ background: color }} />
+                      {item.label}
+                    </span>
+                    <strong>{formatCount(value)}</strong>
+                    <strong>{percent}</strong>
+                    <span className="ipm-showcase-distribution-progress" aria-hidden="true">
+                      <span style={{ width: percent === '-' ? '0%' : percent }} />
+                    </span>
+                  </>
+                );
+
+                return item.grouped ? (
+                  <button
+                    type="button"
+                    className="ipm-showcase-distribution-summary-row is-interactive"
+                    key={item.key}
+                    onClick={() => setDetailOpen(true)}
+                    title="查看包含的完整状态"
+                    style={{ '--ipm-distribution-color': color } as React.CSSProperties}
+                  >
+                    {content}
+                  </button>
+                ) : (
+                  <div
+                    className="ipm-showcase-distribution-summary-row"
+                    key={item.key}
+                    style={{ '--ipm-distribution-color': color } as React.CSSProperties}
+                  >
+                    {content}
+                  </div>
+                );
+              })
+            ) : (
+              <Typography.Text type="secondary">暂无分布数据</Typography.Text>
+            )}
+          </div>
+        </div>
+        <div className="ipm-showcase-distribution-foot">
+          <span>{totalLabel}</span>
+          <strong>{formatCount(overviewTotal)} {unitLabel}</strong>
+          {hasMoreDetail ? (
+            <Button type="text" onClick={() => setDetailOpen(true)}>
+              查看全部{nameLabel}
+            </Button>
+          ) : null}
+        </div>
       </div>
-      <div className="ipm-showcase-distribution-body">
-        <DonutChart items={items} total={total} label={totalLabel} />
-        <div className="ipm-showcase-distribution-table">
-          <div className="ipm-showcase-table-head">
+      <Modal
+        open={detailOpen}
+        title={`${title}明细`}
+        footer={<Button onClick={() => setDetailOpen(false)}>关闭</Button>}
+        onCancel={() => setDetailOpen(false)}
+        className="ipm-showcase-distribution-detail-modal"
+      >
+        <div className="ipm-showcase-distribution-detail-table">
+          <div className="ipm-showcase-distribution-detail-head">
             <span>{nameLabel}</span>
             <span>数量（{unitLabel}）</span>
             <span>占比</span>
           </div>
-          {items.length > 0 ? (
-            items.map((item, index) => {
-              const value = toNumber(item.value);
-              const percent = itemTotal > 0 ? `${((value / itemTotal) * 100).toFixed(1)}%` : '-';
-              return (
-                <div className="ipm-showcase-table-row" key={item.key}>
-                  <span>
-                    <i style={{ background: CHART_COLORS[index % CHART_COLORS.length] }} />
-                    {item.label}
-                  </span>
-                  <strong>{formatCount(value)}</strong>
-                  <strong>{percent}</strong>
-                </div>
-              );
-            })
-          ) : (
-            <Typography.Text type="secondary">暂无分布数据</Typography.Text>
-          )}
-          {items.length > 0 ? (
-            <div className="ipm-showcase-table-total">
-              <span>合计</span>
-              <strong>{formatCount(itemTotal)}</strong>
-              <strong>100%</strong>
-            </div>
-          ) : null}
+          {detailItems.map((item, index) => {
+            const value = toNumber(item.value);
+            return (
+              <div className={`ipm-showcase-distribution-detail-row${groupedDetailKeys.has(item.key) ? ' is-grouped-detail' : ''}`} key={item.key}>
+                <span>
+                  <i style={{ background: CHART_COLORS[index % CHART_COLORS.length] }} />
+                  {item.label}
+                </span>
+                <strong>{formatCount(value)}</strong>
+                <strong>{renderPercent(value, detailTotal)}</strong>
+              </div>
+            );
+          })}
+          <div className="ipm-showcase-distribution-detail-total">
+            <span>合计</span>
+            <strong>{formatCount(detailTotal)}</strong>
+            <strong>{detailTotal > 0 ? '100%' : '-'}</strong>
+          </div>
         </div>
-      </div>
-    </div>
+      </Modal>
+    </>
   );
 }
 
@@ -878,8 +945,25 @@ export function DashboardPage() {
   const amountTrend = hasDealRecordAccess ? analysisData?.dealAmount30d || [] : [];
   const orderStatusItems = hasOrderAccess ? analysisData?.orderStatuses || [] : [];
   const patentTypeItems = hasListingAccess ? analysisData?.patentTypes || [] : [];
-  const orderDistributionTotal = orderStatusItems.reduce((acc, item) => acc + toNumber(item.value), 0);
-  const patentDistributionTotal = patentTypeItems.reduce((acc, item) => acc + toNumber(item.value), 0);
+  const orderStatusOverviewItems = useMemo(
+    () =>
+      buildDistributionOverviewItems(orderStatusItems, {
+        maxRows: 3,
+        primaryRowsWhenGrouped: 2,
+        otherLabel: '其他状态',
+        preserveKeys: ['COMPLETED', 'CANCELLED'],
+      }),
+    [orderStatusItems],
+  );
+  const patentTypeOverviewItems = useMemo(
+    () =>
+      buildDistributionOverviewItems(patentTypeItems, {
+        maxRows: 3,
+        primaryRowsWhenGrouped: 2,
+        otherLabel: '其他类型',
+      }),
+    [patentTypeItems],
+  );
 
   return (
     <div className="ipm-showcase-page" aria-busy={loading}>
@@ -923,19 +1007,19 @@ export function DashboardPage() {
         <div className="ipm-showcase-distributions">
           <DistributionPanel
             title="订单状态分布"
-            total={orderDistributionTotal}
             totalLabel="订单总量"
             nameLabel="状态"
             unitLabel="单"
-            items={orderStatusItems}
+            overviewItems={orderStatusOverviewItems}
+            detailItems={orderStatusItems}
           />
           <DistributionPanel
             title="专利类型分布"
-            total={patentDistributionTotal}
             totalLabel="专利总量"
             nameLabel="类型"
             unitLabel="件"
-            items={patentTypeItems}
+            overviewItems={patentTypeOverviewItems}
+            detailItems={patentTypeItems}
           />
         </div>
       </div>
