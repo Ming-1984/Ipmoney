@@ -2,19 +2,20 @@ import {
   Alert,
   Button,
   Card,
+  Checkbox,
   Descriptions,
   Drawer,
   Form,
   Input,
   Select,
   Space,
-  Statistic,
   Table,
+  Tabs,
   Tag,
   Typography,
   message,
 } from 'antd';
-import { DownloadOutlined, ReloadOutlined, RollbackOutlined, SearchOutlined } from '@ant-design/icons';
+import { CheckCircleOutlined, ClockCircleOutlined, DownloadOutlined, ExclamationCircleOutlined, FileTextOutlined, ReloadOutlined, RollbackOutlined, SearchOutlined } from '@ant-design/icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPost } from '../lib/api';
@@ -85,6 +86,7 @@ type RollbackChangePreview = {
   rollbackStatus: RollbackStatus;
   blockedReason?: string | null;
   dependency?: Record<string, any> | null;
+  overrideable?: boolean;
 };
 
 type RollbackPreview = {
@@ -217,6 +219,189 @@ function rollbackStatusTag(status: RollbackStatus) {
   return <Tag>{ROLLBACK_STATUS_LABELS[status] || '状态待确认'}</Tag>;
 }
 
+function countTag(label: string, value: number, color?: string) {
+  return (
+    <Tag color={color}>
+      {label} {value}
+    </Tag>
+  );
+}
+
+type RollbackSummaryTone = 'status' | 'auto' | 'confirm' | 'report' | 'done';
+
+const ROLLBACK_SUMMARY_TONES: Record<
+  RollbackSummaryTone,
+  { background: string; border: string; text: string; number: string }
+> = {
+  status: { background: '#eef4ff', border: '#8bb7ff', text: '#1d4ed8', number: '#1e40af' },
+  auto: { background: '#edf9f0', border: '#70c58a', text: '#1f7a3a', number: '#12642b' },
+  confirm: { background: '#fff7e6', border: '#f0a744', text: '#ad5b00', number: '#8a4400' },
+  report: { background: '#fff1f0', border: '#ff8f85', text: '#c92a20', number: '#a51d16' },
+  done: { background: '#f0f5ff', border: '#8ea9e8', text: '#31579f', number: '#24467f' },
+};
+
+function rollbackSummaryTag(label: string, value: React.ReactNode, tone: RollbackSummaryTone, icon: React.ReactNode, title: string) {
+  const style = ROLLBACK_SUMMARY_TONES[tone];
+  return (
+    <Tag
+      title={title}
+      style={{
+        alignItems: 'center',
+        background: style.background,
+        borderColor: style.border,
+        borderRadius: 8,
+        color: style.text,
+        display: 'inline-flex',
+        fontSize: 13,
+        fontWeight: 600,
+        gap: 6,
+        lineHeight: '28px',
+        marginInlineEnd: 0,
+        minHeight: 30,
+        padding: '0 10px',
+      }}
+    >
+      <span style={{ color: style.number, display: 'inline-flex', fontSize: 15 }}>{icon}</span>
+      <span>{label}</span>
+      <span style={{ color: style.number, fontSize: 16, fontWeight: 700 }}>{value}</span>
+    </Tag>
+  );
+}
+
+function rollbackSummaryTags(preview: RollbackPreview, overrideableCount: number) {
+  const reportOnlyCount = Math.max(0, rollbackRiskCount(preview) - overrideableCount);
+  return (
+    <Space size={[8, 8]} wrap>
+      {rollbackSummaryTag('当前状态', STATUS_LABELS[preview.batch.status] || '状态待确认', 'status', <ClockCircleOutlined />, '当前批次的撤回流程状态')}
+      {rollbackSummaryTag('系统自动', preview.summary.rollbackableCount, 'auto', <CheckCircleOutlined />, '预检后可由系统直接处理的记录')}
+      {rollbackSummaryTag('人工可选', overrideableCount, 'confirm', <ExclamationCircleOutlined />, '需要人工核对，确认后可勾选纳入撤回的记录')}
+      {rollbackSummaryTag('仅出报告', reportOnlyCount, 'report', <FileTextOutlined />, '不能自动处理，只能下载报告后人工跟进的记录')}
+      {rollbackSummaryTag('已撤回', preview.summary.rolledBackCount, 'done', <RollbackOutlined />, '已经完成软撤回、下架或作废的记录')}
+    </Space>
+  );
+}
+
+function previewWarningDescription(warnings: string[]) {
+  return (
+    <Space direction="vertical" size={2}>
+      {warnings.map((item) => (
+        <Typography.Text key={item}>{item}</Typography.Text>
+      ))}
+    </Space>
+  );
+}
+
+function importStatsTags(batch: ImportBatch) {
+  return (
+    <Space size={[4, 4]} wrap>
+      {countTag('新增', batch.createdCount, 'green')}
+      {countTag('更新', batch.updatedCount, 'blue')}
+      {countTag('跳过', batch.skippedCount)}
+      {countTag('失败', batch.failedCount, batch.failedCount > 0 ? 'red' : undefined)}
+    </Space>
+  );
+}
+
+function rollbackRiskCount(preview: RollbackPreview) {
+  return preview.summary.conflictedCount + preview.summary.blockedCount + preview.summary.failedCount;
+}
+
+function buildPreviewConclusion(preview: RollbackPreview): { type: 'success' | 'info' | 'warning' | 'error'; message: string; description: string } {
+  const { summary } = preview;
+  const riskCount = rollbackRiskCount(preview);
+  const importedFailed = preview.batch.failedCount;
+  const failedSuffix = importedFailed > 0 ? ` 本批次另有 ${importedFailed} 条导入失败，失败行不会进入撤回。` : '';
+
+  if (summary.rolledBackCount > 0 && summary.rolledBackCount >= summary.totalCount) {
+    return {
+      type: 'success',
+      message: `已完成撤回：${summary.rolledBackCount} 条已处理`,
+      description: `本批次已没有待自动撤回的数据，可下载报告核对结果。${failedSuffix}`,
+    };
+  }
+
+  if (summary.rollbackableCount > 0 && riskCount === 0) {
+    return {
+      type: 'success',
+      message: `预检通过：${summary.rollbackableCount} 条可全部自动撤回`,
+      description: `执行撤回后，相关挂牌或成果会下架，成交记录会作废；系统不会物理删除数据。${failedSuffix}`,
+    };
+  }
+
+  if (summary.rollbackableCount > 0) {
+    return {
+      type: 'warning',
+      message: `可部分撤回：${summary.rollbackableCount} 条可自动处理，${riskCount} 条需要人工确认`,
+      description: `执行撤回只会处理可自动撤回项；冲突、阻断和失败项会保留在报告中。${failedSuffix}`,
+    };
+  }
+
+  if (riskCount > 0) {
+    return {
+      type: 'error',
+      message: `无法自动撤回：${riskCount} 条需要人工确认`,
+      description: `当前没有可自动处理的数据，请根据下方明细和下载报告跟进冲突或阻断项。${failedSuffix}`,
+    };
+  }
+
+  return {
+    type: 'info',
+    message: '暂无可撤回数据',
+    description: `当前批次没有可自动处理的数据，可下载报告留存。${failedSuffix}`,
+  };
+}
+
+function rollbackActionText(row: RollbackChangePreview) {
+  if (row.rollbackStrategy === 'SOFT_OFF_SHELF') {
+    if (row.entityType === 'LISTING') return '执行撤回后下架该挂牌，不删除记录。';
+    if (row.entityType === 'ACHIEVEMENT') return '执行撤回后下架该成果，不删除记录。';
+    return '执行撤回后做软处理，不删除记录。';
+  }
+  if (row.rollbackStrategy === 'VOID') return '执行撤回后作废该记录，不删除记录。';
+  if (row.rollbackStrategy === 'MANUAL_ONLY') return '系统不自动改动该数据，仅生成报告供人工处理。';
+  return rollbackStrategyLabel(row.rollbackStrategy);
+}
+
+function rowHandlingText(row: RollbackChangePreview) {
+  const reason = String(row.blockedReason || '').trim();
+  if (row.rollbackStatus === 'ROLLBACKABLE') return rollbackActionText(row);
+  if (row.overrideable) return `${reason || '导入后又被修改，需要人工确认。'} 核对后可勾选纳入本次撤回。`;
+  if (row.rollbackStatus === 'CONFLICTED') return reason || '导入后又被修改，需要人工确认。';
+  if (row.rollbackStatus === 'BLOCKED') return reason || '当前业务状态不允许自动撤回，需要人工处理。';
+  if (row.rollbackStatus === 'ROLLED_BACK') return '已按撤回策略处理。';
+  if (row.rollbackStatus === 'FAILED') return reason || '撤回执行失败，请下载报告排查。';
+  if (row.rollbackStatus === 'SKIPPED') return reason || '该行已跳过。';
+  return reason || '等待预检。';
+}
+
+function dependencyText(dependency?: Record<string, any> | null) {
+  if (!dependency) return '';
+  const labels: Record<string, string> = {
+    orderCount: '订单',
+    conversationCount: '会话',
+    favoriteCount: '收藏',
+    consultCount: '咨询',
+    listingCount: '关联挂牌',
+    claimRequestCount: '认领申请',
+    dealRecordCount: '成交记录',
+    maintenanceScheduleCount: '年费计划',
+  };
+  const parts = Object.entries(labels)
+    .map(([key, label]) => ({ label, value: Number(dependency[key] || 0) }))
+    .filter((item) => item.value > 0)
+    .map((item) => `${item.label} ${item.value}`);
+  return parts.length ? parts.join(' / ') : '';
+}
+
+function rollbackActionLabel(row: ImportBatch) {
+  if (row.status === 'ROLLBACK_RUNNING') return { label: '撤回中', disabled: true };
+  if (row.rollbackAt || row.rolledBackCount > 0 || row.status === 'ROLLED_BACK' || row.status === 'PARTIALLY_ROLLED_BACK' || row.status === 'ROLLBACK_FAILED') {
+    return { label: '查看结果', disabled: false };
+  }
+  if (row.lastPrecheckedAt || row.status === 'ROLLBACK_PRECHECKED') return { label: '重新预检', disabled: false };
+  return { label: '撤回预检', disabled: false };
+}
+
 function escapeCsv(value: unknown): string {
   const raw = value === null || value === undefined ? '' : String(value);
   return `"${raw.replace(/"/g, '""')}"`;
@@ -266,6 +451,8 @@ export function ImportBatchesPage() {
   const [activeBatch, setActiveBatch] = useState<ImportBatch | null>(null);
   const [reason, setReason] = useState('');
   const [confirmationText, setConfirmationText] = useState('');
+  const [overrideChangeIds, setOverrideChangeIds] = useState<string[]>([]);
+  const [overrideReason, setOverrideReason] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -294,6 +481,13 @@ export function ImportBatchesPage() {
     if (!activePreview?.batch && !activeBatch) return '';
     return String(activePreview?.batch.sourceBatch || activeBatch?.sourceBatch || activePreview?.batch.id || activeBatch?.id || '').trim();
   }, [activeBatch, activePreview]);
+  const previewConclusion = useMemo(() => (activePreview ? buildPreviewConclusion(activePreview) : null), [activePreview]);
+  const overrideableChanges = useMemo(
+    () => (activePreview?.changes || []).filter((item) => item.overrideable && item.rollbackStatus !== 'ROLLED_BACK'),
+    [activePreview],
+  );
+  const selectedOverrideCount = overrideChangeIds.length;
+  const plannedRollbackCount = (activePreview?.summary.rollbackableCount || 0) + selectedOverrideCount;
 
   const openPreview = useCallback(async (batch: ImportBatch) => {
     setActiveBatch(batch);
@@ -301,6 +495,8 @@ export function ImportBatchesPage() {
     setDrawerOpen(true);
     setReason('');
     setConfirmationText('');
+    setOverrideChangeIds([]);
+    setOverrideReason('');
     setPreviewLoading(true);
     try {
       const res = await apiPost<RollbackPreview>(`/admin/import-batches/${batch.id}/rollback-preview`, {});
@@ -324,22 +520,52 @@ export function ImportBatchesPage() {
       message.warning('确认文本需要与批次名称一致');
       return;
     }
+    if (selectedOverrideCount > 0 && !overrideReason.trim()) {
+      message.warning('请填写人工确认说明');
+      return;
+    }
+    if (!activePreview?.summary.rollbackableCount && selectedOverrideCount === 0) {
+      message.warning('请选择要人工确认纳入撤回的数据');
+      return;
+    }
     setRollbackSubmitting(true);
     try {
       const res = await apiPost<RollbackPreview>(
         `/admin/import-batches/${batchId}/rollback`,
-        { reason: reason.trim(), confirmationText: confirmationText.trim() },
+        {
+          reason: reason.trim(),
+          confirmationText: confirmationText.trim(),
+          overrideChangeIds,
+          overrideReason: selectedOverrideCount > 0 ? overrideReason.trim() : undefined,
+        },
         { idempotencyKey: `import-batch-rollback-${batchId}-${Date.now()}`, retry: 1 },
       );
-      setActivePreview(res);
-      message.success('批次撤回已执行');
-      void load();
+      setDrawerOpen(false);
+      setActivePreview(null);
+      setActiveBatch(null);
+      setReason('');
+      setConfirmationText('');
+      setOverrideChangeIds([]);
+      setOverrideReason('');
+      message.success(`批次撤回已执行，已处理 ${res.summary.rolledBackCount} 条数据`);
+      await load();
     } catch (e: any) {
       message.error(e?.message || '批次撤回失败');
     } finally {
       setRollbackSubmitting(false);
     }
-  }, [activeBatch?.id, activePreview?.batch.id, confirmationText, expectedConfirmation, load, reason]);
+  }, [
+    activeBatch?.id,
+    activePreview?.batch.id,
+    activePreview?.summary.rollbackableCount,
+    confirmationText,
+    expectedConfirmation,
+    load,
+    overrideChangeIds,
+    overrideReason,
+    reason,
+    selectedOverrideCount,
+  ]);
 
   const downloadReport = useCallback(async () => {
     const batchId = activePreview?.batch.id || activeBatch?.id;
@@ -418,11 +644,14 @@ export function ImportBatchesPage() {
       title: '操作',
       fixed: 'right' as const,
       width: 130,
-      render: (_: unknown, row: ImportBatch) => (
-        <Button icon={<RollbackOutlined />} size="small" onClick={() => void openPreview(row)}>
-          撤回预检
-        </Button>
-      ),
+      render: (_: unknown, row: ImportBatch) => {
+        const action = rollbackActionLabel(row);
+        return (
+          <Button icon={<RollbackOutlined />} size="small" disabled={action.disabled} onClick={() => void openPreview(row)}>
+            {action.label}
+          </Button>
+        );
+      },
     },
   ];
 
@@ -534,114 +763,269 @@ export function ImportBatchesPage() {
 
         {activePreview ? (
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
-            <Descriptions bordered size="small" column={2}>
-              <Descriptions.Item label="批次类型">{KIND_LABELS[activePreview.batch.kind] || '类型待确认'}</Descriptions.Item>
-              <Descriptions.Item label="批次状态">{statusTag(activePreview.batch.status)}</Descriptions.Item>
-              <Descriptions.Item label="操作者">
-                {displayAdminInfo(activePreview.batch.operatorName || activePreview.batch.operatorPhone || activePreview.batch.operatorUserId, '平台成员')}
-              </Descriptions.Item>
-              <Descriptions.Item label="导入时间">{formatTimeSmart(activePreview.batch.executedAt || activePreview.batch.createdAt)}</Descriptions.Item>
-              <Descriptions.Item label="批次名称" span={2}>
-                {activePreview.batch.sourceBatch || activePreview.batch.id}
-              </Descriptions.Item>
-            </Descriptions>
-
-            <Space size={12} wrap>
-              <Card>
-                <Statistic title="可自动撤回" value={activePreview.summary.rollbackableCount} />
-              </Card>
-              <Card>
-                <Statistic title="冲突" value={activePreview.summary.conflictedCount} />
-              </Card>
-              <Card>
-                <Statistic title="阻断/人工处理" value={activePreview.summary.blockedCount} />
-              </Card>
-              <Card>
-                <Statistic title="已撤回" value={activePreview.summary.rolledBackCount} />
-              </Card>
-            </Space>
-
-            {activePreview.warnings.length ? (
-              <Alert type={activePreview.canRollback ? 'warning' : 'info'} showIcon message={activePreview.warnings.join(' ')} />
+            {previewConclusion ? (
+              <Alert type={previewConclusion.type} showIcon message={previewConclusion.message} description={previewConclusion.description} />
             ) : null}
 
-            <Table
-              size="small"
-              rowKey="entityType"
-              pagination={false}
-              dataSource={activePreview.groups}
-              columns={[
+            {rollbackSummaryTags(activePreview, overrideableChanges.length)}
+
+            <Tabs
+              defaultActiveKey="action"
+              items={[
                 {
-                  title: '分组',
-                  dataIndex: 'entityType',
-                  render: (value: ImportEntityType) => ENTITY_LABELS[value] || '实体待确认',
+                  key: 'action',
+                  label: '处理',
+                  children: (
+                    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+                      {activePreview.warnings.length && rollbackRiskCount(activePreview) > 0 ? (
+                        <Alert type="warning" showIcon message="预检提示" description={previewWarningDescription(activePreview.warnings)} />
+                      ) : null}
+
+                      {overrideableChanges.length > 0 ? (
+                        <Card size="small" title="可人工确认纳入撤回">
+                          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                            <Alert
+                              type="warning"
+                              showIcon
+                              message="以下项目默认不会自动处理"
+                              description="它们在导入后又被修改过。请先核对后续修改是否可以放弃；确认后勾选，执行撤回时会一起下架，不会物理删除。"
+                            />
+                            <Table<RollbackChangePreview>
+                              size="small"
+                              rowKey="changeId"
+                              pagination={false}
+                              dataSource={overrideableChanges}
+                              scroll={{ x: 760 }}
+                              columns={[
+                                {
+                                  title: '纳入',
+                                  width: 70,
+                                  render: (_: unknown, row) => (
+                                    <Checkbox
+                                      checked={overrideChangeIds.includes(row.changeId)}
+                                      onChange={(event) => {
+                                        setOverrideChangeIds((prev) =>
+                                          event.target.checked ? Array.from(new Set([...prev, row.changeId])) : prev.filter((id) => id !== row.changeId),
+                                        );
+                                      }}
+                                    />
+                                  ),
+                                },
+                                {
+                                  title: '数据对象',
+                                  width: 280,
+                                  render: (_: unknown, row) => (
+                                    <Space direction="vertical" size={2}>
+                                      <Typography.Text strong>{row.entityLabel || row.entityId || '-'}</Typography.Text>
+                                      <Typography.Text type="secondary">{ENTITY_LABELS[row.entityType] || '实体待确认'}</Typography.Text>
+                                    </Space>
+                                  ),
+                                },
+                                {
+                                  title: '不能直接撤回的原因',
+                                  render: (_: unknown, row) => row.blockedReason || '导入后又被修改，需要人工确认。',
+                                },
+                                {
+                                  title: '勾选后的处理',
+                                  width: 220,
+                                  render: (_: unknown, row) => rollbackActionText(row),
+                                },
+                              ]}
+                            />
+                            <Input.TextArea
+                              value={overrideReason}
+                              onChange={(e) => setOverrideReason(e.target.value)}
+                              placeholder="人工确认说明，例如：已核对后续修改不需要保留，同意纳入本次撤回"
+                              autoSize={{ minRows: 2, maxRows: 4 }}
+                              disabled={selectedOverrideCount === 0}
+                            />
+                          </Space>
+                        </Card>
+                      ) : null}
+
+                      {activePreview.canRollback || overrideableChanges.length > 0 ? (
+                        <Card size="small" title="执行撤回">
+                          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                            <Alert
+                              type="warning"
+                              showIcon
+                              message={`本次将处理 ${plannedRollbackCount} 条数据`}
+                              description={`系统可自动处理 ${activePreview.summary.rollbackableCount} 条；人工确认纳入 ${selectedOverrideCount} 条。未勾选或不可强制处理的冲突/阻断项不会被改动。`}
+                            />
+                            <Input.TextArea
+                              value={reason}
+                              onChange={(e) => setReason(e.target.value)}
+                              placeholder="撤回原因，必填"
+                              autoSize={{ minRows: 3, maxRows: 5 }}
+                            />
+                            <Input
+                              value={confirmationText}
+                              onChange={(e) => setConfirmationText(e.target.value)}
+                              placeholder={`输入批次名称确认：${expectedConfirmation}`}
+                            />
+                            <Space style={{ justifyContent: 'flex-end', width: '100%' }}>
+                              <Button
+                                danger
+                                type="primary"
+                                icon={<RollbackOutlined />}
+                                loading={rollbackSubmitting}
+                                disabled={plannedRollbackCount <= 0}
+                                onClick={() => void executeRollback()}
+                              >
+                                撤回可自动处理及已确认数据
+                              </Button>
+                            </Space>
+                          </Space>
+                        </Card>
+                      ) : (
+                        <Alert
+                          type={activePreview.summary.rolledBackCount > 0 ? 'success' : 'info'}
+                          showIcon
+                          message={
+                            activePreview.summary.rolledBackCount > 0
+                              ? `本批次已撤回 ${activePreview.summary.rolledBackCount} 条数据`
+                              : '当前批次没有可自动撤回的数据'
+                          }
+                          description={
+                            activePreview.summary.rolledBackCount > 0
+                              ? '可下载报告核对已撤回、冲突和阻断项。'
+                              : '请下载报告后人工处理冲突或阻断项。'
+                          }
+                        />
+                      )}
+                    </Space>
+                  ),
                 },
-                { title: '总数', dataIndex: 'total' },
-                { title: '新增', dataIndex: 'created' },
-                { title: '更新', dataIndex: 'updated' },
-                { title: '可自动撤回', dataIndex: 'rollbackable' },
-                { title: '冲突', dataIndex: 'conflicted' },
-                { title: '阻断', dataIndex: 'blocked' },
-                { title: '人工处理', dataIndex: 'manualOnly' },
-                { title: '已撤回', dataIndex: 'rolledBack' },
+                {
+                  key: 'detail',
+                  label: '明细',
+                  children: (
+                    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+                      <Card size="small" title="按数据类型汇总">
+                        <Table
+                          size="small"
+                          rowKey="entityType"
+                          pagination={false}
+                          dataSource={activePreview.groups}
+                          columns={[
+                            {
+                              title: '数据类型',
+                              width: 120,
+                              dataIndex: 'entityType',
+                              render: (value: ImportEntityType) => <Tag>{ENTITY_LABELS[value] || '实体待确认'}</Tag>,
+                            },
+                            {
+                              title: '导入影响',
+                              render: (_: unknown, row) => (
+                                <Space size={[4, 4]} wrap>
+                                  {countTag('共', row.total)}
+                                  {countTag('新增', row.created, row.created > 0 ? 'green' : undefined)}
+                                  {countTag('更新', row.updated, row.updated > 0 ? 'blue' : undefined)}
+                                </Space>
+                              ),
+                            },
+                            {
+                              title: '预检结果',
+                              render: (_: unknown, row) => (
+                                <Space size={[4, 4]} wrap>
+                                  {countTag('可自动', row.rollbackable, row.rollbackable > 0 ? 'green' : undefined)}
+                                  {countTag('冲突', row.conflicted, row.conflicted > 0 ? 'orange' : undefined)}
+                                  {countTag('阻断', row.blocked, row.blocked > 0 ? 'red' : undefined)}
+                                  {countTag('人工', row.manualOnly, row.manualOnly > 0 ? 'red' : undefined)}
+                                  {countTag('已撤回', row.rolledBack, row.rolledBack > 0 ? 'blue' : undefined)}
+                                </Space>
+                              ),
+                            },
+                          ]}
+                        />
+                      </Card>
+
+                      <Card size="small" title="逐行预检结果">
+                        <Table<RollbackChangePreview>
+                          size="small"
+                          rowKey="changeId"
+                          pagination={{ pageSize: 8 }}
+                          dataSource={activePreview.changes}
+                          scroll={{ x: 860 }}
+                          columns={[
+                            { title: '行号', dataIndex: 'rowNo', width: 70, render: (value) => value || '-' },
+                            {
+                              title: '数据对象',
+                              width: 320,
+                              render: (_: unknown, row) => (
+                                <Space direction="vertical" size={2} style={{ maxWidth: '100%' }}>
+                                  <Space size={[4, 4]} wrap>
+                                    <Tag>{ENTITY_LABELS[row.entityType] || '实体待确认'}</Tag>
+                                    <Typography.Text strong>{row.entityLabel || row.entityId || '-'}</Typography.Text>
+                                  </Space>
+                                  {row.entityId ? (
+                                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                      {row.entityId}
+                                    </Typography.Text>
+                                  ) : null}
+                                </Space>
+                              ),
+                            },
+                            {
+                              title: '导入动作',
+                              width: 100,
+                              dataIndex: 'operation',
+                              render: (value: string) => importChangeOperationLabel(value),
+                            },
+                            {
+                              title: '预检结果',
+                              dataIndex: 'rollbackStatus',
+                              width: 140,
+                              render: (value: RollbackStatus) => rollbackStatusTag(value),
+                            },
+                            {
+                              title: '处理说明',
+                              render: (_: unknown, row) => {
+                                const depText = dependencyText(row.dependency);
+                                return (
+                                  <Space direction="vertical" size={2}>
+                                    <Typography.Text>{rowHandlingText(row)}</Typography.Text>
+                                    {depText ? <Typography.Text type="secondary">关联业务：{depText}</Typography.Text> : null}
+                                  </Space>
+                                );
+                              },
+                            },
+                          ]}
+                        />
+                      </Card>
+                    </Space>
+                  ),
+                },
+                {
+                  key: 'batch',
+                  label: '批次',
+                  children: (
+                    <Descriptions bordered size="small" column={2}>
+                      <Descriptions.Item label="批次类型">{KIND_LABELS[activePreview.batch.kind] || '类型待确认'}</Descriptions.Item>
+                      <Descriptions.Item label="批次状态">{statusTag(activePreview.batch.status)}</Descriptions.Item>
+                      <Descriptions.Item label="操作者">
+                        {displayAdminInfo(activePreview.batch.operatorName || activePreview.batch.operatorPhone || activePreview.batch.operatorUserId, '平台成员')}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="导入时间">{formatTimeSmart(activePreview.batch.executedAt || activePreview.batch.createdAt)}</Descriptions.Item>
+                      <Descriptions.Item label="批次名称" span={2}>
+                        {activePreview.batch.sourceBatch || activePreview.batch.id}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="导入结果" span={2}>
+                        {importStatsTags(activePreview.batch)}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="撤回评估" span={2}>
+                        <Space size={[4, 4]} wrap>
+                          {countTag('可自动撤回', activePreview.summary.rollbackableCount, activePreview.summary.rollbackableCount > 0 ? 'green' : undefined)}
+                          {countTag('冲突', activePreview.summary.conflictedCount, activePreview.summary.conflictedCount > 0 ? 'orange' : undefined)}
+                          {countTag('阻断/人工处理', activePreview.summary.blockedCount, activePreview.summary.blockedCount > 0 ? 'red' : undefined)}
+                          {countTag('已撤回', activePreview.summary.rolledBackCount, activePreview.summary.rolledBackCount > 0 ? 'blue' : undefined)}
+                        </Space>
+                      </Descriptions.Item>
+                    </Descriptions>
+                  ),
+                },
               ]}
             />
-
-            <Table<RollbackChangePreview>
-              size="small"
-              rowKey="changeId"
-              pagination={{ pageSize: 8 }}
-              dataSource={activePreview.changes}
-              columns={[
-                { title: '行号', dataIndex: 'rowNo', width: 80, render: (value) => value || '-' },
-                {
-                  title: '实体',
-                  width: 140,
-                  render: (_: unknown, row) => ENTITY_LABELS[row.entityType] || '实体待确认',
-                },
-                {
-                  title: '名称',
-                  dataIndex: 'entityLabel',
-                  render: (value: string | null, row) => value || row.entityId || '-',
-                },
-                {
-                  title: '状态',
-                  dataIndex: 'rollbackStatus',
-                  width: 150,
-                  render: (value: RollbackStatus) => rollbackStatusTag(value),
-                },
-                {
-                  title: '原因',
-                  dataIndex: 'blockedReason',
-                  render: (value: string | null) => value || '-',
-                },
-              ]}
-            />
-
-            {activePreview.canRollback ? (
-              <Card>
-                <Space direction="vertical" size={12} style={{ width: '100%' }}>
-                  <Input.TextArea
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    placeholder="撤回原因，必填"
-                    autoSize={{ minRows: 3, maxRows: 5 }}
-                  />
-                  <Input
-                    value={confirmationText}
-                    onChange={(e) => setConfirmationText(e.target.value)}
-                    placeholder={`输入批次名称确认：${expectedConfirmation}`}
-                  />
-                  <Space style={{ justifyContent: 'flex-end', width: '100%' }}>
-                    <Button danger type="primary" icon={<RollbackOutlined />} loading={rollbackSubmitting} onClick={() => void executeRollback()}>
-                      撤回可安全处理数据
-                    </Button>
-                  </Space>
-                </Space>
-              </Card>
-            ) : (
-              <Alert type="info" showIcon message="当前批次没有可自动撤回的数据，请下载报告后人工处理冲突或阻断项。" />
-            )}
           </Space>
         ) : null}
       </Drawer>

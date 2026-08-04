@@ -14487,6 +14487,9 @@ components:
           type: object
           additionalProperties: true
           nullable: true
+        overrideable:
+          type: boolean
+          description: Whether this conflicted change can be manually confirmed and included in rollback.
     ImportBatchRollbackPreview:
       type: object
       required:
@@ -14527,6 +14530,16 @@ components:
         confirmationText:
           type: string
           maxLength: 200
+        overrideChangeIds:
+          type: array
+          description: Conflicted changes manually confirmed to include in this rollback.
+          items:
+            $ref: '#/components/schemas/Uuid'
+          maxItems: 100
+        overrideReason:
+          type: string
+          description: Required when overrideChangeIds is not empty.
+          maxLength: 500
     DealRecordImportExecuteResponse:
       type: object
       required:

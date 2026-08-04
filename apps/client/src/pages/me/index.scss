@@ -562,15 +562,12 @@
   padding: 24rpx 0;
   text-align: center;
   color: var(--c-muted);
-  font-size: 32rpx;
   font-weight: 600;
-  line-height: 1.35;
   position: relative;
 }
 
 .me-order-tab.active {
   color: var(--c-primary);
-  font-weight: 700;
 }
 
 .me-order-indicator {
@@ -628,13 +625,9 @@
 }
 
 .me-order-label {
-  width: 100%;
-  font-size: 30rpx;
-  font-weight: 600;
-  line-height: 1.35;
+  font-size: 22rpx;
   color: var(--c-muted);
   text-align: center;
-  white-space: nowrap;
 }
 
 .me-section-card {

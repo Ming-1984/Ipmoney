@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, ForbiddenException, Injectable,
 import { Prisma } from '@prisma/client';
 
 import { AuditLogService } from '../../common/audit-log.service';
+import { requirePermission } from '../../common/permissions';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 type ImportBatchKind = 'PEOPLE_ACHIEVEMENTS' | 'PATENT' | 'LISTING' | 'DEAL_RECORD' | 'LISTING_BATCH_ACTION';
@@ -73,6 +74,7 @@ type RollbackChangePreview = {
   rollbackStatus: ImportRollbackStatus;
   blockedReason?: string | null;
   dependency?: Record<string, any> | null;
+  overrideable?: boolean;
 };
 
 type RollbackPreview = {
@@ -708,7 +710,11 @@ export class ImportBatchesService {
         return this.basePreview(change, 'BLOCKED', '挂牌已成交，不自动下架', { entityLabel: listing.title, dependency });
       }
       if (this.changedAfterReference(listing.updatedAt, this.extractReferenceAt(change, batch.executedAt))) {
-        return this.basePreview(change, 'CONFLICTED', '挂牌导入后已被修改，需要人工确认', { entityLabel: listing.title, dependency });
+        return this.basePreview(change, 'CONFLICTED', '挂牌导入后已被修改，需要人工确认', {
+          entityLabel: listing.title,
+          dependency,
+          overrideable: change.rollbackStrategy === 'SOFT_OFF_SHELF',
+        });
       }
       return this.basePreview(change, 'ROLLBACKABLE', null, { entityLabel: listing.title, dependency });
     });
@@ -732,7 +738,11 @@ export class ImportBatchesService {
         return this.basePreview(change, 'ROLLED_BACK', null, { entityLabel: achievement.title, dependency });
       }
       if (this.changedAfterReference(achievement.updatedAt, this.extractReferenceAt(change, batch.executedAt))) {
-        return this.basePreview(change, 'CONFLICTED', '成果导入后已被修改，需要人工确认', { entityLabel: achievement.title, dependency });
+        return this.basePreview(change, 'CONFLICTED', '成果导入后已被修改，需要人工确认', {
+          entityLabel: achievement.title,
+          dependency,
+          overrideable: change.rollbackStrategy === 'SOFT_OFF_SHELF',
+        });
       }
       return this.basePreview(change, 'ROLLBACKABLE', null, { entityLabel: achievement.title, dependency });
     });
@@ -834,10 +844,12 @@ export class ImportBatchesService {
       groupMap.set(item.entityType, group);
     }
     const warnings: string[] = [];
-    if (summary.conflictedCount > 0) warnings.push('存在导入后被修改的数据，系统不会自动覆盖。');
-    if (summary.blockedCount > 0) warnings.push('存在需要人工处理或被业务引用阻断的数据。');
-    if (summary.manualOnlyCount > 0) warnings.push('历史覆盖更新或复杂主数据缺少导入前快照，只生成处理清单。');
-    if (summary.rollbackableCount > 0) warnings.push('可自动撤回的数据会采用作废或下架，不做物理删除。');
+    if (summary.conflictedCount > 0) warnings.push('有数据在导入后又被改过，系统默认不会撤回这些后续修改。');
+    if (summary.blockedCount > 0) warnings.push('有数据已经产生业务关联，或需要人工判断，暂不能自动撤回。');
+    if (summary.manualOnlyCount > 0) warnings.push('缺少导入前快照的记录，本次只生成处理清单。');
+    if (summary.rollbackableCount > 0) {
+      warnings.push('自动撤回只处理支持安全回退的数据：挂牌和成果会下架，成交记录会作废；专利主数据、经理人资料等复杂数据不会自动改动，会保留在报告中人工处理。');
+    }
     return {
       batch: batchDto,
       canRollback: summary.rollbackableCount > 0,
@@ -952,6 +964,50 @@ export class ImportBatchesService {
     };
   }
 
+  private parseRollbackOverride(body: any): { changeIds: string[]; reason: string } {
+    const rawIds = Array.isArray(body?.overrideChangeIds) ? body.overrideChangeIds : [];
+    const changeIds: string[] = [];
+    const seen = new Set<string>();
+    for (const raw of rawIds) {
+      const id = this.parseUuidStrict(raw, 'overrideChangeIds');
+      if (seen.has(id)) continue;
+      seen.add(id);
+      changeIds.push(id);
+    }
+    if (changeIds.length > 100) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'overrideChangeIds exceed limit' });
+    }
+    const reason = this.truncateText(body?.overrideReason, 500);
+    if (changeIds.length > 0 && !reason) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'overrideReason is required' });
+    }
+    return { changeIds, reason };
+  }
+
+  private validateOverrideableChanges(preview: RollbackPreview, overrideChangeIds: string[]) {
+    const requested = new Set(overrideChangeIds);
+    if (!requested.size) return [];
+    const map = new Map(preview.changes.map((item) => [item.changeId, item]));
+    const invalid: string[] = [];
+    const allowed: RollbackChangePreview[] = [];
+    for (const changeId of requested) {
+      const item = map.get(changeId);
+      if (!item || !item.overrideable) {
+        invalid.push(changeId);
+        continue;
+      }
+      allowed.push(item);
+    }
+    if (invalid.length) {
+      throw new ConflictException({
+        code: 'IMPORT_BATCH_ROLLBACK_OVERRIDE_NOT_ALLOWED',
+        message: 'some changes cannot be manually included in rollback',
+        details: { changeIds: invalid },
+      });
+    }
+    return allowed;
+  }
+
   private validateRollbackConfirmation(batch: any, body: any) {
     const reason = this.truncateText(body?.reason, 500);
     if (!reason) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'reason is required' });
@@ -1038,20 +1094,29 @@ export class ImportBatchesService {
     }
     const actorUserId = this.parseUuidStrict(req?.auth?.userId, 'actorUserId');
     const reason = this.validateRollbackConfirmation(batch, body);
+    const override = this.parseRollbackOverride(body);
+    if (override.changeIds.length) {
+      requirePermission(req, 'importBatch.rollbackOverride');
+    }
     const preview = await this.buildRollbackPreview(req, batch.id, { persist: true, updateBatchStatus: false });
-    if (!preview.summary.rollbackableCount) {
+    const overrideChanges = this.validateOverrideableChanges(preview, override.changeIds);
+    if (!preview.summary.rollbackableCount && !overrideChanges.length) {
       throw new ConflictException({ code: 'CONFLICT', message: 'no rollbackable changes' });
     }
+    const rollbackReason = overrideChanges.length
+      ? this.truncateText(`${reason}\n人工确认纳入撤回：${override.reason}`, 500)
+      : reason;
     await this.prisma.importBatch.update({ where: { id: batch.id }, data: { status: 'ROLLBACK_RUNNING' as any } });
 
+    const autoWhere = { batchId: batch.id, rollbackStatus: 'ROLLBACKABLE' as any };
     const changes = await this.prisma.importChangeLog.findMany({
-      where: { batchId: batch.id, rollbackStatus: 'ROLLBACKABLE' as any },
+      where: override.changeIds.length ? { batchId: batch.id, OR: [autoWhere, { id: { in: override.changeIds } }] } : autoWhere,
       orderBy: [{ rowNo: 'asc' }, { id: 'asc' }],
     });
 
     for (const change of changes) {
       try {
-        if (change.entityType === 'DEAL_RECORD') await this.rollbackDealRecord(change, actorUserId, reason);
+        if (change.entityType === 'DEAL_RECORD') await this.rollbackDealRecord(change, actorUserId, rollbackReason);
         else if (change.entityType === 'LISTING') await this.rollbackListing(change);
         else if (change.entityType === 'ACHIEVEMENT') await this.rollbackAchievement(change);
         else await this.markChange(change.id, 'FAILED', { error: '该数据类型不支持自动撤回' });
@@ -1087,7 +1152,7 @@ export class ImportBatchesService {
         blockedCount,
         rolledBackCount,
         rollbackAt: new Date(),
-        rollbackReason: reason,
+        rollbackReason,
         lastRollbackError: failedCount > 0 ? `${failedCount} 条撤回失败` : null,
       },
     });
@@ -1100,7 +1165,13 @@ export class ImportBatchesService {
       beforeJson: { status: batch.status } as any,
       afterJson: {
         status: updatedBatch.status,
-        reason,
+        reason: rollbackReason,
+        manualOverride: overrideChanges.length
+          ? {
+              changeIds: overrideChanges.map((item) => item.changeId),
+              reason: override.reason,
+            }
+          : undefined,
         rolledBackCount,
         failedCount,
         blockedCount,
