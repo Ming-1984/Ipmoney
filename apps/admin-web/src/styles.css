@@ -534,6 +534,7 @@ body {
 }
 
 .ipm-showcase-distribution-body {
+  --ipm-donut-size: 320px;
   flex: 1;
   min-height: 258px;
   display: grid;
@@ -543,9 +544,15 @@ body {
   padding: 12px 24px 18px;
 }
 
+.ipm-showcase-data-center:fullscreen .ipm-showcase-distribution-body,
+.ipm-showcase-data-center-fullscreen .ipm-showcase-distribution-body {
+  --ipm-donut-size: 420px;
+  grid-template-columns: minmax(360px, 1fr) minmax(260px, 1fr);
+}
+
 .ipm-showcase-donut-empty {
-  width: 220px;
-  height: 220px;
+  width: var(--ipm-donut-size);
+  height: var(--ipm-donut-size);
   max-width: 100%;
   display: flex;
   align-items: center;
@@ -556,7 +563,7 @@ body {
 }
 
 .ipm-showcase-donut-chart {
-  width: min(220px, 100%);
+  width: min(var(--ipm-donut-size), 100%);
   height: auto;
   aspect-ratio: 1;
 }
