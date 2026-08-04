@@ -456,6 +456,11 @@ body {
   gap: 14px;
 }
 
+.ipm-showcase-data-center:fullscreen .ipm-showcase-distributions,
+.ipm-showcase-data-center-fullscreen .ipm-showcase-distributions {
+  flex: 1 0 420px;
+}
+
 .ipm-showcase-panel {
   min-width: 0;
   border: 1px solid rgba(255, 106, 0, 0.18);
