@@ -242,17 +242,17 @@
 }
 
 .feedback-field {
-  --nutui-font-size-base: 25rpx;
-  --nutui-input-font-size: 25rpx;
+  --nutui-font-size-base: 32rpx;
+  --nutui-input-font-size: 32rpx;
   --nutui-input-font-color: #374151;
   --nutui-input-placeholder-color: #d6dbe3;
-  --nutui-textarea-font: 25rpx;
+  --nutui-textarea-font: 32rpx;
   --nutui-textarea-font-color: #374151;
   --nutui-textarea-text-color: #374151;
   --nutui-textarea-placeholder-color: #d6dbe3;
   --nutui-color-text-help: #d6dbe3;
 
-  font-size: 25rpx;
+  font-size: 32rpx;
   color: #374151;
   border-radius: 20rpx;
   background: #f7f8fa;
@@ -293,7 +293,7 @@
 
 .feedback-field-inline .nut-input-inner,
 .feedback-field-inline input {
-  font-size: 25rpx;
+  font-size: 32rpx;
   color: #374151;
 }
 
@@ -307,7 +307,7 @@
 .feedback-textarea .nut-textarea-textarea,
 .feedback-textarea .taro-textarea,
 .feedback-textarea textarea {
-  font-size: 25rpx;
+  font-size: 32rpx;
 }
 
 .feedback-field-inline .nut-input-inner::placeholder,
@@ -317,13 +317,13 @@
 .feedback-textarea-wrap .taro-textarea::placeholder,
 .feedback-textarea-wrap textarea::placeholder {
   color: #d6dbe3;
-  font-size: 25rpx;
+  font-size: 32rpx;
 }
 
 .feedback-textarea-wrap .nut-textarea {
   padding: 0;
   background: transparent;
-  font-size: 25rpx;
+  font-size: 32rpx;
   line-height: 1.55;
 }
 
@@ -334,7 +334,7 @@
   height: 138rpx;
   min-height: 138rpx;
   background: transparent;
-  font-size: 25rpx !important;
+  font-size: 32rpx !important;
   color: #374151;
   line-height: 1.55;
 }
@@ -343,7 +343,7 @@
 .feedback-textarea-wrap .taro-textarea::placeholder,
 .feedback-textarea-wrap textarea::placeholder {
   color: #d6dbe3 !important;
-  font-size: 25rpx !important;
+  font-size: 32rpx !important;
   line-height: 1.55;
 }
 

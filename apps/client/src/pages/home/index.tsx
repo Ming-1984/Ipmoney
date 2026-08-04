@@ -611,7 +611,7 @@ export default function HomePage() {
       { key: 'inventor', label: '发明人榜', icon: homeIconInventors, onClick: goInventors },
       { key: 'patent-map', label: '专利地图', icon: iconMapGreen, onClick: goPatentMap },
       { key: 'tech-manager', label: '技术经理', icon: homeIconTechManager, onClick: goTechManagers },
-      { key: 'achievement', label: '成果展示', icon: homeIconAchievement, onClick: goAchievementSearch },
+      { key: 'achievement', label: '专利产品', icon: homeIconAchievement, onClick: goAchievementSearch },
     ],
     [
       goDesignPatents,

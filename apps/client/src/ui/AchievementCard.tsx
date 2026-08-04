@@ -16,7 +16,7 @@ export function AchievementCard(props: {
   onClick: () => void;
 }) {
   const it = props.item;
-  const title = displayTitleOrFallback(it.title, '成果标题待确认');
+  const title = displayTitleOrFallback(it.title, '产品标题待确认');
   const cover = it.coverUrl || '';
   const publisher = displayUserName(it.publisher, '认证提交方');
   const region = it.regionCode ? regionDisplayName(it.regionCode) : '';
@@ -42,7 +42,7 @@ export function AchievementCard(props: {
           <Image className="list-card-thumb-img" src={iconAchievement} mode="aspectFit" />
         )}
         <View className="listing-thumb-badge">
-          <Text>专利成果</Text>
+          <Text>专利产品</Text>
         </View>
       </View>
       <View className="list-card-body listing-body--compact">

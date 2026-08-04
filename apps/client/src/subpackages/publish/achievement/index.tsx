@@ -87,7 +87,7 @@ const MATURITY_OPTIONS: ChipOption<AchievementMaturity | ''>[] = [
   { value: 'OTHER', label: '其他' },
 ];
 
-const UNTITLED_ACHIEVEMENT_DRAFT_TITLE = '未命名成果草稿';
+const UNTITLED_ACHIEVEMENT_DRAFT_TITLE = '未命名专利产品草稿';
 
 function isSubmittedAchievement(status?: ContentStatus | null, auditStatus?: AuditStatus | null): boolean {
   return status !== 'DRAFT' && (auditStatus === 'PENDING' || auditStatus === 'APPROVED' || auditStatus === 'REJECTED');
@@ -117,7 +117,7 @@ function mergePlaceholderClass(extra?: string): string {
 }
 
 function mergePlaceholderStyle(extra?: string): string {
-  const base = 'font-size:20rpx;color:#c0c4cc;';
+  const base = 'font-size:32rpx;color:#c0c4cc;';
   if (!extra) return base;
   return `${base}${extra}`;
 }
@@ -546,7 +546,7 @@ export default function PublishAchievementPage() {
   const saveDraft = useCallback(async (mode: 'save' | 'submit' = 'save'): Promise<AchievementDraft | null> => {
     if (!ensureApproved()) return null;
     if (mode === 'submit' && !title.trim()) {
-      toast('请填写成果名称');
+      toast('请填写产品名称');
       return null;
     }
     if (saving) {
@@ -634,7 +634,7 @@ export default function PublishAchievementPage() {
           {access.state === 'need-login' ? (
             <View className="publish-locked">
               <Image className="publish-locked-ill" src={publishLockedArt} mode="aspectFit" />
-              <Text className="publish-locked-text">登录 IPMONEY 后即可提交成果展示</Text>
+              <Text className="publish-locked-text">登录 IPMONEY 后即可提交专利产品</Text>
             </View>
           ) : (
             <AccessGate access={access} />
@@ -642,28 +642,28 @@ export default function PublishAchievementPage() {
         </View>
       ) : (
         <View>
-          <PageHeader title="提交专利成果" subtitle="成果展示面向全平台可见" />
+          <PageHeader title="提交专利产品" subtitle="专利产品面向全平台可见" />
           <Spacer />
 
           <View className="publish-form">
             <Surface className="publish-card">
-              <Text className="publish-section-title">成果信息</Text>
+              <Text className="publish-section-title">产品信息</Text>
               <View className="form-field">
-                <Text className="form-label">成果名称</Text>
+                <Text className="form-label">产品名称</Text>
                 <PublishInput
                   value={title}
                   onChange={setTitle}
-                  placeholder="填写成果名称"
+                  placeholder="填写产品名称"
                   className="publish-input"
                   data-testid="achievement-title"
                 />
               </View>
               <View className="form-field">
-                <Text className="form-label">成果简介</Text>
-                <PublishInput value={summary} onChange={setSummary} placeholder="一句话介绍成果亮点" className="publish-input" />
+                <Text className="form-label">产品简介</Text>
+                <PublishInput value={summary} onChange={setSummary} placeholder="一句话介绍产品亮点" className="publish-input" />
               </View>
               <View className="form-field">
-                <Text className="form-label">成果详情</Text>
+                <Text className="form-label">产品详情</Text>
                 <PublishTextArea
                   value={description}
                   onChange={setDescription}
@@ -676,7 +676,7 @@ export default function PublishAchievementPage() {
             </Surface>
 
             <Surface className="publish-card">
-              <Text className="publish-section-title">成果成熟度</Text>
+              <Text className="publish-section-title">产品成熟度</Text>
               <View className="form-field">
                 <Text className="form-label">成熟度</Text>
                 <ChipGroup value={maturity} options={MATURITY_OPTIONS} onChange={(value) => setMaturity(value as AchievementMaturity | '')} />
@@ -725,7 +725,7 @@ export default function PublishAchievementPage() {
             <Surface className="publish-card">
               <Text className="publish-section-title">封面与材料</Text>
               <View className="form-field">
-                <Text className="form-label">成果封面</Text>
+                <Text className="form-label">产品封面</Text>
                 {resolveRenderableFileUrl(coverFile) ? (
                   <View className="upload-preview">
                     <Image className="upload-preview-img" src={resolveRenderableFileUrl(coverFile)} mode="aspectFill" />

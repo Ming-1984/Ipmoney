@@ -339,6 +339,27 @@
   overflow: hidden;
 }
 
+.invoice-input-wrap .nut-input,
+.invoice-input-wrap .nut-input-inner,
+.invoice-input-wrap .nut-input-native,
+.invoice-input-wrap .nut-input-inner input,
+.invoice-input-wrap .nut-input-native .weui-input,
+.invoice-textarea-wrap .nut-textarea,
+.invoice-textarea-wrap .nut-textarea textarea {
+  font-size: 32rpx;
+  line-height: 1.4;
+}
+
+.invoice-input-wrap .nut-input-native .weui-input::placeholder,
+.invoice-input-wrap .nut-input-placeholder,
+.invoice-input-wrap .nut-input input::placeholder,
+.invoice-input-wrap .nut-input-inner::placeholder,
+.invoice-textarea-wrap .nut-textarea textarea::placeholder {
+  color: #c0c4cc;
+  font-size: 32rpx;
+  line-height: 1.4;
+}
+
 .invoice-popup-note {
   display: block;
   margin-top: 18rpx;

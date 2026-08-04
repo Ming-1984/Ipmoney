@@ -19,6 +19,22 @@
   padding: 16rpx 20rpx;
 }
 
+.faq-search-card .nut-input-native .weui-input::placeholder,
+.faq-search-card .nut-input-placeholder,
+.faq-search-card .nut-input input::placeholder {
+  font-size: 32rpx;
+  color: #c0c4cc;
+}
+
+.faq-search-card .nut-input,
+.faq-search-card .nut-input-inner,
+.faq-search-card .nut-input-native,
+.faq-search-card .nut-input-inner input,
+.faq-search-card .nut-input-native .weui-input {
+  font-size: 32rpx;
+  line-height: 1.4;
+}
+
 .faq-section-title {
   font-size: 26rpx;
   font-weight: 600;
@@ -52,4 +68,3 @@
   box-shadow: var(--shadow-sm);
   padding: 12rpx 12rpx;
 }
-

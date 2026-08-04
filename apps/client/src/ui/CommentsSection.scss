@@ -22,7 +22,7 @@
 }
 
 .comment-composer-placeholder-text {
-  font-size: 26rpx;
+  font-size: 32rpx;
   color: var(--c-muted);
 }
 
@@ -51,6 +51,7 @@
 }
 
 .comment-composer-floating .nut-textarea textarea {
+  font-size: 32rpx;
   line-height: 1.6;
 }
 
@@ -73,7 +74,7 @@
 }
 
 .comment-composer-entry .comment-composer-placeholder-text {
-  font-size: 28rpx;
+  font-size: 32rpx;
   color: #8f96a3;
 }
 
@@ -159,7 +160,7 @@
   line-height: 40rpx;
   padding: 0;
   margin: 0;
-  font-size: 28rpx;
+  font-size: 32rpx;
   color: var(--c-text);
   background: transparent;
   border: 0;
@@ -167,8 +168,8 @@
 }
 
 .comment-composer-sheet-input-placeholder {
-  line-height: 40rpx;
-  font-size: 28rpx;
+  line-height: 44rpx;
+  font-size: 32rpx;
   color: #8f96a3;
 }
 
@@ -186,7 +187,7 @@
   min-height: 80rpx;
   height: 80rpx;
   line-height: 80rpx;
-  font-size: 28rpx;
+  font-size: 32rpx;
   padding: 0;
 }
 

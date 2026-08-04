@@ -99,7 +99,7 @@
   border-color: #e5e7eb;
   border-radius: 12rpx;
   min-height: 64rpx;
-  font-size: 24rpx;
+  font-size: 32rpx;
 }
 
 .search-filter-input {
@@ -110,7 +110,21 @@
 
 .search-filter-input .nut-input-inner {
   padding: 16rpx 18rpx;
-  font-size: 24rpx;
+  font-size: 32rpx;
+}
+
+.search-filter-input .nut-input-native,
+.search-filter-input .nut-input-inner input,
+.search-filter-input .nut-input-native .weui-input {
+  font-size: 32rpx;
+  line-height: 1.4;
+}
+
+.search-filter-input .nut-input-native .weui-input::placeholder,
+.search-filter-input .nut-input-placeholder,
+.search-filter-input .nut-input input::placeholder {
+  font-size: 32rpx;
+  color: #c0c4cc;
 }
 
 .search-filter-card {
@@ -136,8 +150,8 @@
   display: flex;
   align-items: center;
   gap: 8rpx;
-  min-height: 88rpx;
-  padding: 16rpx 20rpx;
+  min-height: 96rpx;
+  padding: 18rpx 24rpx;
   border: 1rpx solid #e5e7eb;
   border-radius: 24rpx;
   background: #ffffff;
@@ -154,7 +168,7 @@
 
 .search-ipc-placeholder {
   color: #6b7280;
-  font-size: 24rpx;
+  font-size: 32rpx;
   line-height: 1.4;
 }
 

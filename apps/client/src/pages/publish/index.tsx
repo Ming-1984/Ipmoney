@@ -113,12 +113,12 @@ export default function PublishPage() {
       },
       {
         key: 'achievement',
-        title: '提交专利成果',
-        desc: '成果展示 / 案例',
+        title: '提交专利产品',
+        desc: '专利产品 / 案例',
         icon: PUBLISH_ACHIEVEMENT_ICON,
         tone: 'tone-orange',
         onClick: () => {
-          void openPublishPage('/subpackages/publish/achievement/index', '发布成果');
+          void openPublishPage('/subpackages/publish/achievement/index', '发布专利产品');
         },
       },
     ],
@@ -138,11 +138,11 @@ export default function PublishPage() {
       },
       {
         key: 'achievements',
-        title: '我的专利成果',
+        title: '我的专利产品',
         icon: PUBLISH_ACHIEVEMENT_ICON,
         tone: 'tone-orange',
         onClick: () => {
-          void openPublishPage('/subpackages/my-achievements/index', '我的成果');
+          void openPublishPage('/subpackages/my-achievements/index', '我的专利产品');
         },
       },
     ],

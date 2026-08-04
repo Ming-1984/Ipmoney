@@ -23,16 +23,18 @@
 }
 
 .publish-section-title {
-  font-size: 26rpx;
-  font-weight: 600;
+  font-size: 32rpx;
+  font-weight: 700;
+  line-height: 1.35;
   color: #111827;
-  margin-bottom: 8rpx;
+  margin-bottom: 12rpx;
 }
 
 .publish-section-subtitle {
   margin-top: 16rpx;
-  font-size: 24rpx;
-  font-weight: 600;
+  font-size: 30rpx;
+  font-weight: 700;
+  line-height: 1.35;
   color: #111827;
 }
 
@@ -41,15 +43,17 @@
 }
 
 .form-label {
-  font-size: 24rpx;
-  font-weight: 600;
+  font-size: 30rpx;
+  font-weight: 700;
+  line-height: 1.35;
   color: #111827;
-  margin-bottom: 8rpx;
+  margin-bottom: 10rpx;
   display: block;
 }
 
 .form-hint {
-  font-size: 20rpx;
+  font-size: 24rpx;
+  line-height: 1.45;
   color: #9ca3af;
   margin-top: 8rpx;
   display: block;
@@ -91,7 +95,7 @@
 
 .publish-patent-page .nut-input-inner {
   padding: 16rpx 18rpx;
-  font-size: 24rpx;
+  font-size: 32rpx;
   line-height: 1.4;
 }
 
@@ -135,7 +139,7 @@
 .publish-patent-page .taro-input-core,
 .publish-patent-page input.publish-control,
 .publish-patent-page textarea.publish-control {
-  font-size: 24rpx !important;
+  font-size: 32rpx !important;
   line-height: 1.4;
 }
 
@@ -143,17 +147,17 @@
 .publish-patent-page .nut-input-native .weui-input::placeholder,
 .publish-patent-page .nut-input-placeholder,
 .publish-patent-page .nut-textarea textarea::placeholder {
-  font-size: 20rpx;
+  font-size: 32rpx;
   color: #c0c4cc;
 }
 
 .publish-patent-page .publish-placeholder {
-  font-size: 20rpx;
+  font-size: 32rpx;
   color: #c0c4cc;
 }
 
 .publish-placeholder {
-  font-size: 20rpx;
+  font-size: 32rpx;
   color: #c0c4cc;
 }
 
@@ -171,7 +175,7 @@
   width: 100%;
   min-height: 168rpx;
   height: 168rpx;
-  font-size: 24rpx !important;
+  font-size: 32rpx !important;
   line-height: 1.4;
   color: #111827;
   box-sizing: border-box;
@@ -204,29 +208,38 @@
   line-height: 1.45;
 }
 
-.form-select {
+.publish-patent-page .form-select {
   border: 1rpx solid #e5e7eb;
   border-radius: 12rpx;
-  padding: 16rpx 18rpx;
+  padding: 0 24rpx;
   background: #f6f7f9;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 80rpx;
+  min-height: 96rpx;
+  gap: 16rpx;
 }
 
-.form-select-value {
-  font-size: 24rpx;
+.publish-patent-page .form-select-value {
+  flex: 1;
+  min-width: 0;
+  font-size: 32rpx !important;
+  line-height: 44rpx !important;
   color: #111827;
 }
 
-.form-select-placeholder {
-  font-size: 20rpx;
+.publish-patent-page .form-select-placeholder {
+  flex: 1;
+  min-width: 0;
+  font-size: 32rpx !important;
+  line-height: 44rpx !important;
   color: #9ca3af;
 }
 
-.form-select-arrow {
-  font-size: 20rpx;
+.publish-patent-page .form-select-arrow {
+  flex-shrink: 0;
+  font-size: 32rpx !important;
+  line-height: 1;
   color: #c0c4cc;
 }
 
@@ -268,8 +281,8 @@
 
 .upload-trigger {
   flex: 1;
-  min-height: 120rpx;
-  padding: 20rpx 16rpx;
+  min-height: 164rpx;
+  padding: 24rpx 18rpx;
   border: 2rpx dashed #d9dde3;
   border-radius: 12rpx;
   text-align: center;
@@ -278,7 +291,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6rpx;
+  gap: 8rpx;
   line-height: 1.4;
 }
 
@@ -296,14 +309,16 @@
 }
 
 .upload-title {
-  font-size: 24rpx;
+  font-size: 32rpx;
+  line-height: 1.35;
   color: #6b7280;
-  font-weight: 500;
+  font-weight: 700;
 }
 
 .upload-subtitle {
   margin-top: 6rpx;
-  font-size: 20rpx;
+  font-size: 26rpx;
+  line-height: 1.4;
   color: #9ca3af;
 }
 

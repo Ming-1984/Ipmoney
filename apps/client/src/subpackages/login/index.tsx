@@ -329,7 +329,7 @@ export default function LoginPage() {
                 onChange={setPhone}
                 placeholder="请输入手机号"
                 placeholderClass="login-input-placeholder"
-                placeholderStyle="font-size:24rpx;color:#b9ada2;"
+                placeholderStyle="font-size:32rpx;color:#b9ada2;"
                 type="digit"
                 clearable
                 cursorColor="#1a1108"
@@ -344,7 +344,7 @@ export default function LoginPage() {
                 onChange={setSmsCode}
                 placeholder="请输入短信验证码"
                 placeholderClass="login-input-placeholder"
-                placeholderStyle="font-size:24rpx;color:#b9ada2;"
+                placeholderStyle="font-size:32rpx;color:#b9ada2;"
                 type="digit"
                 clearable
                 cursorColor="#1a1108"

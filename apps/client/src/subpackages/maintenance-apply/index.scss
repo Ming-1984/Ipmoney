@@ -144,7 +144,7 @@
   box-sizing: border-box;
   color: #1f2937;
   display: flex;
-  font-size: 28rpx;
+  font-size: 32rpx;
   min-height: 96rpx;
   padding: 0 32rpx;
   width: 100%;
@@ -157,6 +157,8 @@
 
 .maintenance-form-placeholder {
   color: #d1d5db;
+  font-size: 32rpx;
+  line-height: 1.3;
 }
 
 .maintenance-type-options {
@@ -201,7 +203,7 @@
 .maintenance-date-text {
   color: #9ca3af;
   flex: 1;
-  font-size: 28rpx;
+  font-size: 32rpx;
   line-height: 1.3;
   min-width: 0;
 }

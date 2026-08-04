@@ -44,7 +44,7 @@ export default function IpcPickerPage() {
           className="ipc-picker-input"
           value={keyword}
           placeholder="搜索 IPC 分类号 / 关键词"
-          placeholderStyle="font-size:20rpx;line-height:30rpx;color:#9ca3af;"
+          placeholderStyle="font-size:32rpx;line-height:44rpx;color:#9ca3af;"
           onChange={setKeyword}
           clearable
         />

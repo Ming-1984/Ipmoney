@@ -202,7 +202,7 @@ function mergePlaceholderClass(extra?: string): string {
 }
 
 function mergePlaceholderStyle(extra?: string): string {
-  const base = 'font-size:20rpx;color:#c0c4cc;';
+  const base = 'font-size:32rpx;color:#c0c4cc;';
   if (!extra) return base;
   return `${base}${extra}`;
 }
@@ -1005,7 +1005,6 @@ export default function PublishPatentPage() {
               <View className="form-select" onClick={() => setPickerOpen('patentType')}>
                 <Text
                   className={patentType ? 'form-select-value' : 'form-select-placeholder'}
-                  style={patentType ? undefined : { fontSize: '20rpx', color: '#9ca3af' }}
                 >
                   {patentType ? patentTypeLabel(patentType) : '请选择'}
                 </Text>
@@ -1017,7 +1016,6 @@ export default function PublishPatentPage() {
               <View className="form-select" onClick={() => setPickerOpen('tradeMode')}>
                 <Text
                   className={tradeMode ? 'form-select-value' : 'form-select-placeholder'}
-                  style={tradeMode ? undefined : { fontSize: '20rpx', color: '#9ca3af' }}
                 >
                   {tradeMode ? tradeModeLabel(tradeMode as TradeMode) : '请选择'}
                 </Text>
@@ -1032,7 +1030,6 @@ export default function PublishPatentPage() {
               <View className="form-select" onClick={() => setPickerOpen('licenseMode')}>
                 <Text
                   className={licenseMode ? 'form-select-value' : 'form-select-placeholder'}
-                  style={licenseMode ? undefined : { fontSize: '20rpx', color: '#9ca3af' }}
                 >
                   {licenseMode ? licenseModeLabel(licenseMode as LicenseMode) : '请选择'}
                 </Text>
@@ -1272,7 +1269,6 @@ export default function PublishPatentPage() {
             <View className="form-select" onClick={() => setPickerOpen('priceType')}>
               <Text
                 className={priceType ? 'form-select-value' : 'form-select-placeholder'}
-                style={priceType ? undefined : { fontSize: '20rpx', color: '#9ca3af' }}
               >
                 {priceType ? priceTypeLabel(priceType as PriceType) : '请选择'}
               </Text>

@@ -525,7 +525,7 @@ export default function MePage() {
   const publishItems = useMemo<IconItem[]>(
     () => [
       { key: 'listings', label: '我的专利', icon: ME_PUBLISH_PATENT_ICON, onClick: () => Taro.navigateTo({ url: '/subpackages/my-listings/index' }) },
-      { key: 'achievements', label: '我的专利成果', icon: ME_PUBLISH_ACHIEVEMENT_ICON, onClick: () => Taro.navigateTo({ url: '/subpackages/my-achievements/index' }) },
+      { key: 'achievements', label: '我的专利产品', icon: ME_PUBLISH_ACHIEVEMENT_ICON, onClick: () => Taro.navigateTo({ url: '/subpackages/my-achievements/index' }) },
     ],
     [],
   );
@@ -654,7 +654,7 @@ export default function MePage() {
                   onChange={setPhone}
                   placeholder="请输入手机号"
                   placeholderClass="me-login-placeholder"
-                  placeholderStyle="font-size:24rpx;color:#b9ada2;"
+                  placeholderStyle="font-size:32rpx;color:#b9ada2;"
                   type="digit"
                   clearable
                   cursorColor="#1a1108"
@@ -669,7 +669,7 @@ export default function MePage() {
                   onChange={setSmsCode}
                   placeholder="请输入短信验证码"
                   placeholderClass="me-login-placeholder"
-                  placeholderStyle="font-size:24rpx;color:#b9ada2;"
+                  placeholderStyle="font-size:32rpx;color:#b9ada2;"
                   type="digit"
                   clearable
                   cursorColor="#1a1108"

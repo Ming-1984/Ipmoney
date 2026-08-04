@@ -44,6 +44,7 @@ export function SearchEntry(props: {
             className="search-entry-input"
             value={props.value}
             placeholder={props.placeholder}
+            placeholderClass="search-entry-input-placeholder"
             onInput={(e) => props.onChange?.(e.detail.value)}
             onConfirm={onSearch}
             confirmType="search"

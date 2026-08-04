@@ -16,8 +16,8 @@ import { Input, TextArea } from '../../ui/nutui';
 
 type Conversation = components['schemas']['Conversation'];
 
-const feedbackTextStyle = { fontSize: '25rpx', color: '#374151', lineHeight: '1.55' };
-const feedbackPlaceholderStyle = 'font-size:25rpx;color:#d6dbe3;';
+const feedbackTextStyle = { fontSize: '32rpx', color: '#374151', lineHeight: '1.55' };
+const feedbackPlaceholderStyle = 'font-size:32rpx;color:#d6dbe3;';
 
 type ServiceItem = {
   key: 'faq' | 'chat' | 'phone' | 'rules';

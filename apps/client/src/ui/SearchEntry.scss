@@ -22,7 +22,13 @@
 }
 
 .search-entry-placeholder {
-  font-size: var(--nutui-font-size-base);
+  font-size: 32rpx;
+  line-height: 1.4;
+  color: rgba(71, 85, 105, 0.92);
+}
+
+.search-entry-input-placeholder {
+  font-size: 32rpx;
   color: rgba(71, 85, 105, 0.92);
 }
 
@@ -71,4 +77,3 @@
 .search-entry-btn.is-active:active {
   background: linear-gradient(135deg, var(--c-primary-active), var(--c-primary));
 }
-

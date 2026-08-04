@@ -275,7 +275,7 @@ export default function MyListingsPage() {
   );
   const pageTitle = isDraftCenter ? '草稿箱' : '我的专利';
   const pageSubtitle = isMixedDraftCenter
-    ? '集中查看未提交的专利信息和专利成果草稿'
+    ? '集中查看未提交的专利信息和专利产品草稿'
     : isDraftCenter
       ? '仅展示未提交的专利信息草稿'
       : '查看、编辑、取消展示自己提交的专利信息';
@@ -395,7 +395,7 @@ export default function MyListingsPage() {
             {items.map((it: DraftListItem) => {
               const isAchievementDraft = it.draftType === 'achievement';
               const title = isAchievementDraft
-                ? displayTitleOrFallback(it.title, '成果标题待确认')
+                ? displayTitleOrFallback(it.title, '产品标题待确认')
                 : displayTitleWithSecondary(it.title, '专利信息待确认', {
                     secondary: it.applicationNoDisplay,
                     secondaryPrefix: '专利申请号 ',
@@ -419,7 +419,7 @@ export default function MyListingsPage() {
                         <Text className="draft-card-title clamp-2">{title}</Text>
                         <View className="draft-card-tags">
                           <Text className="draft-card-tag">草稿</Text>
-                          <Text className="draft-card-tag">{isAchievementDraft ? '专利成果' : '专利信息'}</Text>
+                          <Text className="draft-card-tag">{isAchievementDraft ? '专利产品' : '专利信息'}</Text>
                         </View>
                       </View>
                     </View>
@@ -448,7 +448,7 @@ export default function MyListingsPage() {
                         <Text className={isAchievementDraft ? 'tag' : listingCardStatusClass(it.status, it.auditStatus)}>
                           {isAchievementDraft ? contentStatusLabel(it.status) : listingCardStatusLabel(it.status, it.auditStatus)}
                         </Text>
-                        {isMixedDraftCenter ? <Text className="tag">{isAchievementDraft ? '专利成果' : '专利信息'}</Text> : null}
+                        {isMixedDraftCenter ? <Text className="tag">{isAchievementDraft ? '专利产品' : '专利信息'}</Text> : null}
                         {!isDraftCenter && !isAchievementDraft && it.auditStatus === 'APPROVED' ? (
                           <Text className={auditStatusTagClass(it.auditStatus)}>{auditStatusLabel(it.auditStatus)}</Text>
                         ) : null}

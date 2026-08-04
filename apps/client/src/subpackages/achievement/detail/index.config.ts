@@ -1,3 +1,3 @@
 export default definePageConfig({
-  navigationBarTitleText: '成果详情',
+  navigationBarTitleText: '专利产品详情',
 });

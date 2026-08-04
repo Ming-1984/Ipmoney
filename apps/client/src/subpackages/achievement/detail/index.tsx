@@ -42,10 +42,10 @@ export default function AchievementDetailPage() {
   const [data, setData] = useState<AchievementPublic | null>(initialCachedData);
   const [favoritedState, setFavoritedState] = useState(false);
 
-  const achievementTitleText = displayTitleOrFallback(data?.title, '成果详情');
+  const achievementTitleText = displayTitleOrFallback(data?.title, '专利产品详情');
 
   useShareAppMessage(() => ({
-    title: `成果详情：${achievementTitleText}`,
+    title: `专利产品详情：${achievementTitleText}`,
     path: achievementId ? `/subpackages/achievement/detail/index?achievementId=${achievementId}` : '/pages/home/index',
     imageUrl: data?.coverUrl || undefined,
   }));
@@ -176,7 +176,7 @@ export default function AchievementDetailPage() {
   if (!achievementId) {
     return (
       <View className="container detail-page-compact">
-        <PageHeader title="成果详情" subtitle="参数错误" />
+        <PageHeader title="专利产品详情" subtitle="参数错误" />
         <Spacer />
         <MissingParamCard />
       </View>
@@ -185,7 +185,7 @@ export default function AchievementDetailPage() {
 
   return (
     <View className={`container detail-page-compact${data ? ' has-sticky' : ''}`}>
-      <PageHeader title="成果详情" subtitle="平台审核通过后展示" />
+      <PageHeader title="专利产品详情" subtitle="平台审核通过后展示" />
       <Spacer />
 
       {loading ? (
@@ -193,7 +193,7 @@ export default function AchievementDetailPage() {
       ) : error ? (
         <ErrorCard message={error} onRetry={load} />
       ) : !data ? (
-        <EmptyCard message="暂无成果信息" />
+        <EmptyCard message="暂无专利产品信息" />
       ) : (
         <View>
           {data.coverUrl ? (
@@ -203,7 +203,7 @@ export default function AchievementDetailPage() {
           ) : null}
 
           <Surface className="detail-compact-header">
-            <Text className="detail-compact-title">{displayTitleOrFallback(data.title, '成果标题待确认')}</Text>
+            <Text className="detail-compact-title">{displayTitleOrFallback(data.title, '产品标题待确认')}</Text>
             <View className="detail-compact-subline">
               <Text>发布时间 {formatTimeSmart(data.createdAt)}</Text>
               <Text>提交方：{displayUserName(data.publisher, '认证提交方')}</Text>
@@ -224,14 +224,14 @@ export default function AchievementDetailPage() {
           </Surface>
 
           <View className="detail-section">
-            <SectionHeader title="成果简介" />
+            <SectionHeader title="产品简介" />
             <Surface className="listing-detail-block">
               <Text className="muted">{displayInfoOrPlaceholder(data.summary)}</Text>
             </Surface>
           </View>
 
           <View className="detail-section">
-            <SectionHeader title="成果说明" />
+            <SectionHeader title="产品说明" />
             <Surface className="listing-detail-block">
               <Text className="muted">{displayInfoOrPlaceholder(data.description)}</Text>
             </Surface>

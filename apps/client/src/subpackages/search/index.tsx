@@ -644,7 +644,7 @@ export default function SearchPage() {
       <Surface className="search-hero glass-surface">
         <SearchEntry
           value={qInput}
-          placeholder={tab === 'LISTING' ? '输入专利关键词' : '输入成果关键词'}
+          placeholder={tab === 'LISTING' ? '输入专利关键词' : '输入专利产品关键词'}
           actionText="搜索"
           onChange={(value) => {
             setQInput(value);
@@ -663,7 +663,7 @@ export default function SearchPage() {
           value={tab}
           options={[
             { label: '专利信息', value: 'LISTING' },
-            { label: '专利成果', value: 'ACHIEVEMENT' },
+            { label: '专利产品', value: 'ACHIEVEMENT' },
           ]}
           onChange={(value) => setTab(value as 'LISTING' | 'ACHIEVEMENT')}
         />
@@ -986,7 +986,7 @@ export default function SearchPage() {
       ) : (
         <FilterSheet<AchievementFilters>
           open={filtersOpen}
-          title="筛选（成果）"
+          title="筛选（专利产品）"
           headerTitle="筛选条件"
           variant="search"
           value={achievementFilters}
@@ -1116,7 +1116,7 @@ export default function SearchPage() {
         ) : (
           <EmptyCard
             image={emptySearchNone}
-            title="暂无成果结果"
+            title="暂无专利产品结果"
             message="请调整关键词或筛选条件后重试。"
             variant="inline"
             actionText="刷新"

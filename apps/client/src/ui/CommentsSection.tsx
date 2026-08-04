@@ -357,7 +357,7 @@ export function CommentsSection(props: CommentsSectionProps) {
       fixed
       placeholder={composer.mode === 'new' ? '感兴趣就留言，问问更多专利信息~' : composerPlaceholder}
       placeholderClass="comment-composer-sheet-input-placeholder"
-      placeholderStyle="font-size:28rpx;line-height:40rpx;color:#8f96a3;"
+      placeholderStyle="font-size:32rpx;line-height:44rpx;color:#8f96a3;"
       maxlength={1000}
       focus={composerVisible}
       onBlur={handleComposerBlur}

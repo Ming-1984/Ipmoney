@@ -530,7 +530,7 @@
   min-height: 78rpx;
   max-height: 210rpx;
   line-height: 44rpx;
-  font-size: 30rpx;
+  font-size: 32rpx;
   color: #111827;
   background: transparent;
   border: 0;
@@ -542,6 +542,8 @@
 
 .chat-textarea-placeholder {
   color: #9ca3af;
+  font-size: 32rpx;
+  line-height: 44rpx;
 }
 
 .chat-input-field .chat-textarea:focus,

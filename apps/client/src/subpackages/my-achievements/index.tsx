@@ -27,8 +27,8 @@ type FilterOption<T extends string> = {
   value: T;
 };
 
-const PAGE_TITLE = '我的专利成果';
-const PAGE_SUBTITLE = '提交后查看、编辑、取消公开自己的成果信息';
+const PAGE_TITLE = '我的专利产品';
+const PAGE_SUBTITLE = '提交后查看、编辑、取消公开自己的专利产品信息';
 
 async function openPage(url: string) {
   await safeOpenPage(url);
@@ -144,21 +144,21 @@ export default function MyAchievementsPage() {
   }, []);
 
   const pageTitle = isDraftCenter ? '草稿箱' : PAGE_TITLE;
-  const pageSubtitle = isDraftCenter ? '仅展示未提交的专利成果草稿' : PAGE_SUBTITLE;
+  const pageSubtitle = isDraftCenter ? '仅展示未提交的专利产品草稿' : PAGE_SUBTITLE;
   const showContentStatusFilter = !auditStatusFilter || auditStatusFilter === 'APPROVED';
   const isFilteredEmpty = !isDraftCenter && Boolean(status || auditStatusFilter);
   const emptyMessage = isDraftCenter
     ? '暂无草稿'
     : isFilteredEmpty
-      ? '暂无符合条件的成果'
-      : '暂无成果记录';
+      ? '暂无符合条件的专利产品'
+      : '暂无专利产品记录';
 
   if (access.state === 'need-login') {
     return (
       <View className="container my-achievements-page">
         <PageHeader title={pageTitle} subtitle={pageSubtitle} />
         <Spacer />
-        <PermissionCard title="需要登录" message="登录后才能查看成果信息。" actionText="去登录" onAction={goLogin} />
+        <PermissionCard title="需要登录" message="登录后才能查看专利产品信息。" actionText="去登录" onAction={goLogin} />
       </View>
     );
   }
@@ -176,7 +176,7 @@ export default function MyAchievementsPage() {
       <View className="container my-achievements-page">
         <PageHeader title={pageTitle} subtitle={pageSubtitle} />
         <Spacer />
-        <AuditPendingCard title="资料审核中" message="审核通过后才能发布与管理成果信息。" actionText="查看进度" onAction={goOnboarding} />
+        <AuditPendingCard title="资料审核中" message="审核通过后才能发布与管理专利产品信息。" actionText="查看进度" onAction={goOnboarding} />
       </View>
     );
   }
@@ -238,7 +238,7 @@ export default function MyAchievementsPage() {
             <View style={{ height: '12rpx' }} />
             <View className="my-achievements-actions">
               <Button variant="primary" onClick={goCreate}>
-                发布新的专利成果
+                发布新的专利产品
               </Button>
               <Button variant="ghost" onClick={goDraftBox}>
                 草稿箱
@@ -265,7 +265,7 @@ export default function MyAchievementsPage() {
                 <View className="list-card-body">
                   <View className="list-card-head">
                     <View className="list-card-head-main">
-                      <Text className="list-card-title clamp-2">{displayTitleOrFallback(it.title, '成果标题待确认')}</Text>
+                      <Text className="list-card-title clamp-2">{displayTitleOrFallback(it.title, '产品标题待确认')}</Text>
                       <View className="list-card-tags">
                         <Text className="tag">{contentStatusLabel(it.status)}</Text>
                         {!isDraftCenter ? <Text className={auditStatusTagClass(it.auditStatus)}>{auditStatusLabel(it.auditStatus)}</Text> : null}

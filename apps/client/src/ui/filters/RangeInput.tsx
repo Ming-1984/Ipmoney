@@ -26,7 +26,7 @@ export function RangeInput(props: {
   unit?: string;
 }) {
   const unit = props.unit ?? '元';
-  const placeholderStyle = 'font-size:20rpx;color:#c0c4cc;';
+  const placeholderStyle = 'font-size:32rpx;color:#c0c4cc;';
 
   const [minText, setMinText] = useState(() => fenToYuanText(props.minFen));
   const [maxText, setMaxText] = useState(() => fenToYuanText(props.maxFen));

@@ -225,7 +225,7 @@
 
 .me-login-input .nut-input-inner {
   padding: 0;
-  font-size: 28rpx;
+  font-size: 32rpx;
   line-height: 1.4;
   color: #1a1108;
 }
@@ -235,7 +235,7 @@
 .me-login-input .nut-input-native .weui-input {
   min-height: 100rpx;
   padding: 0 38rpx;
-  font-size: 28rpx;
+  font-size: 32rpx;
   color: #1a1108;
   border: none;
   border-left: none;
@@ -268,7 +268,7 @@
 .me-login-input .nut-input-placeholder,
 .me-login-input .nut-input input::placeholder,
 .me-login-placeholder {
-  font-size: 24rpx;
+  font-size: 32rpx;
   color: #b9ada2;
 }
 
@@ -562,12 +562,15 @@
   padding: 24rpx 0;
   text-align: center;
   color: var(--c-muted);
+  font-size: 32rpx;
   font-weight: 600;
+  line-height: 1.35;
   position: relative;
 }
 
 .me-order-tab.active {
   color: var(--c-primary);
+  font-weight: 700;
 }
 
 .me-order-indicator {
@@ -625,9 +628,13 @@
 }
 
 .me-order-label {
-  font-size: 22rpx;
+  width: 100%;
+  font-size: 30rpx;
+  font-weight: 600;
+  line-height: 1.35;
   color: var(--c-muted);
   text-align: center;
+  white-space: nowrap;
 }
 
 .me-section-card {

@@ -80,7 +80,7 @@
   min-height: 104rpx;
   padding: 0;
   color: #111827;
-  font-size: 28rpx;
+  font-size: 32rpx;
   line-height: 1.4;
   text-align: left;
   background: transparent;
@@ -90,7 +90,7 @@
 .address-input-wrap .nut-input input::placeholder,
 .address-input-wrap .nut-input-native .weui-input::placeholder {
   color: #9ca3af;
-  font-size: 28rpx;
+  font-size: 32rpx;
 }
 
 .address-region-field {
@@ -102,20 +102,20 @@
 }
 
 .address-region-select {
-  min-height: 68rpx;
+  min-height: 96rpx;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14rpx;
+  gap: 16rpx;
 }
 
 .address-region-value,
 .address-region-placeholder {
   flex: 1;
   min-width: 0;
-  font-size: 28rpx;
-  line-height: 38rpx;
+  font-size: 32rpx;
+  line-height: 44rpx;
 }
 
 .address-region-value {
@@ -124,12 +124,13 @@
 
 .address-region-placeholder {
   color: #9ca3af;
+  font-size: 32rpx;
 }
 
 .address-region-arrow {
   flex-shrink: 0;
   color: #c0c4cc;
-  font-size: 28rpx;
+  font-size: 32rpx;
   line-height: 1;
 }
 

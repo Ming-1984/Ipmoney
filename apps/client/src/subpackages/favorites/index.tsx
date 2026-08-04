@@ -148,7 +148,7 @@ export default function FavoritesPage() {
         value={tab}
         options={[
           { label: '专利信息', value: 'LISTING' },
-          { label: '专利成果', value: 'ACHIEVEMENT' },
+          { label: '专利产品', value: 'ACHIEVEMENT' },
         ]}
         onChange={(value) => setTab(value as 'LISTING' | 'ACHIEVEMENT')}
       />

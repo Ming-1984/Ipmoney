@@ -76,7 +76,7 @@ function mergePlaceholderClass(extra?: string): string {
 }
 
 function mergePlaceholderStyle(extra?: string): string {
-  const base = 'font-size:20rpx;color:#c0c4cc;';
+  const base = 'font-size:32rpx;color:#c0c4cc;';
   return extra ? `${base}${extra}` : base;
 }
 

@@ -7,7 +7,7 @@ type ConversationSummary = components['schemas']['ConversationSummary'];
 function defaultConversationLabel(contentType?: string | null): string {
   const normalized = String(contentType || '').trim().toUpperCase();
   if (normalized === 'LISTING') return '挂牌咨询';
-  if (normalized === 'ACHIEVEMENT') return '成果咨询';
+  if (normalized === 'ACHIEVEMENT') return '专利产品会话';
   if (normalized === 'TECH_MANAGER') return '技术经理人';
   if (normalized === 'SUPPORT') return '平台客服助手';
   if (normalized === 'DISPUTE') return '订单争议';

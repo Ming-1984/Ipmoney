@@ -22,7 +22,7 @@ import {
 import { useRouteStringParam } from '../../../lib/routeParams';
 import { chooseImageFiles, uploadFileToApi } from '../../../lib/upload';
 import { ErrorCard, LoadingCard } from '../../../ui/StateCards';
-import { Photograph } from '../../../ui/icons';
+import { ArrowRight, Photograph } from '../../../ui/icons';
 import { PageHeader, Spacer, Surface } from '../../../ui/layout';
 import { Avatar, Input, toast } from '../../../ui/nutui';
 
@@ -132,23 +132,31 @@ export default function ProfileEditPage() {
   );
 
   const skip = useCallback(async () => {
+    if (actionBusyRef.current) return;
     const seq = ++skipSeqRef.current;
-    if (verifyType === 'PERSON') {
-      try {
-        const displayName = normalizeNicknameInput(nickname) || normalizeNicknameInput(resolvedDisplayName);
-        if (displayName) {
-          const res = await apiPost<any>('/me/verification', { type: 'PERSON', displayName });
-          if (seq !== skipSeqRef.current || !pageVisibleRef.current) return;
-          setVerificationType('PERSON');
-          if (res?.status) setVerificationStatus(res.status);
-          setOnboardingDone(true);
+    actionBusyRef.current = true;
+    try {
+      if (verifyType === 'PERSON') {
+        try {
+          const displayName = normalizeNicknameInput(nickname) || normalizeNicknameInput(resolvedDisplayName);
+          if (displayName) {
+            const res = await apiPost<any>('/me/verification', { type: 'PERSON', displayName });
+            if (seq !== skipSeqRef.current || !pageVisibleRef.current) return;
+            setVerificationType('PERSON');
+            if (res?.status) setVerificationStatus(res.status);
+            setOnboardingDone(true);
+          }
+        } catch {
+          // Keep skip available even when backend isn't ready.
         }
-      } catch {
-        // Keep skip available even when backend isn't ready.
+      }
+      if (seq !== skipSeqRef.current || !pageVisibleRef.current) return;
+      goNext();
+    } finally {
+      if (seq === skipSeqRef.current) {
+        actionBusyRef.current = false;
       }
     }
-    if (seq !== skipSeqRef.current || !pageVisibleRef.current) return;
-    goNext();
   }, [goNext, nickname, resolvedDisplayName, verifyType]);
 
   const load = useCallback(async () => {
@@ -429,7 +437,7 @@ export default function ProfileEditPage() {
                   clearable
                   type={isWeapp ? 'nickname' : undefined}
                   placeholderClass="profile-placeholder"
-                  placeholderStyle="font-size:20rpx;color:#c0c4cc;"
+                  placeholderStyle="font-size:32rpx;color:#c0c4cc;"
                 />
               </View>
 
@@ -452,8 +460,13 @@ export default function ProfileEditPage() {
               保存
             </TaroButton>
             {isOnboarding ? (
-              <TaroButton className="profile-skip-btn" plain onClick={() => void skip()}>
-                稍后完善
+              <TaroButton
+                className="profile-skip-btn"
+                hoverClass="profile-skip-btn-active"
+                onClick={() => void skip()}
+              >
+                <Text>稍后完善</Text>
+                <ArrowRight size={16} color="#d65f18" />
               </TaroButton>
             ) : null}
           </View>

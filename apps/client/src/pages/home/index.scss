@@ -115,12 +115,14 @@
 
 .home-search-input {
   flex: 1;
-  font-size: 24rpx;
+  font-size: 32rpx;
   color: #374151;
 }
 
 .home-search-placeholder {
   color: #9ca3af;
+  font-size: 32rpx;
+  line-height: 1.4;
 }
 
 .home-search-divider {
@@ -233,24 +235,27 @@
   margin: 24rpx 32rpx 0;
   background: #fff;
   border-radius: 24rpx;
-  padding: 22rpx 10rpx 18rpx;
+  padding: 24rpx 10rpx 22rpx;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  row-gap: 12rpx;
+  row-gap: 16rpx;
   box-shadow: 0 12rpx 30rpx rgba(15, 23, 42, 0.08);
 }
 
 .home-quick-item {
+  min-width: 0;
+  min-height: 128rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6rpx;
+  justify-content: center;
+  gap: 8rpx;
   overflow: visible;
 }
 
 .home-quick-icon {
-  width: 78rpx;
-  height: 78rpx;
+  width: 88rpx;
+  height: 88rpx;
   border-radius: 999rpx;
   display: flex;
   align-items: center;
@@ -259,21 +264,25 @@
 }
 
 .home-quick-icon-img {
-  width: 40rpx;
-  height: 40rpx;
+  width: 48rpx;
+  height: 48rpx;
 }
 
 .home-quick-label {
-  font-size: 20rpx;
-  color: #4b5563;
-  font-weight: 500;
-  height: 24rpx;
-  line-height: 24rpx;
+  display: block;
+  width: 100%;
+  font-size: 28rpx;
+  color: #d95a00;
+  font-weight: 600;
+  min-height: 36rpx;
+  line-height: 36rpx;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .home-quick-item-invention-patent .home-quick-icon {
-  width: 78rpx;
-  height: 78rpx;
+  width: 88rpx;
+  height: 88rpx;
 }
 
 .home-quick-item-invention-patent .home-quick-icon-img {
@@ -282,8 +291,8 @@
 }
 
 .home-quick-item-utility-patent .home-quick-icon {
-  width: 78rpx;
-  height: 78rpx;
+  width: 88rpx;
+  height: 88rpx;
 }
 
 .home-quick-item-utility-patent .home-quick-icon-img {
@@ -524,9 +533,11 @@
 }
 
 .home-zone-title {
-  font-size: 28rpx;
+  font-size: 32rpx;
   font-weight: 700;
   color: #ffffff;
+  line-height: 1.18;
+  text-shadow: 0 3rpx 12rpx rgba(0, 0, 0, 0.24);
 }
 
 .home-zone-desc {
