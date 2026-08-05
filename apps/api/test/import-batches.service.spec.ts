@@ -56,14 +56,14 @@ describe('ImportBatchesService change log backfill', () => {
             entityType: 'USER_VERIFICATION',
             entityId: '22222222-2222-2222-2222-222222222222',
             operation: 'CREATE',
-            rollbackStrategy: 'MANUAL_ONLY',
+            rollbackStrategy: 'SOFT_OFF_SHELF',
           }),
           expect.objectContaining({
             rowNo: 2,
             entityType: 'TECH_MANAGER_PROFILE',
             entityId: '33333333-3333-3333-3333-333333333333',
             operation: 'CREATE',
-            rollbackStrategy: 'MANUAL_ONLY',
+            rollbackStrategy: 'SOFT_OFF_SHELF',
           }),
         ]),
       }),
@@ -125,6 +125,75 @@ describe('ImportBatchesService change log backfill', () => {
           operation: 'CREATE',
           rollbackStrategy: 'SOFT_OFF_SHELF',
         }),
+      ]),
+    );
+  });
+
+  it('allows soft rollback for newly created tech manager verification and profile while keeping user manual', async () => {
+    const referenceAt = new Date('2026-08-05T06:00:00.000Z');
+    const prisma: any = {
+      userVerification: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: '22222222-2222-2222-2222-222222222222',
+            userId: '11111111-1111-1111-1111-111111111111',
+            displayName: '张三',
+            verificationStatus: 'APPROVED',
+            updatedAt: referenceAt,
+            user: { id: '11111111-1111-1111-1111-111111111111', nickname: '张三' },
+          },
+        ]),
+      },
+      techManagerProfile: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            userId: '11111111-1111-1111-1111-111111111111',
+            updatedAt: referenceAt,
+          },
+        ]),
+      },
+      techManagerBadge: { findMany: vi.fn().mockResolvedValue([]) },
+    };
+    const service = new ImportBatchesService(prisma, audit as any, files as any);
+
+    const result = await (service as any).evaluateTechManagerChanges(
+      { executedAt: referenceAt },
+      [
+        {
+          id: 'change-user',
+          rowNo: 2,
+          entityType: 'USER',
+          entityId: '11111111-1111-1111-1111-111111111111',
+          operation: 'CREATE',
+          rollbackStrategy: 'MANUAL_ONLY',
+          afterJson: { displayName: '张三', processedAt: referenceAt.toISOString() },
+        },
+        {
+          id: 'change-verification',
+          rowNo: 2,
+          entityType: 'USER_VERIFICATION',
+          entityId: '22222222-2222-2222-2222-222222222222',
+          operation: 'CREATE',
+          rollbackStrategy: 'SOFT_OFF_SHELF',
+          afterJson: { displayName: '张三', processedAt: referenceAt.toISOString() },
+        },
+        {
+          id: 'change-profile',
+          rowNo: 2,
+          entityType: 'TECH_MANAGER_PROFILE',
+          entityId: '11111111-1111-1111-1111-111111111111',
+          operation: 'CREATE',
+          rollbackStrategy: 'SOFT_OFF_SHELF',
+          afterJson: { displayName: '张三', processedAt: referenceAt.toISOString() },
+        },
+      ],
+    );
+
+    expect(result).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ changeId: 'change-user', rollbackStatus: 'BLOCKED' }),
+        expect.objectContaining({ changeId: 'change-verification', rollbackStatus: 'ROLLBACKABLE' }),
+        expect.objectContaining({ changeId: 'change-profile', rollbackStatus: 'ROLLBACKABLE' }),
       ]),
     );
   });

@@ -124,6 +124,7 @@ const MAX_CHANGE_PAGE_SIZE = 500;
 const LEGACY_SYNC_LIMIT = 100;
 const BULK_IMPORT_EXECUTE = 'BULK_IMPORT_EXECUTE';
 const ROLLBACK_FINISHED_STATUSES = new Set<ImportBatchStatus>([
+  'ROLLBACK_PRECHECKED',
   'ROLLBACK_RUNNING',
   'ROLLED_BACK',
   'PARTIALLY_ROLLED_BACK',
@@ -755,6 +756,13 @@ export class ImportBatchesService {
     return 'UPDATE';
   }
 
+  private techManagerRollbackStrategy(entityType: ImportEntityType, operation: ImportChangeOperation): ImportRollbackStrategy {
+    if (entityType === 'USER_VERIFICATION' && operation === 'CREATE') return 'SOFT_OFF_SHELF';
+    if (entityType === 'TECH_MANAGER_PROFILE' && operation === 'CREATE') return 'SOFT_OFF_SHELF';
+    if (entityType === 'TECH_MANAGER_BADGE' && operation === 'APPEND') return 'EXPIRE_BADGE';
+    return 'MANUAL_ONLY';
+  }
+
   private async getBulkAuditLog(batch: any) {
     if (!batch.legacyJobId) return null;
     return await this.prisma.auditLog.findUnique({ where: { id: batch.legacyJobId } });
@@ -772,12 +780,13 @@ export class ImportBatchesService {
         const rowNoRaw = Number(change?.rowNo || 0);
         const rowNo = Number.isSafeInteger(rowNoRaw) && rowNoRaw > 0 ? rowNoRaw : null;
         const displayName = this.truncateText(change?.label || change?.afterJson?.displayName, 120);
+        const operation = this.normalizePeopleChangeOperation(change?.operation);
         return {
           batchId: batch.id,
           rowNo,
           entityType: entityType as any,
           entityId,
-          operation: this.normalizePeopleChangeOperation(change?.operation) as any,
+          operation: operation as any,
           afterJson: {
             ...(change?.afterJson || {}),
             source: 'PEOPLE_IMPORT_AUDIT_PAYLOAD',
@@ -786,7 +795,7 @@ export class ImportBatchesService {
             displayName: displayName || null,
             rowNo,
           } as any,
-          rollbackStrategy: 'MANUAL_ONLY' as any,
+          rollbackStrategy: this.techManagerRollbackStrategy(entityType, operation) as any,
         };
       })
       .filter((item): item is any => !!item);
@@ -849,12 +858,15 @@ export class ImportBatchesService {
         } as any,
         rollbackStrategy: 'MANUAL_ONLY' as any,
       });
+      const verificationOperation: ImportChangeOperation = this.isCreatedNear(verification.createdAt, referenceAt)
+        ? 'CREATE'
+        : 'UPDATE';
       out.push({
         batchId: params.batch.id,
         rowNo: row.rowNo,
         entityType: 'USER_VERIFICATION' as any,
         entityId: verification.id,
-        operation: (this.isCreatedNear(verification.createdAt, referenceAt) ? 'CREATE' : 'UPDATE') as any,
+        operation: verificationOperation as any,
         afterJson: {
           source: 'PEOPLE_IMPORT_HISTORY_BACKFILL',
           auditLogId: params.auditLog?.id || null,
@@ -865,15 +877,16 @@ export class ImportBatchesService {
           reviewedAt: this.toIso(verification.reviewedAt),
           importedAt: this.toIso(referenceAt),
         } as any,
-        rollbackStrategy: 'MANUAL_ONLY' as any,
+        rollbackStrategy: this.techManagerRollbackStrategy('USER_VERIFICATION', verificationOperation) as any,
       });
       if (profile) {
+        const profileOperation: ImportChangeOperation = this.isCreatedNear(profile.createdAt, referenceAt) ? 'CREATE' : 'UPDATE';
         out.push({
           batchId: params.batch.id,
           rowNo: row.rowNo,
           entityType: 'TECH_MANAGER_PROFILE' as any,
           entityId: user.id,
-          operation: (this.isCreatedNear(profile.createdAt, referenceAt) ? 'CREATE' : 'UPDATE') as any,
+          operation: profileOperation as any,
           afterJson: {
             source: 'PEOPLE_IMPORT_HISTORY_BACKFILL',
             auditLogId: params.auditLog?.id || null,
@@ -883,7 +896,7 @@ export class ImportBatchesService {
             organization: profile.organization || null,
             importedAt: this.toIso(referenceAt),
           } as any,
-          rollbackStrategy: 'MANUAL_ONLY' as any,
+          rollbackStrategy: this.techManagerRollbackStrategy('TECH_MANAGER_PROFILE', profileOperation) as any,
         });
       }
       const badges = params.badgeMap.get(user.id) || [];
@@ -905,7 +918,7 @@ export class ImportBatchesService {
             assignedAt: this.toIso(badge.assignedAt),
             expiresAt: this.toIso(badge.expiresAt),
           } as any,
-          rollbackStrategy: 'MANUAL_ONLY' as any,
+          rollbackStrategy: this.techManagerRollbackStrategy('TECH_MANAGER_BADGE', replaced ? 'REPLACE' : 'APPEND') as any,
         });
       }
     }
@@ -1019,7 +1032,58 @@ export class ImportBatchesService {
     return new Set(rows.map((row) => row.entityType as ImportEntityType));
   }
 
+  private async upgradeTechManagerRollbackStrategies(batchId: string) {
+    await Promise.all([
+      this.prisma.importChangeLog.updateMany({
+        where: {
+          batchId,
+          entityType: 'USER_VERIFICATION' as any,
+          operation: 'CREATE' as any,
+          rollbackStrategy: 'MANUAL_ONLY' as any,
+          rollbackStatus: { not: 'ROLLED_BACK' as any },
+        },
+        data: {
+          rollbackStrategy: 'SOFT_OFF_SHELF' as any,
+          rollbackStatus: 'PENDING' as any,
+          blockedReason: null,
+          rollbackError: null,
+        },
+      }),
+      this.prisma.importChangeLog.updateMany({
+        where: {
+          batchId,
+          entityType: 'TECH_MANAGER_PROFILE' as any,
+          operation: 'CREATE' as any,
+          rollbackStrategy: 'MANUAL_ONLY' as any,
+          rollbackStatus: { not: 'ROLLED_BACK' as any },
+        },
+        data: {
+          rollbackStrategy: 'SOFT_OFF_SHELF' as any,
+          rollbackStatus: 'PENDING' as any,
+          blockedReason: null,
+          rollbackError: null,
+        },
+      }),
+      this.prisma.importChangeLog.updateMany({
+        where: {
+          batchId,
+          entityType: 'TECH_MANAGER_BADGE' as any,
+          operation: 'APPEND' as any,
+          rollbackStrategy: 'MANUAL_ONLY' as any,
+          rollbackStatus: { not: 'ROLLED_BACK' as any },
+        },
+        data: {
+          rollbackStrategy: 'EXPIRE_BADGE' as any,
+          rollbackStatus: 'PENDING' as any,
+          blockedReason: null,
+          rollbackError: null,
+        },
+      }),
+    ]);
+  }
+
   private async ensureChangeLogsForBatch(batch: any) {
+    if (batch.kind === 'PEOPLE_ACHIEVEMENTS') await this.upgradeTechManagerRollbackStrategies(batch.id);
     const existingTypes = await this.getExistingChangeEntityTypes(batch.id);
     if (batch.kind === 'DEAL_RECORD' && existingTypes.has('DEAL_RECORD')) return;
     if (batch.kind === 'LISTING' && existingTypes.has('LISTING')) return;
@@ -1175,16 +1239,96 @@ export class ImportBatchesService {
     });
   }
 
-  private evaluateTechManagerManualChanges(changes: any[]): RollbackChangePreview[] {
+  private async evaluateTechManagerChanges(batch: any, changes: any[]): Promise<RollbackChangePreview[]> {
     const reasonMap: Record<string, string> = {
       USER: '经理人账号可能关联登录、订单、会话等用户行为，当前只生成处理清单，不自动删除或覆盖',
       USER_VERIFICATION: '经理人认证资料缺少导入前快照，当前只生成处理清单，不自动回退认证状态',
       TECH_MANAGER_PROFILE: '经理人主页资料缺少导入前快照，当前只生成处理清单，不自动覆盖回退',
       TECH_MANAGER_BADGE: '经理人标签可能包含人工运营调整，当前只生成处理清单，不自动过期或恢复',
     };
+    const verificationIds = changes
+      .filter((item) => item.entityType === 'USER_VERIFICATION')
+      .map((item) => item.entityId)
+      .filter((id): id is string => !!id);
+    const profileUserIds = changes
+      .filter((item) => item.entityType === 'TECH_MANAGER_PROFILE')
+      .map((item) => item.entityId)
+      .filter((id): id is string => !!id);
+    const badgeIds = changes
+      .filter((item) => item.entityType === 'TECH_MANAGER_BADGE')
+      .map((item) => item.entityId)
+      .filter((id): id is string => !!id);
+    const [verifications, profiles, badges] = await Promise.all([
+      verificationIds.length
+        ? this.prisma.userVerification.findMany({ where: { id: { in: verificationIds } }, include: { user: true } })
+        : [],
+      profileUserIds.length ? this.prisma.techManagerProfile.findMany({ where: { userId: { in: profileUserIds } } }) : [],
+      badgeIds.length ? this.prisma.techManagerBadge.findMany({ where: { id: { in: badgeIds } } }) : [],
+    ]);
+    const verificationMap = new Map(verifications.map((item) => [item.id, item]));
+    const profileMap = new Map(profiles.map((item) => [item.userId, item]));
+    const badgeMap = new Map(badges.map((item) => [item.id, item]));
+
     return changes.map((change) => {
       const after = (change.afterJson || {}) as any;
       const label = String(after.displayName || after.label || after.badgeCode || '').trim() || null;
+      if (change.rollbackStrategy === 'MANUAL_ONLY') {
+        return this.basePreview(change, 'BLOCKED', reasonMap[String(change.entityType)] || '该数据类型需要人工处理', {
+          entityLabel: label,
+        });
+      }
+
+      const referenceAt = this.extractReferenceAt(change, batch.executedAt);
+      if (change.entityType === 'USER_VERIFICATION' && change.rollbackStrategy === 'SOFT_OFF_SHELF') {
+        const verification = change.entityId ? verificationMap.get(change.entityId) : null;
+        if (!verification) return this.basePreview(change, 'SKIPPED', '经理人认证资料不存在', { entityLabel: label });
+        const displayName = label || String(verification.displayName || verification.user?.nickname || '').trim() || null;
+        if (verification.verificationStatus === 'REJECTED') {
+          return this.basePreview(change, 'ROLLED_BACK', null, { entityLabel: displayName });
+        }
+        if (change.operation !== 'CREATE') {
+          return this.basePreview(change, 'BLOCKED', '更新类经理人认证缺少导入前快照，只生成处理清单', {
+            entityLabel: displayName,
+          });
+        }
+        if (this.changedAfterReference(verification.updatedAt, referenceAt)) {
+          return this.basePreview(change, 'CONFLICTED', '经理人认证在导入后已被修改，需人工确认后才能取消认证', {
+            entityLabel: displayName,
+            overrideable: true,
+          });
+        }
+        return this.basePreview(change, 'ROLLBACKABLE', null, { entityLabel: displayName });
+      }
+
+      if (change.entityType === 'TECH_MANAGER_PROFILE' && change.rollbackStrategy === 'SOFT_OFF_SHELF') {
+        const profile = change.entityId ? profileMap.get(change.entityId) : null;
+        if (!profile) return this.basePreview(change, 'SKIPPED', '经理人主页资料不存在', { entityLabel: label });
+        if (change.operation !== 'CREATE') {
+          return this.basePreview(change, 'BLOCKED', '更新类经理人主页缺少导入前快照，只生成处理清单', { entityLabel: label });
+        }
+        if (this.changedAfterReference(profile.updatedAt, referenceAt)) {
+          return this.basePreview(change, 'CONFLICTED', '经理人主页在导入后已被修改，需人工确认后才能隐藏', {
+            entityLabel: label,
+            overrideable: true,
+          });
+        }
+        return this.basePreview(change, 'ROLLBACKABLE', null, { entityLabel: label });
+      }
+
+      if (change.entityType === 'TECH_MANAGER_BADGE' && change.rollbackStrategy === 'EXPIRE_BADGE') {
+        const badge = change.entityId ? badgeMap.get(change.entityId) : null;
+        const badgeLabel = label || String(badge?.badgeCode || '').trim() || null;
+        if (!badge) return this.basePreview(change, 'SKIPPED', '经理人标签不存在', { entityLabel: badgeLabel });
+        if (badge.expiresAt) return this.basePreview(change, 'ROLLED_BACK', null, { entityLabel: badgeLabel });
+        if (this.changedAfterReference(badge.updatedAt, referenceAt)) {
+          return this.basePreview(change, 'CONFLICTED', '经理人标签在导入后已被调整，需人工确认后才能移除', {
+            entityLabel: badgeLabel,
+            overrideable: true,
+          });
+        }
+        return this.basePreview(change, 'ROLLBACKABLE', null, { entityLabel: badgeLabel });
+      }
+
       return this.basePreview(change, 'BLOCKED', reasonMap[String(change.entityType)] || '该数据类型需要人工处理', {
         entityLabel: label,
       });
@@ -1203,7 +1347,7 @@ export class ImportBatchesService {
       else if (entityType === 'LISTING') out.push(...(await this.evaluateListings(batch, items)));
       else if (entityType === 'ACHIEVEMENT') out.push(...(await this.evaluateAchievements(batch, items)));
       else if (entityType === 'PATENT') out.push(...(await this.evaluatePatents(items)));
-      else if (TECH_MANAGER_CHANGE_ENTITY_TYPES.has(entityType)) out.push(...this.evaluateTechManagerManualChanges(items));
+      else if (TECH_MANAGER_CHANGE_ENTITY_TYPES.has(entityType)) out.push(...(await this.evaluateTechManagerChanges(batch, items)));
       else {
         out.push(...items.map((item) => this.basePreview(item, 'BLOCKED', '该数据类型需要人工处理')));
       }
@@ -1265,7 +1409,7 @@ export class ImportBatchesService {
     if (summary.blockedCount > 0) warnings.push('有数据已经产生业务关联，或需要人工判断，暂不能自动撤回。');
     if (summary.manualOnlyCount > 0) warnings.push('缺少导入前快照的记录，本次只生成处理清单。');
     if (summary.rollbackableCount > 0) {
-      warnings.push('自动撤回只处理支持安全回退的数据：挂牌和成果会下架，成交记录会作废；专利主数据、经理人资料等复杂数据不会自动改动，会保留在报告中人工处理。');
+      warnings.push('自动撤回只处理支持安全回退的数据：挂牌和成果会下架，成交记录会作废；新增技术经理人认证/主页会取消认证或隐藏，账号、更新类资料和专利主数据会保留在报告中人工处理。');
     }
     return {
       batch: batchDto,
@@ -1503,6 +1647,57 @@ export class ImportBatchesService {
     await this.markChange(change.id, 'ROLLED_BACK');
   }
 
+  private async rollbackTechManagerVerification(change: any, actorUserId: string, reason: string) {
+    const verification = change.entityId ? await this.prisma.userVerification.findUnique({ where: { id: change.entityId } }) : null;
+    if (!verification) {
+      await this.markChange(change.id, 'FAILED', { error: '经理人认证资料不存在' });
+      return;
+    }
+    if (verification.verificationStatus !== 'REJECTED') {
+      await this.prisma.userVerification.update({
+        where: { id: verification.id },
+        data: {
+          verificationStatus: 'REJECTED' as any,
+          reviewedAt: new Date(),
+          reviewedById: actorUserId,
+          reviewComment: this.rollbackReason(reason),
+        },
+      });
+    }
+    await this.markChange(change.id, 'ROLLED_BACK');
+  }
+
+  private async rollbackTechManagerProfile(change: any) {
+    const profile = change.entityId ? await this.prisma.techManagerProfile.findUnique({ where: { userId: change.entityId } }) : null;
+    if (!profile) {
+      await this.markChange(change.id, 'FAILED', { error: '经理人主页资料不存在' });
+      return;
+    }
+    await this.prisma.techManagerProfile.update({
+      where: { userId: profile.userId },
+      data: {
+        featuredRank: null,
+        featuredUntil: null,
+      },
+    });
+    await this.markChange(change.id, 'ROLLED_BACK');
+  }
+
+  private async rollbackTechManagerBadge(change: any) {
+    const badge = change.entityId ? await this.prisma.techManagerBadge.findUnique({ where: { id: change.entityId } }) : null;
+    if (!badge) {
+      await this.markChange(change.id, 'FAILED', { error: '经理人标签不存在' });
+      return;
+    }
+    if (!badge.expiresAt) {
+      await this.prisma.techManagerBadge.update({
+        where: { id: badge.id },
+        data: { expiresAt: new Date() },
+      });
+    }
+    await this.markChange(change.id, 'ROLLED_BACK');
+  }
+
   async rollbackBatch(req: any, batchId: string, body: any): Promise<RollbackPreview> {
     this.ensureAdmin(req);
     const batch = await this.getBatchOrThrow(batchId);
@@ -1536,6 +1731,9 @@ export class ImportBatchesService {
         if (change.entityType === 'DEAL_RECORD') await this.rollbackDealRecord(change, actorUserId, rollbackReason);
         else if (change.entityType === 'LISTING') await this.rollbackListing(change);
         else if (change.entityType === 'ACHIEVEMENT') await this.rollbackAchievement(change);
+        else if (change.entityType === 'USER_VERIFICATION') await this.rollbackTechManagerVerification(change, actorUserId, rollbackReason);
+        else if (change.entityType === 'TECH_MANAGER_PROFILE') await this.rollbackTechManagerProfile(change);
+        else if (change.entityType === 'TECH_MANAGER_BADGE') await this.rollbackTechManagerBadge(change);
         else await this.markChange(change.id, 'FAILED', { error: '该数据类型不支持自动撤回' });
       } catch (error: any) {
         await this.markChange(change.id, 'FAILED', { error: error?.message || 'rollback failed' });

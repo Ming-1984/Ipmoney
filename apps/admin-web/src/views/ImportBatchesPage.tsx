@@ -189,7 +189,7 @@ const OPERATION_LABELS: Record<string, string> = {
 const ROLLBACK_STRATEGY_LABELS: Record<string, string> = {
   DELETE: '删除新增数据',
   RESTORE: '恢复原数据',
-  SOFT_OFF_SHELF: '下架新增挂牌',
+  SOFT_OFF_SHELF: '下架/隐藏',
   VOID: '作废新增记录',
   EXPIRE_BADGE: '移除新增标签',
   MANUAL_ONLY: '仅人工处理',
@@ -449,6 +449,8 @@ function rollbackActionText(row: RollbackChangePreview) {
   if (row.rollbackStrategy === 'SOFT_OFF_SHELF') {
     if (row.entityType === 'LISTING') return '执行撤回后下架该挂牌，不删除记录。';
     if (row.entityType === 'ACHIEVEMENT') return '执行撤回后下架该成果，不删除记录。';
+    if (row.entityType === 'USER_VERIFICATION') return '执行撤回后取消该技术经理人认证，账号和记录仍保留。';
+    if (row.entityType === 'TECH_MANAGER_PROFILE') return '执行撤回后隐藏该技术经理人主页，不删除资料记录。';
     return '执行撤回后做软处理，不删除记录。';
   }
   if (row.rollbackStrategy === 'VOID') return '执行撤回后作废该记录，不删除记录。';
