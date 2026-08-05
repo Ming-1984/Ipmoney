@@ -1,9 +1,12 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import ExcelJS = require('exceljs');
+import path from 'node:path';
 
 import { AuditLogService } from '../../common/audit-log.service';
 import { requirePermission } from '../../common/permissions';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { FilesService } from '../files/files.service';
 
 type ImportBatchKind = 'PEOPLE_ACHIEVEMENTS' | 'PATENT' | 'LISTING' | 'DEAL_RECORD' | 'LISTING_BATCH_ACTION';
 type ImportBatchStatus =
@@ -33,6 +36,16 @@ type ImportRollbackStatus = 'PENDING' | 'ROLLBACKABLE' | 'BLOCKED' | 'CONFLICTED
 type LegacyJobType = 'BULK_IMPORT_AUDIT_LOG' | 'PATENT_IMPORT_JOB' | 'LISTING_IMPORT_JOB' | 'DEAL_RECORD_IMPORT_JOB';
 type Paged<T> = { items: T[]; page: { page: number; pageSize: number; total: number } };
 type UserBrief = { id: string; nickname?: string | null; phone?: string | null };
+type PeopleWorkbookRow = { rowNo: number; name: string };
+type PeopleAuditChange = {
+  rowNo?: number | null;
+  entityType?: string | null;
+  entityId?: string | null;
+  operation?: string | null;
+  label?: string | null;
+  rollbackStrategy?: string | null;
+  afterJson?: Record<string, any> | null;
+};
 
 type ImportBatchDto = {
   id: string;
@@ -144,12 +157,20 @@ const CHANGE_ROLLBACK_STATUSES = new Set<ImportRollbackStatus>([
   'FAILED',
   'SKIPPED',
 ]);
+const TECH_MANAGER_CHANGE_ENTITY_TYPES = new Set<ImportEntityType>([
+  'USER',
+  'USER_VERIFICATION',
+  'TECH_MANAGER_PROFILE',
+  'TECH_MANAGER_BADGE',
+]);
+const PEOPLE_NAME_ALIASES = ['name', 'displayName', 'fullName', '\u59d3\u540d', '\u540d\u79f0', '\u6280\u672f\u7ecf\u7406\u4eba'];
 
 @Injectable()
 export class ImportBatchesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogService,
+    private readonly files: FilesService,
   ) {}
 
   private ensureAdmin(req: any) {
@@ -216,6 +237,95 @@ export class ImportBatchesService {
 
   private number(value: any): number {
     return Number(value || 0);
+  }
+
+  private normalizeWorkbookCell(value: unknown): string {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value).trim();
+    if (Array.isArray(value)) return value.map((item) => this.normalizeWorkbookCell(item)).join('').trim();
+    if (typeof value === 'object' && value) {
+      const maybe = value as Record<string, any>;
+      if (maybe.result !== undefined) return this.normalizeWorkbookCell(maybe.result);
+      if (typeof maybe.text === 'string') return maybe.text.trim();
+      if (Array.isArray(maybe.richText)) return maybe.richText.map((item: any) => String(item?.text || '')).join('').trim();
+      if (maybe.hyperlink) return String(maybe.text || maybe.hyperlink || '').trim();
+    }
+    return String(value).trim();
+  }
+
+  private normalizeWorkbookHeaderText(value: unknown): string {
+    return this.normalizeWorkbookCell(value)
+      .toLowerCase()
+      .replace(/[\s_\-\uFF08\uFF09()\u3010\u3011\[\]:\uFF1A]/g, '');
+  }
+
+  private normalizePersonName(value: unknown): string {
+    return String(value || '').trim().replace(/\s+/g, '');
+  }
+
+  private pickWorkbookValue(row: { byHeader: Record<string, string>; cols: string[] }, aliases: readonly string[]): string {
+    for (const alias of aliases) {
+      const key = this.normalizeWorkbookHeaderText(alias);
+      if (Object.prototype.hasOwnProperty.call(row.byHeader, key)) return row.byHeader[key] || '';
+    }
+    return '';
+  }
+
+  private detectFileName(file: { fileName?: string | null; url?: string | null }): string {
+    const direct = String(file.fileName || '').trim();
+    if (direct) return direct;
+    const url = String(file.url || '').trim();
+    if (!url) return '';
+    try {
+      return path.basename(new URL(url).pathname);
+    } catch {
+      return path.basename(url.split('?')[0] || '');
+    }
+  }
+
+  private async readPeopleWorkbookRows(fileId: string | null | undefined): Promise<PeopleWorkbookRow[]> {
+    if (!fileId || !UUID_RE.test(fileId)) return [];
+    try {
+      const file = await this.files.getFileById(fileId);
+      if (!file) return [];
+      const fileName = this.detectFileName(file);
+      if (!fileName) return [];
+      const rawBuffer = await this.files.getFileBuffer(fileName);
+      if (!rawBuffer?.length) return [];
+
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(Buffer.from(rawBuffer) as any);
+      const sheet = workbook.worksheets[0];
+      if (!sheet) return [];
+
+      const headerRow = sheet.getRow(1);
+      const maxColumns = Math.max(16, headerRow.actualCellCount || 0, sheet.actualColumnCount || 0);
+      const headers: string[] = [];
+      for (let col = 1; col <= maxColumns; col += 1) {
+        headers.push(this.normalizeWorkbookHeaderText(headerRow.getCell(col).value));
+      }
+
+      const rows: PeopleWorkbookRow[] = [];
+      for (let rowNo = 2; rowNo <= sheet.rowCount; rowNo += 1) {
+        const sheetRow = sheet.getRow(rowNo);
+        const cols: string[] = [];
+        const byHeader: Record<string, string> = {};
+        let hasValue = false;
+        for (let col = 1; col <= maxColumns; col += 1) {
+          const value = this.normalizeWorkbookCell(sheetRow.getCell(col).value);
+          cols.push(value);
+          const headerKey = headers[col - 1];
+          if (headerKey) byHeader[headerKey] = value;
+          if (value) hasValue = true;
+        }
+        if (!hasValue) continue;
+        const name = this.normalizePersonName(this.pickWorkbookValue({ cols, byHeader }, PEOPLE_NAME_ALIASES) || cols[0]);
+        if (name) rows.push({ rowNo, name });
+      }
+      return rows;
+    } catch {
+      return [];
+    }
   }
 
   private userName(user?: UserBrief): string | null {
@@ -574,14 +684,26 @@ export class ImportBatchesService {
 
   private async ensurePatentChangeLogs(batch: any) {
     if (!batch.legacyJobId) return;
+    const job = await this.prisma.patentImportJob.findUnique({ where: { id: batch.legacyJobId } });
+    if (!job) return;
     const rows = await this.prisma.patentImportJobRow.findMany({
       where: { jobId: batch.legacyJobId, status: 'SUCCEEDED', patentId: { not: null } },
       orderBy: [{ rowNo: 'asc' }, { id: 'asc' }],
     });
     if (!rows.length) return;
-    await this.prisma.importChangeLog.createMany({
-      skipDuplicates: true,
-      data: rows.map((row) => ({
+    const patentIds = Array.from(new Set(rows.map((row) => row.patentId).filter((id): id is string => !!id)));
+    const listings = patentIds.length
+      ? await this.prisma.listing.findMany({
+          where: { patentId: { in: patentIds } },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        })
+      : [];
+    const listingByPatentId = new Map<string, any>();
+    for (const listing of listings) {
+      if (listing.patentId && !listingByPatentId.has(listing.patentId)) listingByPatentId.set(listing.patentId, listing);
+    }
+
+    const patentLogs = rows.map((row) => ({
         batchId: batch.id,
         rowNo: row.rowNo,
         entityType: 'PATENT' as any,
@@ -594,21 +716,273 @@ export class ImportBatchesService {
           processedAt: this.toIso(row.processedAt),
         } as any,
         rollbackStrategy: 'MANUAL_ONLY' as any,
-      })),
+    }));
+    const listingLogs = rows
+      .map((row) => {
+        const listing = row.patentId ? listingByPatentId.get(row.patentId) : null;
+        if (!listing) return null;
+        const referenceAt = row.processedAt || job.startedAt || job.createdAt;
+        const wasLikelyCreated = this.isCreatedNear(listing.createdAt, referenceAt);
+        const operation: ImportChangeOperation = wasLikelyCreated ? 'CREATE' : 'UPDATE';
+        const strategy: ImportRollbackStrategy = wasLikelyCreated ? 'SOFT_OFF_SHELF' : 'MANUAL_ONLY';
+        return {
+          batchId: batch.id,
+          rowNo: row.rowNo,
+          entityType: 'LISTING' as any,
+          entityId: listing.id,
+          operation: operation as any,
+          afterJson: {
+            jobId: row.jobId,
+            rowId: row.id,
+            rowNo: row.rowNo,
+            patentId: row.patentId,
+            source: 'PATENT_IMPORT_LISTING_BACKFILL',
+            processedAt: this.toIso(row.processedAt),
+            detectedLegacyUpdate: !wasLikelyCreated,
+          } as any,
+          rollbackStrategy: strategy as any,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => !!item);
+    const data = [...patentLogs, ...listingLogs];
+    if (!data.length) return;
+    await this.prisma.importChangeLog.createMany({ skipDuplicates: true, data });
+  }
+
+  private normalizePeopleChangeOperation(value: unknown): ImportChangeOperation {
+    const raw = String(value || '').trim().toUpperCase();
+    if (raw === 'CREATE' || raw === 'UPDATE' || raw === 'APPEND' || raw === 'REPLACE') return raw as ImportChangeOperation;
+    return 'UPDATE';
+  }
+
+  private async getBulkAuditLog(batch: any) {
+    if (!batch.legacyJobId) return null;
+    return await this.prisma.auditLog.findUnique({ where: { id: batch.legacyJobId } });
+  }
+
+  private buildPeopleLogsFromAuditChanges(batch: any, auditLog: any): any[] {
+    const afterJson = (auditLog?.afterJson || {}) as any;
+    const sourceBatch = String(batch.sourceBatch || afterJson?.input?.sourceBatch || '').trim();
+    const changes: PeopleAuditChange[] = Array.isArray(afterJson?.people?.changes) ? afterJson.people.changes : [];
+    return changes
+      .map((change) => {
+        const entityType = String(change?.entityType || '').trim().toUpperCase() as ImportEntityType;
+        const entityId = String(change?.entityId || '').trim();
+        if (!TECH_MANAGER_CHANGE_ENTITY_TYPES.has(entityType) || !UUID_RE.test(entityId)) return null;
+        const rowNoRaw = Number(change?.rowNo || 0);
+        const rowNo = Number.isSafeInteger(rowNoRaw) && rowNoRaw > 0 ? rowNoRaw : null;
+        const displayName = this.truncateText(change?.label || change?.afterJson?.displayName, 120);
+        return {
+          batchId: batch.id,
+          rowNo,
+          entityType: entityType as any,
+          entityId,
+          operation: this.normalizePeopleChangeOperation(change?.operation) as any,
+          afterJson: {
+            ...(change?.afterJson || {}),
+            source: 'PEOPLE_IMPORT_AUDIT_PAYLOAD',
+            auditLogId: auditLog.id,
+            sourceBatch,
+            displayName: displayName || null,
+            rowNo,
+          } as any,
+          rollbackStrategy: 'MANUAL_ONLY' as any,
+        };
+      })
+      .filter((item): item is any => !!item);
+  }
+
+  private buildDateWindow(referenceAt: any, minutes = 30): { gte: Date; lte: Date } | null {
+    if (!referenceAt) return null;
+    const center = new Date(referenceAt);
+    if (!Number.isFinite(center.getTime())) return null;
+    const span = minutes * 60 * 1000;
+    return { gte: new Date(center.getTime() - span), lte: new Date(center.getTime() + span) };
+  }
+
+  private async loadTechManagerBadgesForBackfill(userIds: string[], window: { gte: Date; lte: Date } | null) {
+    if (!userIds.length || !window) return new Map<string, any[]>();
+    const badges = await this.prisma.techManagerBadge.findMany({
+      where: {
+        techManagerUserId: { in: userIds },
+        OR: [{ assignedAt: window }, { updatedAt: window }],
+      },
+      orderBy: [{ assignedAt: 'asc' }, { id: 'asc' }],
     });
+    const map = new Map<string, any[]>();
+    for (const badge of badges) {
+      const key = String(badge.techManagerUserId || '');
+      if (!key) continue;
+      map.set(key, [...(map.get(key) || []), badge]);
+    }
+    return map;
+  }
+
+  private buildTechManagerChangeLogsFromVerifications(params: {
+    batch: any;
+    auditLog: any;
+    rows: Array<{ rowNo: number; name: string; verification: any }>;
+    badgeMap: Map<string, any[]>;
+    referenceAt: any;
+  }): any[] {
+    const referenceAt = params.referenceAt || params.auditLog?.createdAt || params.batch.executedAt || params.batch.createdAt;
+    const sourceBatch = String(params.batch.sourceBatch || params.auditLog?.afterJson?.input?.sourceBatch || '').trim();
+    const out: any[] = [];
+    for (const row of params.rows) {
+      const verification = row.verification;
+      const user = verification?.user;
+      if (!verification?.id || !user?.id) continue;
+      const profile = user.techManagerProfile || null;
+      const displayName = row.name || String(verification.displayName || user.nickname || '').trim();
+      out.push({
+        batchId: params.batch.id,
+        rowNo: row.rowNo,
+        entityType: 'USER' as any,
+        entityId: user.id,
+        operation: (this.isCreatedNear(user.createdAt, referenceAt) ? 'CREATE' : 'UPDATE') as any,
+        afterJson: {
+          source: 'PEOPLE_IMPORT_HISTORY_BACKFILL',
+          auditLogId: params.auditLog?.id || null,
+          sourceBatch,
+          displayName,
+          importedAt: this.toIso(referenceAt),
+        } as any,
+        rollbackStrategy: 'MANUAL_ONLY' as any,
+      });
+      out.push({
+        batchId: params.batch.id,
+        rowNo: row.rowNo,
+        entityType: 'USER_VERIFICATION' as any,
+        entityId: verification.id,
+        operation: (this.isCreatedNear(verification.createdAt, referenceAt) ? 'CREATE' : 'UPDATE') as any,
+        afterJson: {
+          source: 'PEOPLE_IMPORT_HISTORY_BACKFILL',
+          auditLogId: params.auditLog?.id || null,
+          sourceBatch,
+          displayName,
+          verificationType: verification.verificationType,
+          verificationStatus: verification.verificationStatus,
+          reviewedAt: this.toIso(verification.reviewedAt),
+          importedAt: this.toIso(referenceAt),
+        } as any,
+        rollbackStrategy: 'MANUAL_ONLY' as any,
+      });
+      if (profile) {
+        out.push({
+          batchId: params.batch.id,
+          rowNo: row.rowNo,
+          entityType: 'TECH_MANAGER_PROFILE' as any,
+          entityId: user.id,
+          operation: (this.isCreatedNear(profile.createdAt, referenceAt) ? 'CREATE' : 'UPDATE') as any,
+          afterJson: {
+            source: 'PEOPLE_IMPORT_HISTORY_BACKFILL',
+            auditLogId: params.auditLog?.id || null,
+            sourceBatch,
+            displayName,
+            position: profile.position || null,
+            organization: profile.organization || null,
+            importedAt: this.toIso(referenceAt),
+          } as any,
+          rollbackStrategy: 'MANUAL_ONLY' as any,
+        });
+      }
+      const badges = params.badgeMap.get(user.id) || [];
+      for (const badge of badges) {
+        if (!badge?.id) continue;
+        const replaced = !!badge.expiresAt && this.changedAfterReference(badge.updatedAt, new Date(referenceAt));
+        out.push({
+          batchId: params.batch.id,
+          rowNo: row.rowNo,
+          entityType: 'TECH_MANAGER_BADGE' as any,
+          entityId: badge.id,
+          operation: (replaced ? 'REPLACE' : 'APPEND') as any,
+          afterJson: {
+            source: 'PEOPLE_IMPORT_HISTORY_BACKFILL',
+            auditLogId: params.auditLog?.id || null,
+            sourceBatch,
+            displayName,
+            badgeCode: badge.badgeCode,
+            assignedAt: this.toIso(badge.assignedAt),
+            expiresAt: this.toIso(badge.expiresAt),
+          } as any,
+          rollbackStrategy: 'MANUAL_ONLY' as any,
+        });
+      }
+    }
+    return out;
+  }
+
+  private async buildPeopleLogsFromWorkbookRows(batch: any, auditLog: any): Promise<any[]> {
+    const input = ((auditLog?.afterJson || {}) as any)?.input || {};
+    const workbookRows = await this.readPeopleWorkbookRows(input.peopleFileId || batch.fileId);
+    if (!workbookRows.length) return [];
+    const names = Array.from(new Set(workbookRows.map((row) => row.name).filter(Boolean)));
+    if (!names.length) return [];
+    const verifications = await this.prisma.userVerification.findMany({
+      where: { verificationType: 'TECH_MANAGER' as any, displayName: { in: names } },
+      include: { user: { include: { techManagerProfile: true } } },
+      orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+    });
+    const referenceAt = auditLog?.createdAt || batch.executedAt || batch.createdAt;
+    const byName = new Map<string, any[]>();
+    for (const verification of verifications) {
+      const key = this.normalizePersonName(verification.displayName);
+      if (!key) continue;
+      byName.set(key, [...(byName.get(key) || []), verification]);
+    }
+    const referenceTime = referenceAt ? new Date(referenceAt).getTime() : Number.NaN;
+    const rows = workbookRows
+      .map((row) => {
+        const candidates = byName.get(row.name) || [];
+        const verification = Number.isFinite(referenceTime)
+          ? [...candidates].sort((a, b) => {
+              const aTime = new Date(a.reviewedAt || a.updatedAt || a.createdAt).getTime();
+              const bTime = new Date(b.reviewedAt || b.updatedAt || b.createdAt).getTime();
+              return Math.abs(aTime - referenceTime) - Math.abs(bTime - referenceTime);
+            })[0]
+          : candidates[0];
+        return verification ? { ...row, verification } : null;
+      })
+      .filter((row): row is { rowNo: number; name: string; verification: any } => !!row);
+    const userIds = Array.from(new Set(rows.map((row) => row.verification?.user?.id).filter((id): id is string => !!id)));
+    const badgeMap = await this.loadTechManagerBadgesForBackfill(userIds, this.buildDateWindow(referenceAt));
+    return this.buildTechManagerChangeLogsFromVerifications({ batch, auditLog, rows, badgeMap, referenceAt });
+  }
+
+  private async buildPeopleLogsFromTimeWindow(batch: any, auditLog: any): Promise<any[]> {
+    const referenceAt = auditLog?.createdAt || batch.executedAt || batch.createdAt;
+    const window = this.buildDateWindow(referenceAt);
+    if (!window) return [];
+    const afterJson = (auditLog?.afterJson || {}) as any;
+    const expected = this.number(afterJson?.people?.created) + this.number(afterJson?.people?.updated);
+    const verifications = await this.prisma.userVerification.findMany({
+      where: {
+        verificationType: 'TECH_MANAGER' as any,
+        OR: [{ reviewedAt: window }, { updatedAt: window }, { createdAt: window }],
+      },
+      include: { user: { include: { techManagerProfile: true } } },
+      orderBy: [{ reviewedAt: 'asc' }, { updatedAt: 'asc' }, { createdAt: 'asc' }],
+      take: expected > 0 ? expected : 100,
+    });
+    const rows = verifications.map((verification, index) => ({
+      rowNo: index + 1,
+      name: this.normalizePersonName(verification.displayName || verification.user?.nickname),
+      verification,
+    }));
+    const userIds = Array.from(new Set(rows.map((row) => row.verification?.user?.id).filter((id): id is string => !!id)));
+    const badgeMap = await this.loadTechManagerBadgesForBackfill(userIds, window);
+    return this.buildTechManagerChangeLogsFromVerifications({ batch, auditLog, rows, badgeMap, referenceAt });
   }
 
   private async ensurePeopleAchievementsChangeLogs(batch: any) {
     const sourceBatch = String(batch.sourceBatch || '').trim();
-    if (!sourceBatch) return;
-    const achievements = await this.prisma.achievement.findMany({
-      where: { sourceBatch },
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-    });
-    if (!achievements.length) return;
-    await this.prisma.importChangeLog.createMany({
-      skipDuplicates: true,
-      data: achievements.map((item, index) => ({
+    const data: any[] = [];
+    if (sourceBatch) {
+      const achievements = await this.prisma.achievement.findMany({
+        where: { sourceBatch },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      });
+      data.push(...achievements.map((item, index) => ({
         batchId: batch.id,
         rowNo: index + 1,
         entityType: 'ACHIEVEMENT' as any,
@@ -621,13 +995,39 @@ export class ImportBatchesService {
           auditStatus: item.auditStatus,
         } as any,
         rollbackStrategy: 'SOFT_OFF_SHELF' as any,
-      })),
+      })));
+    }
+
+    const auditLog = await this.getBulkAuditLog(batch);
+    const auditPeopleLogs = auditLog ? this.buildPeopleLogsFromAuditChanges(batch, auditLog) : [];
+    if (auditPeopleLogs.length) data.push(...auditPeopleLogs);
+    else if (auditLog || batch.fileId) {
+      const workbookPeopleLogs = await this.buildPeopleLogsFromWorkbookRows(batch, auditLog);
+      data.push(...(workbookPeopleLogs.length ? workbookPeopleLogs : await this.buildPeopleLogsFromTimeWindow(batch, auditLog)));
+    }
+
+    if (!data.length) return;
+    await this.prisma.importChangeLog.createMany({ skipDuplicates: true, data });
+  }
+
+  private async getExistingChangeEntityTypes(batchId: string): Promise<Set<ImportEntityType>> {
+    const rows = await this.prisma.importChangeLog.groupBy({
+      by: ['entityType'],
+      where: { batchId },
+      _count: { _all: true },
     });
+    return new Set(rows.map((row) => row.entityType as ImportEntityType));
   }
 
   private async ensureChangeLogsForBatch(batch: any) {
-    const existing = await this.prisma.importChangeLog.count({ where: { batchId: batch.id } });
-    if (existing > 0) return;
+    const existingTypes = await this.getExistingChangeEntityTypes(batch.id);
+    if (batch.kind === 'DEAL_RECORD' && existingTypes.has('DEAL_RECORD')) return;
+    if (batch.kind === 'LISTING' && existingTypes.has('LISTING')) return;
+    if (batch.kind === 'PATENT' && existingTypes.has('PATENT') && existingTypes.has('LISTING')) return;
+    if (batch.kind === 'PEOPLE_ACHIEVEMENTS') {
+      const hasTechManagerLogs = Array.from(TECH_MANAGER_CHANGE_ENTITY_TYPES).some((entityType) => existingTypes.has(entityType));
+      if (hasTechManagerLogs) return;
+    }
     if (batch.kind === 'DEAL_RECORD') await this.ensureDealRecordChangeLogs(batch);
     else if (batch.kind === 'LISTING') await this.ensureListingChangeLogs(batch);
     else if (batch.kind === 'PATENT') await this.ensurePatentChangeLogs(batch);
@@ -775,6 +1175,22 @@ export class ImportBatchesService {
     });
   }
 
+  private evaluateTechManagerManualChanges(changes: any[]): RollbackChangePreview[] {
+    const reasonMap: Record<string, string> = {
+      USER: '经理人账号可能关联登录、订单、会话等用户行为，当前只生成处理清单，不自动删除或覆盖',
+      USER_VERIFICATION: '经理人认证资料缺少导入前快照，当前只生成处理清单，不自动回退认证状态',
+      TECH_MANAGER_PROFILE: '经理人主页资料缺少导入前快照，当前只生成处理清单，不自动覆盖回退',
+      TECH_MANAGER_BADGE: '经理人标签可能包含人工运营调整，当前只生成处理清单，不自动过期或恢复',
+    };
+    return changes.map((change) => {
+      const after = (change.afterJson || {}) as any;
+      const label = String(after.displayName || after.label || after.badgeCode || '').trim() || null;
+      return this.basePreview(change, 'BLOCKED', reasonMap[String(change.entityType)] || '该数据类型需要人工处理', {
+        entityLabel: label,
+      });
+    });
+  }
+
   private async evaluateChanges(batch: any, changes: any[]): Promise<RollbackChangePreview[]> {
     const groups = new Map<ImportEntityType, any[]>();
     for (const change of changes) {
@@ -787,6 +1203,7 @@ export class ImportBatchesService {
       else if (entityType === 'LISTING') out.push(...(await this.evaluateListings(batch, items)));
       else if (entityType === 'ACHIEVEMENT') out.push(...(await this.evaluateAchievements(batch, items)));
       else if (entityType === 'PATENT') out.push(...(await this.evaluatePatents(items)));
+      else if (TECH_MANAGER_CHANGE_ENTITY_TYPES.has(entityType)) out.push(...this.evaluateTechManagerManualChanges(items));
       else {
         out.push(...items.map((item) => this.basePreview(item, 'BLOCKED', '该数据类型需要人工处理')));
       }

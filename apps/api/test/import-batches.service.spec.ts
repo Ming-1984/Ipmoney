@@ -1,0 +1,131 @@
+import { describe, expect, it, vi } from 'vitest';
+
+import { ImportBatchesService } from '../src/modules/import-batches/import-batches.service';
+
+describe('ImportBatchesService change log backfill', () => {
+  const audit = { log: vi.fn() };
+  const files = { getFileById: vi.fn(), getFileBuffer: vi.fn() };
+
+  it('backfills tech manager change logs from bulk import audit payload', async () => {
+    const prisma: any = {
+      achievement: { findMany: vi.fn().mockResolvedValue([]) },
+      auditLog: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: '11111111-1111-1111-1111-111111111111',
+          afterJson: {
+            input: { sourceBatch: 'people-batch' },
+            people: {
+              changes: [
+                {
+                  rowNo: 2,
+                  entityType: 'USER_VERIFICATION',
+                  entityId: '22222222-2222-2222-2222-222222222222',
+                  operation: 'CREATE',
+                  label: '张三',
+                  afterJson: { displayName: '张三' },
+                },
+                {
+                  rowNo: 2,
+                  entityType: 'TECH_MANAGER_PROFILE',
+                  entityId: '33333333-3333-3333-3333-333333333333',
+                  operation: 'CREATE',
+                  label: '张三',
+                  afterJson: { displayName: '张三', organization: '示例机构' },
+                },
+              ],
+            },
+          },
+        }),
+      },
+      importChangeLog: { createMany: vi.fn().mockResolvedValue({ count: 2 }) },
+    };
+    const service = new ImportBatchesService(prisma, audit as any, files as any);
+
+    await (service as any).ensurePeopleAchievementsChangeLogs({
+      id: '44444444-4444-4444-4444-444444444444',
+      sourceBatch: 'people-batch',
+      legacyJobId: '11111111-1111-1111-1111-111111111111',
+    });
+
+    expect(prisma.importChangeLog.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skipDuplicates: true,
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            rowNo: 2,
+            entityType: 'USER_VERIFICATION',
+            entityId: '22222222-2222-2222-2222-222222222222',
+            operation: 'CREATE',
+            rollbackStrategy: 'MANUAL_ONLY',
+          }),
+          expect.objectContaining({
+            rowNo: 2,
+            entityType: 'TECH_MANAGER_PROFILE',
+            entityId: '33333333-3333-3333-3333-333333333333',
+            operation: 'CREATE',
+            rollbackStrategy: 'MANUAL_ONLY',
+          }),
+        ]),
+      }),
+    );
+  });
+
+  it('backfills listing change logs for patent import rows', async () => {
+    const processedAt = new Date('2026-08-05T06:00:00.000Z');
+    const prisma: any = {
+      patentImportJob: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: '11111111-1111-1111-1111-111111111111',
+          createdAt: processedAt,
+          startedAt: processedAt,
+        }),
+      },
+      patentImportJobRow: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: 'row-1',
+            jobId: '11111111-1111-1111-1111-111111111111',
+            rowNo: 2,
+            patentId: '22222222-2222-2222-2222-222222222222',
+            processedAt,
+          },
+        ]),
+      },
+      listing: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: '33333333-3333-3333-3333-333333333333',
+            patentId: '22222222-2222-2222-2222-222222222222',
+            createdAt: processedAt,
+          },
+        ]),
+      },
+      importChangeLog: { createMany: vi.fn().mockResolvedValue({ count: 2 }) },
+    };
+    const service = new ImportBatchesService(prisma, audit as any, files as any);
+
+    await (service as any).ensurePatentChangeLogs({
+      id: '44444444-4444-4444-4444-444444444444',
+      legacyJobId: '11111111-1111-1111-1111-111111111111',
+    });
+
+    const call = prisma.importChangeLog.createMany.mock.calls[0][0];
+    expect(call.data).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowNo: 2,
+          entityType: 'PATENT',
+          entityId: '22222222-2222-2222-2222-222222222222',
+          rollbackStrategy: 'MANUAL_ONLY',
+        }),
+        expect.objectContaining({
+          rowNo: 2,
+          entityType: 'LISTING',
+          entityId: '33333333-3333-3333-3333-333333333333',
+          operation: 'CREATE',
+          rollbackStrategy: 'SOFT_OFF_SHELF',
+        }),
+      ]),
+    );
+  });
+});

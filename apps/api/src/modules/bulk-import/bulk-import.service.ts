@@ -43,6 +43,17 @@ type ExecuteSection = PreviewSection & {
   updated: number;
   skipped: number;
   failed: number;
+  changes?: PeopleImportChange[];
+};
+
+type PeopleImportChange = {
+  rowNo: number;
+  entityType: 'USER' | 'USER_VERIFICATION' | 'TECH_MANAGER_PROFILE' | 'TECH_MANAGER_BADGE';
+  entityId: string;
+  operation: 'CREATE' | 'UPDATE' | 'APPEND' | 'REPLACE';
+  label?: string | null;
+  rollbackStrategy?: 'MANUAL_ONLY';
+  afterJson?: Record<string, any>;
 };
 
 type RegionRecord = { code: string; name: string };
@@ -426,12 +437,23 @@ export class BulkImportService {
     return created.id;
   }
 
-  private buildPayload(input: ImportInput, people: PreviewSection | ExecuteSection, achievements: PreviewSection | ExecuteSection) {
+  private withoutChangeDetails<T extends PreviewSection | ExecuteSection>(section: T): PreviewSection | ExecuteSection {
+    if (!('changes' in section)) return section;
+    const { changes: _changes, ...rest } = section as ExecuteSection;
+    return rest;
+  }
+
+  private buildPayload(
+    input: ImportInput,
+    people: PreviewSection | ExecuteSection,
+    achievements: PreviewSection | ExecuteSection,
+    opts: { includeChangeDetails?: boolean } = {},
+  ) {
     return {
       scope: 'PEOPLE_ACHIEVEMENTS' as const,
       input: this.toInputPayload(input),
-      people,
-      achievements,
+      people: opts.includeChangeDetails ? people : this.withoutChangeDetails(people),
+      achievements: opts.includeChangeDetails ? achievements : this.withoutChangeDetails(achievements),
     };
   }
 
@@ -551,6 +573,7 @@ export class BulkImportService {
       updated: 0,
       skipped: 0,
       failed: 0,
+      changes: [],
     };
     if (!input.peopleFileId) return result;
 
@@ -609,7 +632,8 @@ export class BulkImportService {
         }
 
         const avatarUrl = this.normalizeImageUrl(photoRaw, baseUrl);
-        if (avatarUrl || String(user.nickname || '').trim() !== name) {
+        const userNeedsUpdate = !!avatarUrl || String(user.nickname || '').trim() !== name;
+        if (userNeedsUpdate) {
           await this.prisma.user.update({
             where: { id: user.id },
             data: { nickname: name, ...(avatarUrl ? { avatarUrl } : {}) },
@@ -621,8 +645,10 @@ export class BulkImportService {
           orderBy: { submittedAt: 'desc' },
         });
 
+        let verificationId = verification?.id || '';
+        let verificationOperation: PeopleImportChange['operation'] = 'UPDATE';
         if (verification) {
-          await this.prisma.userVerification.update({
+          const updatedVerification = await this.prisma.userVerification.update({
             where: { id: verification.id },
             data: {
               verificationStatus: 'APPROVED',
@@ -632,8 +658,9 @@ export class BulkImportService {
               reviewedAt: new Date(),
             },
           });
+          verificationId = updatedVerification?.id || verification.id;
         } else {
-          await this.prisma.userVerification.create({
+          const createdVerification = await this.prisma.userVerification.create({
             data: {
               userId: user.id,
               verificationType: 'TECH_MANAGER',
@@ -645,8 +672,14 @@ export class BulkImportService {
               reviewedAt: new Date(),
             },
           });
+          verificationId = createdVerification?.id || '';
+          verificationOperation = 'CREATE';
         }
 
+        const existingProfile = await this.prisma.techManagerProfile.findUnique({
+          where: { userId: user.id },
+          select: { userId: true },
+        });
         await this.prisma.techManagerProfile.upsert({
           where: { userId: user.id },
           create: {
@@ -678,11 +711,12 @@ export class BulkImportService {
 
         const existingActive = await this.prisma.techManagerBadge.findMany({
           where: { techManagerUserId: user.id, expiresAt: null },
-          select: { badgeCode: true },
+          select: { id: true, badgeCode: true },
         });
         const activeSet = new Set(existingActive.map((item) => String(item.badgeCode)));
         const nextSet = new Set(badgeCodes);
         const now = new Date();
+        const badgeChanges: PeopleImportChange[] = [];
 
         if (input.badgeImportMode === 'REPLACE') {
           const expireCodes = Array.from(activeSet).filter((code) => !nextSet.has(code as TechManagerBadgeCode));
@@ -691,10 +725,27 @@ export class BulkImportService {
               where: { techManagerUserId: user.id, badgeCode: { in: expireCodes }, expiresAt: null },
               data: { expiresAt: now },
             });
+            for (const badge of existingActive.filter((item) => expireCodes.includes(String(item.badgeCode)))) {
+              if (!badge.id) continue;
+              badgeChanges.push({
+                rowNo: row.rowNo,
+                entityType: 'TECH_MANAGER_BADGE',
+                entityId: badge.id,
+                operation: 'REPLACE',
+                label: name,
+                rollbackStrategy: 'MANUAL_ONLY',
+                afterJson: {
+                  displayName: name,
+                  badgeCode: badge.badgeCode,
+                  badgeImportMode: input.badgeImportMode,
+                  expiresAt: now.toISOString(),
+                },
+              });
+            }
           }
           const createCodes = badgeCodes.filter((code) => !activeSet.has(code));
           for (const badgeCode of createCodes) {
-            await this.prisma.techManagerBadge.create({
+            const createdBadge = await this.prisma.techManagerBadge.create({
               data: {
                 techManagerUserId: user.id,
                 badgeCode,
@@ -702,11 +753,26 @@ export class BulkImportService {
                 source: TECH_MANAGER_BADGE_SOURCE.IMPORT,
               },
             });
+            if (createdBadge?.id) {
+              badgeChanges.push({
+                rowNo: row.rowNo,
+                entityType: 'TECH_MANAGER_BADGE',
+                entityId: createdBadge.id,
+                operation: 'APPEND',
+                label: name,
+                rollbackStrategy: 'MANUAL_ONLY',
+                afterJson: {
+                  displayName: name,
+                  badgeCode,
+                  badgeImportMode: input.badgeImportMode,
+                },
+              });
+            }
           }
         } else if (input.badgeImportMode === 'APPEND' && badgeCodes.length) {
           const createCodes = badgeCodes.filter((code) => !activeSet.has(code));
           for (const badgeCode of createCodes) {
-            await this.prisma.techManagerBadge.create({
+            const createdBadge = await this.prisma.techManagerBadge.create({
               data: {
                 techManagerUserId: user.id,
                 badgeCode,
@@ -714,8 +780,72 @@ export class BulkImportService {
                 source: TECH_MANAGER_BADGE_SOURCE.IMPORT,
               },
             });
+            if (createdBadge?.id) {
+              badgeChanges.push({
+                rowNo: row.rowNo,
+                entityType: 'TECH_MANAGER_BADGE',
+                entityId: createdBadge.id,
+                operation: 'APPEND',
+                label: name,
+                rollbackStrategy: 'MANUAL_ONLY',
+                afterJson: {
+                  displayName: name,
+                  badgeCode,
+                  badgeImportMode: input.badgeImportMode,
+                },
+              });
+            }
           }
         }
+
+        const processedAt = new Date().toISOString();
+        if (createdUser || userNeedsUpdate) {
+          result.changes?.push({
+            rowNo: row.rowNo,
+            entityType: 'USER',
+            entityId: user.id,
+            operation: createdUser ? 'CREATE' : 'UPDATE',
+            label: name,
+            rollbackStrategy: 'MANUAL_ONLY',
+            afterJson: {
+              displayName: name,
+              avatarUpdated: !!avatarUrl,
+              processedAt,
+            },
+          });
+        }
+        if (verificationId) {
+          result.changes?.push({
+            rowNo: row.rowNo,
+            entityType: 'USER_VERIFICATION',
+            entityId: verificationId,
+            operation: verificationOperation,
+            label: name,
+            rollbackStrategy: 'MANUAL_ONLY',
+            afterJson: {
+              displayName: name,
+              verificationType: 'TECH_MANAGER',
+              verificationStatus: 'APPROVED',
+              processedAt,
+            },
+          });
+        }
+        result.changes?.push({
+          rowNo: row.rowNo,
+          entityType: 'TECH_MANAGER_PROFILE',
+          entityId: user.id,
+          operation: existingProfile ? 'UPDATE' : 'CREATE',
+          label: name,
+          rollbackStrategy: 'MANUAL_ONLY',
+          afterJson: {
+            displayName: name,
+            position,
+            organization,
+            badgeImportMode: input.badgeImportMode,
+            processedAt,
+          },
+        });
+        result.changes?.push(...badgeChanges);
 
         if (createdUser) result.created += 1;
         else result.updated += 1;
@@ -842,12 +972,13 @@ export class BulkImportService {
       const achievements = await this.executeAchievementsImport(request, input, baseUrl, regionMatchers);
 
       const payload = this.buildPayload(input, people, achievements);
+      const auditPayload = this.buildPayload(input, people, achievements, { includeChangeDetails: true });
       await this.audit.log({
         actorUserId: request.auth.userId,
         action: ACTION_EXECUTE,
         targetType: 'BULK_IMPORT',
         targetId: request.auth.userId,
-        afterJson: payload,
+        afterJson: auditPayload,
       });
       return payload;
     });
