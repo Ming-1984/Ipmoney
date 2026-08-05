@@ -12,6 +12,7 @@ import {
   Table,
   Tabs,
   Tag,
+  Tooltip,
   Typography,
   message,
 } from 'antd';
@@ -302,6 +303,48 @@ function importStatsTags(batch: ImportBatch) {
   );
 }
 
+function successfulImportCount(batch: ImportBatch) {
+  return batch.createdCount + batch.updatedCount;
+}
+
+function hasSuccessfulImportChanges(batch: ImportBatch) {
+  return successfulImportCount(batch) > 0;
+}
+
+function hasRollbackEvaluation(batch: ImportBatch) {
+  return batch.rollbackableCount + batch.conflictedCount + batch.blockedCount + batch.rolledBackCount > 0;
+}
+
+function rollbackEvaluationTags(batch: ImportBatch) {
+  if (!hasSuccessfulImportChanges(batch)) {
+    return (
+      <Space size={[4, 4]} wrap>
+        <Tag color={batch.failedCount > 0 ? 'red' : undefined}>{batch.failedCount > 0 ? '未写入业务数据' : '无新增/更新'}</Tag>
+        {batch.failedCount > 0 ? countTag('导入失败', batch.failedCount, 'red') : null}
+        {batch.skippedCount > 0 ? countTag('跳过', batch.skippedCount) : null}
+      </Space>
+    );
+  }
+  if (!batch.lastPrecheckedAt && batch.status !== 'ROLLBACK_PRECHECKED') {
+    return <Tag>未预检</Tag>;
+  }
+  if (!hasRollbackEvaluation(batch)) {
+    return (
+      <Space size={[4, 4]} wrap>
+        <Tag color="orange">暂无撤回明细</Tag>
+        <Tag>可刷新预检</Tag>
+      </Space>
+    );
+  }
+  return (
+    <Space size={[4, 4]} wrap>
+      {countTag('可自动撤回', batch.rollbackableCount, batch.rollbackableCount > 0 ? 'green' : undefined)}
+      {countTag('需人工确认', batch.conflictedCount + batch.blockedCount, batch.conflictedCount + batch.blockedCount > 0 ? 'orange' : undefined)}
+      {countTag('已撤回', batch.rolledBackCount, batch.rolledBackCount > 0 ? 'blue' : undefined)}
+    </Space>
+  );
+}
+
 function rollbackRiskCount(preview: RollbackPreview) {
   return preview.summary.conflictedCount + preview.summary.blockedCount + preview.summary.failedCount;
 }
@@ -311,6 +354,25 @@ function buildPreviewConclusion(preview: RollbackPreview): { type: 'success' | '
   const riskCount = rollbackRiskCount(preview);
   const importedFailed = preview.batch.failedCount;
   const failedSuffix = importedFailed > 0 ? ` 本批次另有 ${importedFailed} 条导入失败，失败行不会进入撤回。` : '';
+
+  if (summary.totalCount === 0 && !hasSuccessfulImportChanges(preview.batch)) {
+    return {
+      type: preview.batch.failedCount > 0 ? 'error' : 'info',
+      message: preview.batch.failedCount > 0 ? '导入未写入业务数据' : '本批次没有新增或更新',
+      description:
+        preview.batch.failedCount > 0
+          ? `本批次 ${preview.batch.failedCount} 条导入失败，没有产生可撤回的数据。失败原因需要在原导入任务的行记录或错误文件中查看。`
+          : '本批次没有成功新增或更新业务数据，因此不需要撤回。',
+    };
+  }
+
+  if (summary.totalCount === 0) {
+    return {
+      type: 'warning',
+      message: '暂无撤回明细',
+      description: '本批次有导入成功统计，但当前未匹配到可评估的撤回明细；可刷新预检后再核对原业务模块的导入结果。',
+    };
+  }
 
   if (summary.rolledBackCount > 0 && summary.rolledBackCount >= summary.totalCount) {
     return {
@@ -348,6 +410,38 @@ function buildPreviewConclusion(preview: RollbackPreview): { type: 'success' | '
     type: 'info',
     message: '暂无可撤回数据',
     description: `当前批次没有可自动处理的数据，可下载报告留存。${failedSuffix}`,
+  };
+}
+
+function buildNoRollbackAction(preview: RollbackPreview): { type: 'success' | 'info' | 'warning'; message: string; description: string } {
+  if (preview.summary.rolledBackCount > 0) {
+    return {
+      type: 'success',
+      message: `本批次已撤回 ${preview.summary.rolledBackCount} 条数据`,
+      description: '可下载报告核对已撤回、冲突和阻断项。',
+    };
+  }
+  if (preview.summary.totalCount === 0 && !hasSuccessfulImportChanges(preview.batch)) {
+    return {
+      type: 'info',
+      message: '没有可撤回的数据',
+      description:
+        preview.batch.failedCount > 0
+          ? '本批次没有成功写入业务数据；失败原因需要回到原导入任务的行记录或错误文件中查看。'
+          : '本批次没有新增或更新业务数据，因此不需要撤回。',
+    };
+  }
+  if (preview.summary.totalCount === 0) {
+    return {
+      type: 'warning',
+      message: '暂无撤回明细',
+      description: '当前没有匹配到可评估的撤回明细；可刷新预检，仍为空时请核对原业务模块的导入结果。',
+    };
+  }
+  return {
+    type: 'info',
+    message: '当前批次没有可自动撤回的数据',
+    description: '请下载报告后人工处理冲突或阻断项。',
   };
 }
 
@@ -393,13 +487,25 @@ function dependencyText(dependency?: Record<string, any> | null) {
   return parts.length ? parts.join(' / ') : '';
 }
 
-function rollbackActionLabel(row: ImportBatch) {
-  if (row.status === 'ROLLBACK_RUNNING') return { label: '撤回中', disabled: true };
+function rollbackActionLabel(row: ImportBatch): { label: string; disabled: boolean; title?: string } {
+  if (row.status === 'ROLLBACK_RUNNING') return { label: '撤回中', disabled: true, title: '批次正在撤回处理中' };
   if (row.rollbackAt || row.rolledBackCount > 0 || row.status === 'ROLLED_BACK' || row.status === 'PARTIALLY_ROLLED_BACK' || row.status === 'ROLLBACK_FAILED') {
-    return { label: '查看结果', disabled: false };
+    return { label: '查看结果', disabled: false, title: '查看本批次的撤回结果和未处理项' };
   }
-  if (row.lastPrecheckedAt || row.status === 'ROLLBACK_PRECHECKED') return { label: '重新预检', disabled: false };
-  return { label: '撤回预检', disabled: false };
+  if (!hasSuccessfulImportChanges(row)) {
+    return {
+      label: '无可撤回',
+      disabled: true,
+      title:
+        row.failedCount > 0
+          ? '本批次没有成功写入业务数据，失败原因请到原导入任务查看'
+          : '本批次没有新增或更新业务数据，不需要撤回',
+    };
+  }
+  if (row.lastPrecheckedAt || row.status === 'ROLLBACK_PRECHECKED') {
+    return { label: '刷新预检', disabled: false, title: '已做过撤回预检，再次点击会重新计算当前结果' };
+  }
+  return { label: '撤回预检', disabled: false, title: '先检查哪些数据可自动撤回、哪些需要人工确认' };
 }
 
 function escapeCsv(value: unknown): string {
@@ -482,6 +588,7 @@ export function ImportBatchesPage() {
     return String(activePreview?.batch.sourceBatch || activeBatch?.sourceBatch || activePreview?.batch.id || activeBatch?.id || '').trim();
   }, [activeBatch, activePreview]);
   const previewConclusion = useMemo(() => (activePreview ? buildPreviewConclusion(activePreview) : null), [activePreview]);
+  const noRollbackAction = useMemo(() => (activePreview ? buildNoRollbackAction(activePreview) : null), [activePreview]);
   const overrideableChanges = useMemo(
     () => (activePreview?.changes || []).filter((item) => item.overrideable && item.rollbackStatus !== 'ROLLED_BACK'),
     [activePreview],
@@ -625,9 +732,8 @@ export function ImportBatchesPage() {
     },
     {
       title: '撤回评估',
-      width: 210,
-      render: (_: unknown, row: ImportBatch) =>
-        `可撤 ${row.rollbackableCount} / 冲突 ${row.conflictedCount} / 阻断 ${row.blockedCount} / 已撤 ${row.rolledBackCount}`,
+      width: 260,
+      render: (_: unknown, row: ImportBatch) => rollbackEvaluationTags(row),
     },
     {
       title: '操作者',
@@ -647,9 +753,13 @@ export function ImportBatchesPage() {
       render: (_: unknown, row: ImportBatch) => {
         const action = rollbackActionLabel(row);
         return (
-          <Button icon={<RollbackOutlined />} size="small" disabled={action.disabled} onClick={() => void openPreview(row)}>
-            {action.label}
-          </Button>
+          <Tooltip title={action.title}>
+            <span>
+              <Button icon={<RollbackOutlined />} size="small" disabled={action.disabled} onClick={() => void openPreview(row)}>
+                {action.label}
+              </Button>
+            </span>
+          </Tooltip>
         );
       },
     },
@@ -750,11 +860,20 @@ export function ImportBatchesPage() {
         onClose={() => setDrawerOpen(false)}
         extra={
           <Space>
-            <Button icon={<DownloadOutlined />} loading={reportDownloading} onClick={() => void downloadReport()} disabled={!activePreview}>
-              下载报告
-            </Button>
+            <Tooltip title={activePreview && activePreview.summary.totalCount === 0 ? '当前没有撤回明细，暂不生成撤回报告' : '下载撤回明细和处理结果'}>
+              <span>
+                <Button
+                  icon={<DownloadOutlined />}
+                  loading={reportDownloading}
+                  onClick={() => void downloadReport()}
+                  disabled={!activePreview || activePreview.summary.totalCount === 0}
+                >
+                  下载报告
+                </Button>
+              </span>
+            </Tooltip>
             <Button icon={<ReloadOutlined />} onClick={() => activeBatch && void openPreview(activeBatch)} loading={previewLoading} disabled={!activeBatch}>
-              重新预检
+              刷新预检
             </Button>
           </Space>
         }
@@ -879,18 +998,10 @@ export function ImportBatchesPage() {
                         </Card>
                       ) : (
                         <Alert
-                          type={activePreview.summary.rolledBackCount > 0 ? 'success' : 'info'}
+                          type={noRollbackAction?.type || 'info'}
                           showIcon
-                          message={
-                            activePreview.summary.rolledBackCount > 0
-                              ? `本批次已撤回 ${activePreview.summary.rolledBackCount} 条数据`
-                              : '当前批次没有可自动撤回的数据'
-                          }
-                          description={
-                            activePreview.summary.rolledBackCount > 0
-                              ? '可下载报告核对已撤回、冲突和阻断项。'
-                              : '请下载报告后人工处理冲突或阻断项。'
-                          }
+                          message={noRollbackAction?.message || '当前批次没有可自动撤回的数据'}
+                          description={noRollbackAction?.description || '请下载报告后人工处理冲突或阻断项。'}
                         />
                       )}
                     </Space>
