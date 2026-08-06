@@ -441,7 +441,9 @@ try {
       @{ name = "admin-maintenance"; path = "/maintenance"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-regions"; path = "/regions"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-audit-logs"; path = "/audit-logs"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
-      @{ name = "admin-patents"; path = "/patents"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs }
+      @{ name = "admin-patents"; path = "/patents"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
+      @{ name = "admin-import-batches"; path = "/imports/batches"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
+      @{ name = "admin-deal-records"; path = "/deal-records"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs }
     )
   } else {
     $pages = @(

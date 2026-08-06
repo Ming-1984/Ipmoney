@@ -72,6 +72,10 @@ function shouldExclude(operationKey, operationPath) {
   if (operationPath.startsWith('/auth/')) return true;
   if (operationPath.startsWith('/webhooks/wechatpay/')) return true;
   if (operationKey === 'POST /webhooks/wechatpay/notify') return true;
+  // These are externally verified callbacks or a static domain-verification file, not application API flows.
+  if (operationKey === 'GET /WW_verify_YpAqDE4xoAPsmGSK.txt') return true;
+  if (operationKey === 'POST /webhooks/wechat/content-security') return true;
+  if (operationKey === 'GET /webhooks/wecom/callback') return true;
   return false;
 }
 

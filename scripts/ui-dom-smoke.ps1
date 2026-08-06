@@ -454,7 +454,7 @@ try {
       name = "client-orders"; path = "#/subpackages/orders/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/subpackages/orders/index"; minElements = 80
-      selectorsAll = @(".orders-page", ".detail-tabs"); selectorsAny = @(".detail-tab.is-active", ".search-toolbar-row", ".text-card-title")
+      selectorsAll = @(".orders-page", ".order-tabs"); selectorsAny = @(".order-tab.is-active", ".search-toolbar-row", ".text-card-title")
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $false
     },
     @{
@@ -482,7 +482,7 @@ try {
       name = "admin-dashboard"; path = "/"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "://127.0.0.1:$resolvedAdminPort/"; minElements = 100
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner", ".ant-card"); selectorsAny = @(".ant-statistic", ".ant-row", ".ant-btn")
+      selectorsAll = @(".ipm-sider", ".ipm-content-inner", ".ipm-showcase-page"); selectorsAny = @(".ipm-showcase-metrics", ".ipm-dashboard-collapse", ".ant-btn")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
@@ -563,7 +563,7 @@ try {
       name = "client-notifications"; path = "#/pages/notifications/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/notifications/index"; minElements = 60
-      selectorsAll = @(".notifications-page", ".notifications-tabs"); selectorsAny = @(".notifications-tab.is-active", ".notification-item", ".notification-empty")
+      selectorsAll = @(".notifications-page"); selectorsAny = @(".notifications-list", ".notification-item", ".notification-empty")
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
     },
     @{
@@ -671,7 +671,7 @@ try {
       name = "client-trade-rules"; path = "#/pages/trade-rules/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/trade-rules/index"; minElements = 50
-      selectorsAll = @(".trade-rules-page"); selectorsAny = @(".list-item", ".text-card-title", ".tag")
+      selectorsAll = @(".trade-rules-page"); selectorsAny = @(".trade-rules-content", ".summary-banner", ".trade-rules-section-header", ".card-state")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
@@ -883,6 +883,20 @@ try {
       expectedUrlContains = "/patents"; minElements = 100
       selectorsAll = @(".admin-patents-page", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-pagination")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
+    },
+    @{
+      name = "admin-import-batches"; path = "/imports/batches"; base = $adminBase
+      width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
+      expectedUrlContains = "/imports/batches"; minElements = 100
+      selectorsAll = @(".admin-import-batches-page", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-empty", ".ant-btn")
+      textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
+    },
+    @{
+      name = "admin-deal-records"; path = "/deal-records"; base = $adminBase
+      width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
+      expectedUrlContains = "/deal-records"; minElements = 100
+      selectorsAll = @(".admin-deal-records-page", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-empty", ".ant-btn")
+      textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     }
   )
 
@@ -895,7 +909,7 @@ try {
       throw "ui-dom-smoke full mode has duplicate page names ($uniqueCount unique / $($pages.Count) total)"
     }
 
-    $effectiveMode = if ($pages.Count -ge 83) { "full-83" } else { "full-batch2" }
+    $effectiveMode = "full-$($pages.Count)"
     Write-Host ("[ui-dom-smoke] full mode assertions: core={0}, batch1={1}, batch2={2}, total={3}" -f $corePages.Count, $extendedPages.Count, $extendedPagesPhase2.Count, $pages.Count)
   }
 
