@@ -137,6 +137,7 @@ describe('ContractsService upload suite', () => {
     const req = { auth: { userId: 'seller-1' } };
     prisma.order.findUnique.mockResolvedValueOnce({
       id: ORDER_ID,
+      status: 'DEPOSIT_PAID',
       listing: { sellerUserId: 'seller-1', title: 'Listing A', seller: { nickname: 'Seller', verifications: [] } },
       buyer: { nickname: 'Buyer', verifications: [] },
       contract: null,

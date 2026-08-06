@@ -52,7 +52,7 @@ describe('CommentsService write-first suite', () => {
   });
 
   const authedReq = { auth: { userId: USER_ID } };
-  const adminReq = { auth: { userId: ADMIN_ID, isAdmin: true } };
+  const adminReq = { auth: { userId: ADMIN_ID, isAdmin: true, permissions: new Set(['comment.manage']) } };
 
   it('rejects invalid contentId in listThreads', async () => {
     await expect(service.listThreads('LISTING', 'bad-id', {})).rejects.toBeInstanceOf(BadRequestException);

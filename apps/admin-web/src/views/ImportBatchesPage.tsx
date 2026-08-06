@@ -768,7 +768,7 @@ export function ImportBatchesPage() {
   ];
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <Space className="admin-import-batches-page" direction="vertical" size={16} style={{ width: '100%' }}>
       <Card>
         <Space align="start" style={{ width: '100%', justifyContent: 'space-between' }}>
           <div>

@@ -69,7 +69,7 @@ type AuditFieldChange = {
   label: string;
   before: string;
   after: string;
-  mode: 'added' | 'removed' | 'changed';
+  mode: 'added' | 'removed' | 'changed' | 'summary';
 };
 
 type AuditDetailVersion = 'ops' | 'tech';
@@ -99,6 +99,13 @@ const ACTION_LABELS: Record<string, string> = {
   CONFIG_SENSITIVE_UPDATE: '更新敏感词配置',
   CONFIG_TAXONOMY_UPDATE: '更新类目配置',
   CONFIG_TRADE_RULES_UPDATE: '更新交易规则',
+  CONTRACT_SIGNED_SUBMISSION_ACCEPT: '通过已签合同提交',
+  CONTRACT_SIGNED_SUBMISSION_CREATE: '提交已签合同',
+  CONTRACT_SIGNED_SUBMISSION_REJECT: '驳回已签合同提交',
+  CONTRACT_SIGNED_SUBMISSION_SUPERSEDE: '替换已签合同提交',
+  DEAL_RECORD_BACKFILL_COMPLETED_ORDERS: '补齐已完成订单成交记录',
+  DEAL_RECORD_IMPORT_EXECUTE: '执行成交记录导入',
+  DEAL_RECORD_VOID: '作废成交记录',
   FILE_DOWNLOAD: '下载文件',
   FILE_MODERATION_UPDATE: '更新文件审核结果',
   FILE_PREVIEW: '预览文件',
@@ -161,7 +168,10 @@ const TARGET_TYPE_LABELS: Record<string, string> = {
   ALERT_EVENT: '告警',
   BULK_IMPORT: '批量导入任务',
   COMMENT: '评论',
+  CONTRACT_SIGNED_SUBMISSION: '已签合同提交',
   CONVERSATION: '会话',
+  DEAL_RECORD: '成交记录',
+  DEAL_RECORD_IMPORT_JOB: '成交记录导入任务',
   FILE: '文件',
   IMPORT_BATCH: '导入批次',
   LISTING: '挂牌',
@@ -290,6 +300,7 @@ const ENUM_VALUE_LABELS: Record<string, string> = {
   DRAFT: '草稿',
   EXCLUSIVE: '独占许可',
   EXPIRED: '已失效',
+  FAILED: '失败',
   FINAL_PAID_ESCROW: '尾款托管中',
   FIXED: '一口价',
   GRANTED: '已授权',
@@ -364,12 +375,12 @@ function normalizeCode(value: string): string {
 
 function auditActionLabel(value: string): string {
   const code = normalizeCode(value);
-  return ACTION_LABELS[code] || '操作待确认';
+  return ACTION_LABELS[code] || (code ? `待配置操作：${code}` : '未知操作');
 }
 
 function auditTargetTypeLabel(value: string): string {
   const code = normalizeCode(value);
-  return TARGET_TYPE_LABELS[code] || '对象待确认';
+  return TARGET_TYPE_LABELS[code] || (code ? `待配置对象：${code}` : '未知对象');
 }
 
 function auditFieldLabel(key: string): string {
@@ -432,9 +443,65 @@ function isImportBatchAuditLog(log: AuditLog): boolean {
   return normalizeCode(log.targetType) === 'IMPORT_BATCH' || normalizeCode(log.action).startsWith('IMPORT_BATCH_');
 }
 
+function isDealRecordImportAuditLog(log: AuditLog): boolean {
+  return normalizeCode(log.action) === 'DEAL_RECORD_IMPORT_EXECUTE' || normalizeCode(log.targetType) === 'DEAL_RECORD_IMPORT_JOB';
+}
+
 function importBatchCount(value: unknown): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 0;
+}
+
+function dealRecordImportCount(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : null;
+}
+
+function dealRecordImportPayload(log: AuditLog): { job: Record<string, unknown>; summary: Record<string, unknown> } {
+  const after = isPlainObject(log.afterJson) ? log.afterJson : {};
+  return {
+    job: isPlainObject(after.job) ? after.job : {},
+    summary: isPlainObject(after.summary) ? after.summary : {},
+  };
+}
+
+function dealRecordImportStatus(log: AuditLog): string {
+  return normalizeCode(String(dealRecordImportPayload(log).job.status || ''));
+}
+
+function dealRecordImportStatusLabel(log: AuditLog): string {
+  const status = dealRecordImportStatus(log);
+  return ENUM_VALUE_LABELS[status] || status || '已完成';
+}
+
+function buildDealRecordImportPreview(log: AuditLog): string {
+  const { job, summary } = dealRecordImportPayload(log);
+  const total = dealRecordImportCount(summary.totalRows ?? job.totalCount);
+  const valid = dealRecordImportCount(summary.validRows ?? job.validCount);
+  const failed = dealRecordImportCount(summary.failedCount ?? summary.invalidRows ?? job.failedCount ?? job.invalidCount);
+  const succeeded = dealRecordImportCount(summary.successCount ?? job.successCount);
+  const skipped = dealRecordImportCount(summary.skippedCount ?? job.skippedCount);
+  const result: string[] = [];
+
+  if (total !== null) result.push(`共读取 ${total} 行`);
+  if (valid !== null) result.push(`校验通过 ${valid} 行`);
+  if (failed !== null) result.push(`失败 ${failed} 行`);
+  if (succeeded !== null) result.push(`导入成功 ${succeeded} 行`);
+  if (skipped !== null) result.push(`跳过 ${skipped} 行`);
+
+  return result.length ? `导入${dealRecordImportStatusLabel(log)}：${result.join('，')}` : `导入${dealRecordImportStatusLabel(log)}。`;
+}
+
+function buildDealRecordImportFieldChanges(log: AuditLog): AuditFieldChange[] {
+  return [
+    {
+      key: 'deal-record-import-result',
+      label: '导入结果',
+      before: '',
+      after: buildDealRecordImportPreview(log),
+      mode: 'summary',
+    },
+  ];
 }
 
 function importBatchPayload(log: AuditLog): Record<string, unknown> {
@@ -497,8 +564,10 @@ function buildImportBatchPreview(log: AuditLog): string {
   if (skipped) result.push(`跳过 ${skipped} 项`);
   if (failed) result.push(`失败 ${failed} 项`);
 
-  const scopeText = scope ? `涉及 ${scope}` : total ? `共检查 ${total} 项` : '';
-  return [scopeText, result.join('，')].filter(Boolean).join('；') || '已完成撤回预检，未发现可处理的变更。';
+  const scopeText = scope ? `已检查：${scope}` : total ? `已检查：本批次 ${total} 项导入变更` : '';
+  if (!scopeText && !result.length) return '本批次没有可检查的导入变更，未执行撤回。';
+  if (!result.length) return `${scopeText}；未发现可自动撤回、需人工确认或阻断项。`;
+  return [scopeText, result.join('；')].filter(Boolean).join('；');
 }
 
 function buildImportBatchExecutePreview(log: AuditLog): string {
@@ -519,61 +588,37 @@ function buildImportBatchExecutePreview(log: AuditLog): string {
   if (failed) result.push(`失败 ${failed} 项`);
   if (reason) result.push(`撤回原因：${reason}`);
 
-  return result.join('；') || '已执行批次撤回，请进入批次明细核对结果。';
+  return result.join('；') || '本次未处理任何记录，请查看撤回预检或批次明细确认原因。';
 }
 
 function buildImportBatchFieldChanges(log: AuditLog): AuditFieldChange[] {
   const action = normalizeCode(log.action);
-  const after = importBatchPayload(log);
-  const before = isPlainObject(log.beforeJson) ? log.beforeJson : {};
-  const changes: AuditFieldChange[] = [];
-  const add = (key: string, label: string, afterValue: string, mode: AuditFieldChange['mode'] = 'added', beforeValue = '未设置') => {
-    if (!afterValue) return;
-    changes.push({ key, label, before: beforeValue, after: afterValue, mode });
-  };
 
   if (action === 'IMPORT_BATCH_ROLLBACK_PREVIEW') {
-    const summary = isPlainObject(after.summary) ? after.summary : {};
-    const scope = importBatchScope(log);
-    const total = importBatchCount(summary.totalCount);
-    const rollbackable = importBatchCount(summary.rollbackableCount);
-    const conflicted = importBatchCount(summary.conflictedCount);
-    const manualOnly = importBatchCount(summary.manualOnlyCount);
-    const blocked = Math.max(importBatchCount(summary.blockedCount) - manualOnly, 0);
-    const rolledBack = importBatchCount(summary.rolledBackCount);
-    const failed = importBatchCount(summary.failedCount);
-    add('scope', '检查对象', scope || (total ? `共 ${total} 项` : '本批次变更'));
-    if (rollbackable) add('rollbackableCount', '可自动撤回', `${rollbackable} 项`);
-    if (conflicted) add('conflictedCount', '需人工确认', `${conflicted} 项`);
-    if (manualOnly) add('manualOnlyCount', '需人工处理', `${manualOnly} 项`);
-    if (blocked) add('blockedCount', '阻断', `${blocked} 项`);
-    if (rolledBack) add('rolledBackCount', '已撤回', `${rolledBack} 项`);
-    if (failed) add('failedCount', '失败', `${failed} 项`);
-    return changes;
+    return [
+      {
+        key: 'rollback-preview-result',
+        label: '预检结论',
+        before: '',
+        after: buildImportBatchPreview(log),
+        mode: 'summary',
+      },
+    ];
   }
 
   if (action === 'IMPORT_BATCH_ROLLBACK_EXECUTE') {
-    const emptyReferences = { roleNameById: {}, permissionNameById: {}, userNameById: {}, userContactById: {} };
-    const beforeStatus = before.status === undefined ? '' : formatAuditFieldValue('status', before.status, emptyReferences);
-    const afterStatus = after.status === undefined ? '' : formatAuditFieldValue('status', after.status, emptyReferences);
-    if (afterStatus) add('status', '批次状态', afterStatus, beforeStatus ? 'changed' : 'added', beforeStatus || '未设置');
-    const rolledBack = importBatchCount(after.rolledBackCount);
-    const conflicted = importBatchCount(after.conflictedCount);
-    const blocked = importBatchCount(after.blockedCount);
-    const failed = importBatchCount(after.failedCount);
-    if (rolledBack) add('rolledBackCount', '已撤回', `${rolledBack} 项`);
-    if (conflicted) add('conflictedCount', '冲突', `${conflicted} 项`);
-    if (blocked) add('blockedCount', '阻断', `${blocked} 项`);
-    if (failed) add('failedCount', '失败', `${failed} 项`);
-    const reason = normalizeUserFacingText(after.reason);
-    if (reason) add('reason', '撤回原因', reason);
-    const manualOverride = isPlainObject(after.manualOverride) ? after.manualOverride : null;
-    const manualOverrideCount = Array.isArray(manualOverride?.changeIds) ? manualOverride.changeIds.length : 0;
-    if (manualOverrideCount) add('manualOverride', '人工确认纳入', `${manualOverrideCount} 项`);
-    return changes;
+    return [
+      {
+        key: 'rollback-execute-result',
+        label: '执行结论',
+        before: '',
+        after: buildImportBatchExecutePreview(log),
+        mode: 'summary',
+      },
+    ];
   }
 
-  return changes;
+  return [];
 }
 
 function stringifyForCompare(value: unknown): string {
@@ -680,6 +725,7 @@ function formatAuditFieldValue(key: string, value: unknown, references: AuditRef
 
 function buildFieldChanges(log: AuditLog, references: AuditReferenceData): AuditFieldChange[] {
   if (isImportBatchAuditLog(log)) return buildImportBatchFieldChanges(log);
+  if (isDealRecordImportAuditLog(log)) return buildDealRecordImportFieldChanges(log);
 
   const before = isPlainObject(log.beforeJson) ? log.beforeJson : {};
   const after = isPlainObject(log.afterJson) ? log.afterJson : {};
@@ -750,6 +796,7 @@ function buildChangePreview(log: AuditLog, references: AuditReferenceData): stri
   const action = normalizeCode(log.action);
   if (action === 'IMPORT_BATCH_ROLLBACK_PREVIEW') return buildImportBatchPreview(log);
   if (action === 'IMPORT_BATCH_ROLLBACK_EXECUTE') return buildImportBatchExecutePreview(log);
+  if (isDealRecordImportAuditLog(log)) return buildDealRecordImportPreview(log);
 
   const changes = buildFieldChanges(log, references);
   if (!changes.length) {
@@ -758,6 +805,7 @@ function buildChangePreview(log: AuditLog, references: AuditReferenceData): stri
   return changes
     .slice(0, 2)
     .map((item) => {
+      if (item.mode === 'summary') return item.after;
       if (item.mode === 'added') return `${item.label}：${item.after}`;
       if (item.mode === 'removed') return `${item.label}：已移除`;
       return `${item.label}：${item.before} -> ${item.after}`;
@@ -904,6 +952,17 @@ export function AuditLogsPage() {
   }, [rows]);
 
   const activeChanges = useMemo(() => (active ? buildFieldChanges(active, references) : []), [active, references]);
+  const activeAction = normalizeCode(active?.action || '');
+  const isRollbackPreviewDetail = activeAction === 'IMPORT_BATCH_ROLLBACK_PREVIEW';
+  const isRollbackExecuteDetail = activeAction === 'IMPORT_BATCH_ROLLBACK_EXECUTE';
+  const isDealRecordImportDetail = active ? isDealRecordImportAuditLog(active) : false;
+  const detailChangesTitle = isRollbackPreviewDetail
+    ? '撤回预检结果'
+    : isRollbackExecuteDetail
+      ? '撤回执行结果'
+      : isDealRecordImportDetail
+        ? '成交记录导入结果'
+        : '关键变更';
 
   return (
     <Card className="admin-audit-logs-page">
@@ -1050,8 +1109,20 @@ export function AuditLogsPage() {
 
                 <Card
                   size="small"
-                  title="关键变更"
-                  extra={<Typography.Text type="secondary">{activeChanges.length ? `${activeChanges.length} 项` : '无'}</Typography.Text>}
+                  title={detailChangesTitle}
+                  extra={
+                    isRollbackPreviewDetail ? (
+                      <Tag color="blue">预检完成</Tag>
+                    ) : isRollbackExecuteDetail ? (
+                      <Tag color="orange">已执行</Tag>
+                    ) : isDealRecordImportDetail ? (
+                      <Tag color={dealRecordImportStatus(active as AuditLog) === 'FAILED' ? 'red' : 'blue'}>
+                        导入{dealRecordImportStatusLabel(active as AuditLog)}
+                      </Tag>
+                    ) : (
+                      <Typography.Text type="secondary">{activeChanges.length ? `${activeChanges.length} 项` : '无'}</Typography.Text>
+                    )
+                  }
                 >
                   {activeChanges.length ? (
                     <Space direction="vertical" size={10} style={{ width: '100%' }}>
@@ -1068,11 +1139,15 @@ export function AuditLogsPage() {
                           <Space direction="vertical" size={4} style={{ width: '100%' }}>
                             <Space size={8}>
                               <Typography.Text strong>{item.label}</Typography.Text>
-                              <Tag color={item.mode === 'removed' ? 'red' : item.mode === 'added' ? 'green' : 'blue'}>
-                                {item.mode === 'removed' ? '删除' : item.mode === 'added' ? '新增' : '修改'}
-                              </Tag>
+                              {item.mode !== 'summary' ? (
+                                <Tag color={item.mode === 'removed' ? 'red' : item.mode === 'added' ? 'green' : 'blue'}>
+                                  {item.mode === 'removed' ? '删除' : item.mode === 'added' ? '新增' : '修改'}
+                                </Tag>
+                              ) : null}
                             </Space>
-                            {item.mode === 'changed' ? (
+                            {item.mode === 'summary' ? (
+                              <Typography.Text>{item.after}</Typography.Text>
+                            ) : item.mode === 'changed' ? (
                               <>
                                 <Typography.Text type="secondary">变更前：{item.before}</Typography.Text>
                                 <Typography.Text>变更后：{item.after}</Typography.Text>

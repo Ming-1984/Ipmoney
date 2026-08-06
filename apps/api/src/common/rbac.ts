@@ -48,6 +48,7 @@ export function buildDefaultRbacRoles(now = new Date()): RbacRole[] {
         'dealRecord.read',
         'dealRecord.import',
         'dealRecord.manage',
+        'comment.manage',
         'conversation.platform.manage',
         'order.read',
         'case.manage',

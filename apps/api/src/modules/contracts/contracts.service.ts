@@ -294,6 +294,9 @@ export class ContractsService {
     if (String(file.mimeType || '') !== 'application/pdf') {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: '仅支持上传 PDF 合同' });
     }
+    if (order.status !== 'DEPOSIT_PAID') {
+      throw new ConflictException({ code: 'CONFLICT', message: 'contract upload not allowed in current status' });
+    }
     const fileUrl = resolvePublicFileUrl(file, { baseUrl: process.env.BASE_URL }) ?? file.url;
 
     const result = await this.prisma.$transaction(async (tx) => {

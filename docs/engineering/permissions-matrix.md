@@ -59,6 +59,8 @@ This maps backend enforcement (`requirePermission`) to admin modules/pages:
   - `/admin/patents/jobs/import*`, `/admin/patents/jobs/listings`
 - `patent.claim.review`:
   - `/admin/patent-claims`, `/admin/patent-claims/:claimId/approve`, `/admin/patent-claims/:claimId/reject`
+- `comment.manage`:
+  - `/admin/comments`
 - `conversation.platform.reply`:
   - `/admin/conversations/platform` (assigned conversations), conversation messages/read/reply
 - `conversation.platform.manage`:
@@ -67,11 +69,11 @@ This maps backend enforcement (`requirePermission`) to admin modules/pages:
 - `order.read`:
   - `/admin/orders`, `/admin/orders/:id`
 - `order.assigned.read`:
-  - `/admin/orders/assigned`, `/admin/orders/assigned/:id`
+  - `/admin/assigned-orders`, `/admin/assigned-orders/:id`
   - Admin web: `/orders/assigned`
   - Scope must be limited to `Order.assignedCsUserId = current user`
 - `order.assigned.contract.confirm`:
-  - `/admin/orders/assigned/:id/milestones/contract-signed`
+  - `/admin/assigned-orders/:id/milestones/contract-signed`
   - Allows confirming contract signature and writing deal amount only on orders assigned to the current user
 - `order.assigned.followup.note`:
   - Planned assigned-order follow-up note action
@@ -101,9 +103,6 @@ This maps backend enforcement (`requirePermission`) to admin modules/pages:
   - `/admin/rbac/*` (role/permission/user management, staff onboarding)
 - `auditLog.read`:
   - `/admin/audit-logs`
-
-## Admin endpoints gated by `isAdmin` (no permission ID)
-- `/admin/comments` list/update currently requires admin login but does not check a dedicated permission ID
 
 ## Admin login + staff onboarding baseline
 - Admin login is SMS-first (`POST /auth/sms/send` + `POST /auth/sms/verify`), then session check (`GET /auth/session`).

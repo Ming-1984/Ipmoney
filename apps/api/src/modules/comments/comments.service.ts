@@ -1,5 +1,6 @@
 ﻿import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
+import { requirePermission } from '../../common/permissions';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { normalizeDisplayText, resolvePublicAvatarUrl } from '../content-utils';
 
@@ -403,6 +404,7 @@ export class CommentsService {
 
   async adminList(req: any, query: any): Promise<PagedComment> {
     this.ensureAdmin(req);
+    requirePermission(req, 'comment.manage');
     const page = this.hasOwn(query, 'page') ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
     const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
     const pageSize = Math.min(50, pageSizeInput);
@@ -484,6 +486,7 @@ export class CommentsService {
 
   async adminUpdate(req: any, commentId: string, body: any): Promise<CommentDto> {
     this.ensureAdmin(req);
+    requirePermission(req, 'comment.manage');
     const normalizedCommentId = this.parseUuidStrict(commentId, 'commentId');
     const status = this.normalizeStatus(body?.status);
     if (!status) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
@@ -494,5 +497,4 @@ export class CommentsService {
     return this.toAdminDto(updated, userMap.get(updated.userId));
   }
 }
-
 

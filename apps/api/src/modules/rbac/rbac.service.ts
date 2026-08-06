@@ -53,6 +53,7 @@ const PERMISSIONS: Permission[] = [
   { id: 'dealRecord.read', name: '成交记录查看', description: '查看成交记录和导入历史' },
   { id: 'dealRecord.import', name: '成交记录导入', description: '预览并执行成交数据导入' },
   { id: 'dealRecord.manage', name: '成交记录管理', description: '作废或维护成交记录' },
+  { id: 'comment.manage', name: '评论管理', description: '查看和审核挂牌、成果评论' },
   { id: 'conversation.platform.reply', name: '平台会话回复', description: '查看并回复已分配给自己的平台会话' },
   { id: 'conversation.platform.manage', name: '平台会话调度', description: '查看平台会话池并分配客服，包含回复权限' },
   { id: 'order.read', name: '订单查看', description: '查看订单详情' },

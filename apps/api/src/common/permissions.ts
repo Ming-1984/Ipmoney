@@ -34,6 +34,7 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRoleName, string[]> = {
     'dealRecord.read',
     'dealRecord.import',
     'dealRecord.manage',
+    'comment.manage',
     'conversation.platform.manage',
     'order.read',
     'case.manage',
