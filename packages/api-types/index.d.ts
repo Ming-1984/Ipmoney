@@ -3329,7 +3329,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/orders/assigned": {
+    "/admin/assigned-orders": {
         parameters: {
             query?: never;
             header?: never;
@@ -3346,7 +3346,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/orders/assigned/{orderId}": {
+    "/admin/assigned-orders/{orderId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -3363,7 +3363,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/orders/assigned/{orderId}/milestones/contract-signed": {
+    "/admin/assigned-orders/{orderId}/milestones/contract-signed": {
         parameters: {
             query?: never;
             header?: never;
@@ -3380,7 +3380,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/orders/assigned/{orderId}/contract/signed-submissions/{submissionId}/reject": {
+    "/admin/assigned-orders/{orderId}/contract/signed-submissions/{submissionId}/reject": {
         parameters: {
             query?: never;
             header?: never;
@@ -3397,7 +3397,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/orders/assigned/{orderId}/contract/upload": {
+    "/admin/assigned-orders/{orderId}/contract/upload": {
         parameters: {
             query?: never;
             header?: never;

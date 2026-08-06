@@ -2547,11 +2547,6 @@ export class OrdersService {
     }
     const remark = body?.remark ? String(body.remark).trim() : undefined;
     const signedAt = this.parseOptionalDateTime(body?.signedAt, 'signedAt');
-    const rawSignedSubmissionId = body?.signedSubmissionId ? String(body.signedSubmissionId).trim() : '';
-    if (!rawSignedSubmissionId) {
-      throw new ConflictException({ code: 'CONFLICT', message: '请先等待用户回传签署版合同' });
-    }
-    const signedSubmissionId = this.parseUuidStrict(rawSignedSubmissionId, 'signedSubmissionId');
     const assignedUserId = String(options.assignedUserId || '').trim();
     const existing = assignedUserId
       ? await this.prisma.order.findFirst({ where: { id: normalizedOrderId, assignedCsUserId: assignedUserId } })
@@ -2559,6 +2554,11 @@ export class OrdersService {
     if (!existing) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
     }
+    const rawSignedSubmissionId = body?.signedSubmissionId ? String(body.signedSubmissionId).trim() : '';
+    if (!rawSignedSubmissionId) {
+      throw new ConflictException({ code: 'CONFLICT', message: '请先等待用户回传签署版合同' });
+    }
+    const signedSubmissionId = this.parseUuidStrict(rawSignedSubmissionId, 'signedSubmissionId');
     if (existing.status !== 'DEPOSIT_PAID') {
       throw new ConflictException({ code: 'CONFLICT', message: 'contract signed not allowed in current status' });
     }

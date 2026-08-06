@@ -29,7 +29,7 @@ export class OrdersController {
   }
 
   @UseGuards(BearerAuthGuard)
-  @Get('/admin/orders/assigned')
+  @Get('/admin/assigned-orders')
   async listAssignedOrders(@Req() req: any, @Query() query: any) {
     requirePermission(req, 'order.assigned.read');
     return await this.orders.listAssignedOrders(req, query);
@@ -123,21 +123,21 @@ export class OrdersController {
   }
 
   @UseGuards(BearerAuthGuard)
-  @Get('/admin/orders/assigned/:orderId')
+  @Get('/admin/assigned-orders/:orderId')
   async getAssignedOrder(@Req() req: any, @Param('orderId') orderId: string) {
     requirePermission(req, 'order.assigned.read');
     return await this.orders.getAssignedOrderDetail(req, orderId);
   }
 
   @UseGuards(BearerAuthGuard)
-  @Post('/admin/orders/assigned/:orderId/milestones/contract-signed')
+  @Post('/admin/assigned-orders/:orderId/milestones/contract-signed')
   async assignedContractSigned(@Req() req: any, @Param('orderId') orderId: string, @Body() body: any) {
     requirePermission(req, 'order.assigned.contract.confirm');
     return await this.orders.assignedContractSigned(req, orderId, body || {});
   }
 
   @UseGuards(BearerAuthGuard)
-  @Post('/admin/orders/assigned/:orderId/contract/upload')
+  @Post('/admin/assigned-orders/:orderId/contract/upload')
   async assignedUploadContract(@Req() req: any, @Param('orderId') orderId: string, @Body() body: any) {
     requirePermission(req, 'order.assigned.contract.confirm');
     return await this.orders.assignedUploadContract(req, orderId, body || {});
@@ -177,7 +177,7 @@ export class OrdersController {
   }
 
   @UseGuards(BearerAuthGuard)
-  @Post('/admin/orders/assigned/:orderId/contract/signed-submissions/:submissionId/reject')
+  @Post('/admin/assigned-orders/:orderId/contract/signed-submissions/:submissionId/reject')
   async assignedRejectSignedSubmission(
     @Req() req: any,
     @Param('orderId') orderId: string,

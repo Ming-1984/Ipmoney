@@ -6844,7 +6844,7 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-  /admin/orders/assigned:
+  /admin/assigned-orders:
     get:
       tags:
         - Admin
@@ -6887,7 +6887,7 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-  /admin/orders/assigned/{orderId}:
+  /admin/assigned-orders/{orderId}:
     get:
       tags:
         - Admin
@@ -6911,7 +6911,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-  /admin/orders/assigned/{orderId}/milestones/contract-signed:
+  /admin/assigned-orders/{orderId}/milestones/contract-signed:
     post:
       tags:
         - Admin
@@ -6961,7 +6961,7 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
-  /admin/orders/assigned/{orderId}/contract/signed-submissions/{submissionId}/reject:
+  /admin/assigned-orders/{orderId}/contract/signed-submissions/{submissionId}/reject:
     post:
       tags:
         - Admin
@@ -7001,7 +7001,7 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
-  /admin/orders/assigned/{orderId}/contract/upload:
+  /admin/assigned-orders/{orderId}/contract/upload:
     post:
       tags:
         - Admin

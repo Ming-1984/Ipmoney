@@ -354,7 +354,7 @@ export function AssignedOrdersPage() {
       setLoading(true);
       setError(null);
       try {
-        const next = await apiGet<PagedAssignedOrder>('/admin/orders/assigned', {
+        const next = await apiGet<PagedAssignedOrder>('/admin/assigned-orders', {
           page: nextPage,
           pageSize: nextPageSize,
           status: nextStatus || undefined,
@@ -380,7 +380,7 @@ export function AssignedOrdersPage() {
     setDetailLoading(true);
     setDetailError(null);
     try {
-      const next = await apiGet<AssignedOrderDetail>(`/admin/orders/assigned/${orderId}`);
+      const next = await apiGet<AssignedOrderDetail>(`/admin/assigned-orders/${orderId}`);
       if (requestSeq !== detailSeqRef.current) return;
       setDetail(next);
       setDetailOpen(true);
@@ -438,7 +438,7 @@ export function AssignedOrdersPage() {
       }
       setContractSubmitting(true);
       await apiPost(
-        `/admin/orders/assigned/${targetOrderId}/milestones/contract-signed`,
+        `/admin/assigned-orders/${targetOrderId}/milestones/contract-signed`,
         {
           dealAmountFen: yuanToFen(dealAmountYuan),
           signedAt: new Date().toISOString(),
@@ -485,7 +485,7 @@ export function AssignedOrdersPage() {
       const requestSeq = ++rejectSeqRef.current;
       try {
         const resp = await apiPost<RejectSignedSubmissionResponse>(
-          `/admin/orders/assigned/${targetOrderId}/contract/signed-submissions/${submission.id}/reject`,
+          `/admin/assigned-orders/${targetOrderId}/contract/signed-submissions/${submission.id}/reject`,
           { reason },
           { idempotencyKey: `assigned-contract-signed-reject-${targetOrderId}-${submission.id}-${Date.now()}` },
         );
@@ -810,7 +810,7 @@ export function AssignedOrdersPage() {
           setUploadSubmitting(true);
           try {
             const updated = await apiPost<Partial<AssignedOrder>>(
-              `/admin/orders/assigned/${targetOrderId}/contract/upload`,
+              `/admin/assigned-orders/${targetOrderId}/contract/upload`,
               { contractFileId: uploadFile.id },
               { idempotencyKey: `assigned-contract-upload-${targetOrderId}-${uploadFile.id}` },
             );

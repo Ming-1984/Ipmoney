@@ -76,6 +76,8 @@
   - GET /admin/achievements
   - GET /admin/achievements/:param
   - GET /admin/achievements/:param/materials
+  - GET /admin/assigned-orders
+  - GET /admin/assigned-orders/:param
   - GET /admin/audit-logs
   - GET /admin/cases
   - GET /admin/cases/:param
@@ -105,8 +107,6 @@
   - GET /admin/notifications/badges
   - GET /admin/orders
   - GET /admin/orders/:param
-  - GET /admin/orders/assigned
-  - GET /admin/orders/assigned/:param
   - GET /admin/patent-claims
   - GET /admin/patent-maintenance/orders
   - GET /admin/patent-maintenance/orders/:param/events
@@ -135,6 +135,8 @@
 | adminGetAchievementMaterials | GET | /admin/achievements/:param/materials |  | Y |  |  |  |  |  |  |  |
 | adminListAiParseResults | GET | /admin/ai/parse-results |  |  |  |  |  |  |  |  |  |
 | adminGetAiParseResult | GET | /admin/ai/parse-results/:param |  |  |  |  |  |  |  |  |  |
+| adminListAssignedOrders | GET | /admin/assigned-orders |  | Y |  |  |  |  |  |  |  |
+| adminGetAssignedOrderById | GET | /admin/assigned-orders/:param |  | Y |  |  |  |  |  |  |  |
 | adminListAuditLogs | GET | /admin/audit-logs |  | Y |  |  |  |  |  |  |  |
 | adminListCases | GET | /admin/cases |  | Y |  |  |  |  |  |  |  |
 | adminGetCaseById | GET | /admin/cases/:param |  | Y |  |  |  |  |  |  |  |
@@ -181,8 +183,6 @@
 | adminGetOrderById | GET | /admin/orders/:param |  | Y |  |  |  |  |  |  |  |
 | adminGetOrderInvoice | GET | /admin/orders/:param/invoice |  |  |  |  |  |  |  |  |  |
 | adminGetOrderSettlement | GET | /admin/orders/:param/settlement |  |  |  |  |  |  |  |  |  |
-| adminListAssignedOrders | GET | /admin/orders/assigned |  | Y |  |  |  |  |  |  |  |
-| adminGetAssignedOrderById | GET | /admin/orders/assigned/:param |  | Y |  |  |  |  |  |  |  |
 | adminListPatentClaims | GET | /admin/patent-claims |  | Y |  |  |  |  |  |  |  |
 | adminListPatentMaintenanceOrders | GET | /admin/patent-maintenance/orders |  | Y |  |  |  |  |  |  |  |
 | adminGetPatentMaintenanceOrder | GET | /admin/patent-maintenance/orders/:param |  |  |  |  |  |  |  |  |  |
@@ -295,6 +295,9 @@
 | adminOffShelfAchievement | POST | /admin/achievements/:param/off-shelf |  | Y |  |  |  |  |  |  |  |
 | adminPublishAchievement | POST | /admin/achievements/:param/publish |  |  |  |  |  |  |  |  |  |
 | adminRejectAchievement | POST | /admin/achievements/:param/reject |  | Y |  |  |  |  |  |  |  |
+| adminRejectAssignedContractSignedSubmission | POST | /admin/assigned-orders/:param/contract/signed-submissions/:param/reject |  | Y |  |  |  |  |  |  |  |
+| adminUploadAssignedOrderContract | POST | /admin/assigned-orders/:param/contract/upload |  | Y |  |  |  |  |  |  |  |
+| adminConfirmAssignedOrderContractSigned | POST | /admin/assigned-orders/:param/milestones/contract-signed |  | Y |  |  |  |  |  |  |  |
 | adminCreateCase | POST | /admin/cases |  | Y |  |  |  |  |  |  |  |
 | adminAssignCase | POST | /admin/cases/:param/assign |  | Y |  |  |  |  |  |  |  |
 | adminAddCaseEvidence | POST | /admin/cases/:param/evidence |  | Y |  |  |  |  |  |  |  |
@@ -331,9 +334,6 @@
 | adminConfirmTransferCompleted | POST | /admin/orders/:param/milestones/transfer-completed |  | Y |  |  |  |  |  |  |  |
 | adminManualConfirmPayment | POST | /admin/orders/:param/payments/manual |  | Y |  |  |  |  |  |  |  |
 | adminConfirmManualPayout | POST | /admin/orders/:param/payouts/manual |  | Y |  |  |  |  |  |  |  |
-| adminRejectAssignedContractSignedSubmission | POST | /admin/orders/assigned/:param/contract/signed-submissions/:param/reject |  | Y |  |  |  |  |  |  |  |
-| adminUploadAssignedOrderContract | POST | /admin/orders/assigned/:param/contract/upload |  | Y |  |  |  |  |  |  |  |
-| adminConfirmAssignedOrderContractSigned | POST | /admin/orders/assigned/:param/milestones/contract-signed |  | Y |  |  |  |  |  |  |  |
 | adminApprovePatentClaim | POST | /admin/patent-claims/:param/approve |  | Y |  |  |  |  |  |  |  |
 | adminRejectPatentClaim | POST | /admin/patent-claims/:param/reject |  | Y |  |  |  |  |  |  |  |
 | adminCreatePatentMaintenanceOrder | POST | /admin/patent-maintenance/orders |  | Y |  |  |  |  |  |  |  |
