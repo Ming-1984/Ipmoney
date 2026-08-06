@@ -1090,6 +1090,7 @@ export function PatentOperationsPage() {
                 <Typography.Text type="secondary">必填列：申请号、发明名称、专利类型。</Typography.Text>
                 <Typography.Text type="secondary">支持 .xlsx / .xls / .csv（Excel 兼容 CSV 模板）。</Typography.Text>
                 <Typography.Text type="secondary">单次导入建议控制在 5000 行以内。</Typography.Text>
+                <Typography.Text type="secondary">异常补挂牌可直接粘贴专利记录编号，并使用下方第（2）点配置生成或更新挂牌。</Typography.Text>
               </Space>
             }
           />
@@ -1133,9 +1134,42 @@ export function PatentOperationsPage() {
             ]}
           />
 
+          <Space direction="vertical" size={8} style={{ width: '100%' }}>
+            <Typography.Title level={5} style={{ margin: 0 }}>
+              异常补挂牌（可选）
+            </Typography.Title>
+            <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
+              仅用于系统中已有专利但挂牌缺失、挂牌被误删或历史数据需要补齐的特殊场景。会复用下方第（2）点配置，日常专利导入无需使用。
+            </Typography.Paragraph>
+            <Input.TextArea
+              rows={4}
+              value={patentIdsText}
+              onChange={(e) => setPatentIdsText(e.target.value)}
+              placeholder="每行一个专利记录编号，或用逗号分隔"
+            />
+            <Space wrap>
+              <Typography.Text type="secondary">已识别 {parsedPatentIdsCount} 个专利编号（自动去重）</Typography.Text>
+              <Button loading={submitting} onClick={() => void runBatchGenerate()}>
+                补生成挂牌
+              </Button>
+              {generateResult ? (
+                <Typography.Text type="secondary">
+                  总 {generateResult.totalCount}，成功 {generateResult.successCount}，失败 {generateResult.failedCount}，跳过 {generateResult.skippedCount}
+                </Typography.Text>
+              ) : null}
+            </Space>
+          </Space>
+
+          <Alert
+            showIcon
+            type="info"
+            message="（2）设置本次处理与挂牌配置"
+            description="普通导入和异常补挂牌共用这组配置，用于决定重复数据策略、咨询承接方式、交易方式、价格和挂牌标签。"
+          />
+
           <Form form={form} layout="vertical">
             <Space wrap>
-              <Form.Item label="（2）重复数据怎么处理" name="duplicatePolicy" rules={[{ required: true }]}>
+              <Form.Item label="重复数据怎么处理" name="duplicatePolicy" rules={[{ required: true }]}>
                 <Select style={{ width: 160 }} options={duplicatePolicyOptions} />
               </Form.Item>
               <Form.Item label="咨询分配方式" name="consultationRouting" rules={[{ required: true }]}>
@@ -1273,29 +1307,6 @@ export function PatentOperationsPage() {
             },
           ]}
         />
-      </Card>
-
-      <Card title="异常补挂牌">
-        <Space direction="vertical" size={12} style={{ width: '100%' }}>
-          <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
-            仅用于系统中已有专利但挂牌缺失、挂牌被误删或历史数据需要补齐的特殊场景。日常专利导入无需使用此功能。
-          </Typography.Paragraph>
-          <Input.TextArea
-            rows={4}
-            value={patentIdsText}
-            onChange={(e) => setPatentIdsText(e.target.value)}
-            placeholder="每行一个专利记录编号，或用逗号分隔"
-          />
-          <Typography.Text type="secondary">已识别 {parsedPatentIdsCount} 个专利编号（自动去重）</Typography.Text>
-          <Button loading={submitting} onClick={() => void runBatchGenerate()}>
-            补生成挂牌
-          </Button>
-          {generateResult ? (
-            <Typography.Text type="secondary">
-              总 {generateResult.totalCount}，成功 {generateResult.successCount}，失败 {generateResult.failedCount}，跳过 {generateResult.skippedCount}
-            </Typography.Text>
-          ) : null}
-        </Space>
       </Card>
 
       <Card title="专利地图批量管理">
