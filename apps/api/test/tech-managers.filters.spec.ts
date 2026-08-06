@@ -413,6 +413,30 @@ describe('TechManagersService filter and sanitization suite', () => {
     );
   });
 
+  it('excludes withdrawn tech managers from the rejected status filter', async () => {
+    prisma.userVerification.findMany.mockResolvedValueOnce([]);
+    prisma.userVerification.count.mockResolvedValueOnce(0);
+
+    await service.listAdmin(
+      { auth: { isAdmin: true, userId: 'admin-1' } },
+      { verificationStatus: 'REJECTED', page: '1', pageSize: '20' },
+    );
+
+    expect(prisma.userVerification.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          verificationType: 'TECH_MANAGER',
+          verificationStatus: 'REJECTED',
+          AND: expect.arrayContaining([
+            {
+              OR: [{ reviewComment: null }, { reviewComment: { not: { startsWith: '[批次撤回]' } } }],
+            },
+          ]),
+        }),
+      }),
+    );
+  });
+
   it('supports admin filtering by active badge code', async () => {
     prisma.userVerification.findMany.mockResolvedValueOnce([]);
     prisma.userVerification.count.mockResolvedValueOnce(0);

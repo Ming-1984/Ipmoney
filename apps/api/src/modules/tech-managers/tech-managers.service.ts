@@ -777,6 +777,11 @@ export class TechManagersService {
       andConditions.push({ reviewComment: { startsWith: '[批次撤回]' } });
     } else if (hasVerificationStatus) {
       where.verificationStatus = this.parseVerificationStatusStrict(query?.verificationStatus, 'verificationStatus');
+      if (where.verificationStatus === VERIFICATION_STATUS.REJECTED) {
+        andConditions.push({
+          OR: [{ reviewComment: null }, { reviewComment: { not: { startsWith: '[批次撤回]' } } }],
+        });
+      }
     }
     if (regionCode) andConditions.push({ regionCode });
     if (badgeCode) {
