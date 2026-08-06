@@ -267,7 +267,23 @@ else
   api_root=/opt/sunye/current/apps/api
 fi
 admin_root=/www/wwwroot/admin.ipmoney.cn
-h5_root=/www/wwwroot/ipmoney.cn
+h5_root=$(nginx -T 2>/dev/null | awk '
+  /^[[:space:]]*server[[:space:]]*$/ || /^[[:space:]]*server[[:space:]]*\{/ { in_server = 1; server_name = ""; server_root = ""; next }
+  in_server && /^[[:space:]]*server_name[[:space:]]+/ { server_name = $0; next }
+  in_server && /^[[:space:]]*root[[:space:]]+/ && server_root == "" {
+    server_root = $2
+    sub(/;$/, "", server_root)
+    next
+  }
+  in_server && /^[[:space:]]*\}/ {
+    if (server_name ~ /(^|[[:space:]])ipmoney\.cn([[:space:];]|$)/ && server_root != "") {
+      print server_root
+      exit
+    }
+    in_server = 0
+  }
+')
+if [ -z "$h5_root" ]; then h5_root=/www/wwwroot/ipmoney.cn; fi
 printf "API_ROOT=%s\nADMIN_ROOT=%s\nH5_ROOT=%s\nPM2_NAME=%s\n" "$api_root" "$admin_root" "$h5_root" "$pm2_name"
 """
     output = run_remote(ssh, layout_cmd)
