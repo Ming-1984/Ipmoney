@@ -1147,17 +1147,7 @@ export function PatentOperationsPage() {
               onChange={(e) => setPatentIdsText(e.target.value)}
               placeholder="每行一个专利记录编号，或用逗号分隔"
             />
-            <Space wrap>
-              <Typography.Text type="secondary">已识别 {parsedPatentIdsCount} 个专利编号（自动去重）</Typography.Text>
-              <Button loading={submitting} onClick={() => void runBatchGenerate()}>
-                补生成挂牌
-              </Button>
-              {generateResult ? (
-                <Typography.Text type="secondary">
-                  总 {generateResult.totalCount}，成功 {generateResult.successCount}，失败 {generateResult.failedCount}，跳过 {generateResult.skippedCount}
-                </Typography.Text>
-              ) : null}
-            </Space>
+            <Typography.Text type="secondary">已识别 {parsedPatentIdsCount} 个专利编号（自动去重）</Typography.Text>
           </Space>
 
           <Alert
@@ -1202,14 +1192,37 @@ export function PatentOperationsPage() {
             </Form.Item>
           </Form>
 
-          <Space>
-            <Button loading={submitting} onClick={() => confirmCreateImportJob(false)}>
-              提交为待检查任务
-            </Button>
-            <Button type="primary" loading={submitting} onClick={() => confirmCreateImportJob(true)}>
-              提交并自动处理
-            </Button>
-            <Button onClick={() => void loadJobs()}>刷新处理记录</Button>
+          <Space direction="vertical" size={8} style={{ width: '100%' }}>
+            <Typography.Text strong>执行异常补挂牌</Typography.Text>
+            <Space wrap>
+              <Button
+                type="primary"
+                loading={submitting}
+                disabled={parsedPatentIdsCount === 0}
+                title={parsedPatentIdsCount === 0 ? '请先在第（1）点填写需要补挂牌的专利编号' : '使用以上配置补生成挂牌'}
+                onClick={() => void runBatchGenerate()}
+              >
+                补生成挂牌
+              </Button>
+              {generateResult ? (
+                <Typography.Text type="secondary">
+                  总 {generateResult.totalCount}，成功 {generateResult.successCount}，失败 {generateResult.failedCount}，跳过 {generateResult.skippedCount}
+                </Typography.Text>
+              ) : null}
+            </Space>
+          </Space>
+
+          <Space direction="vertical" size={8} style={{ width: '100%' }}>
+            <Typography.Text strong>执行专利主数据导入</Typography.Text>
+            <Space wrap>
+              <Button loading={submitting} onClick={() => confirmCreateImportJob(false)}>
+                提交为待检查任务
+              </Button>
+              <Button type="primary" loading={submitting} onClick={() => confirmCreateImportJob(true)}>
+                提交并自动处理
+              </Button>
+              <Button onClick={() => void loadJobs()}>刷新处理记录</Button>
+            </Space>
           </Space>
         </Space>
       </Card>
