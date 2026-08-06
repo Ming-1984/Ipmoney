@@ -7548,6 +7548,8 @@ export interface components {
         ContentSource: components["schemas"]["ContentSource"];
         /** @description 鐠併倛鐦夐悩鑸碘偓浣界箖濠? */
         VerificationStatus: components["schemas"]["VerificationStatus"];
+        /** @description 是否仅筛选批次撤回的技术经理人 */
+        TechManagerWithdrawnOnly: boolean;
         /** @description 是否仅筛选简介缺失的技术经理 */
         MissingIntro: boolean;
         /** @description 是否仅筛选联系方式缺失的技术经理 */
@@ -13165,6 +13167,8 @@ export interface operations {
                 regionCode?: components["parameters"]["RegionCode"];
                 /** @description 鐠併倛鐦夐悩鑸碘偓浣界箖濠? */
                 verificationStatus?: components["parameters"]["VerificationStatus"];
+                /** @description 是否仅筛选批次撤回的技术经理人 */
+                withdrawnOnly?: components["parameters"]["TechManagerWithdrawnOnly"];
                 /** @description 是否仅筛选简介缺失的技术经理 */
                 missingIntro?: components["parameters"]["MissingIntro"];
                 /** @description 是否仅筛选联系方式缺失的技术经理 */

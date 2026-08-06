@@ -393,6 +393,26 @@ describe('TechManagersService filter and sanitization suite', () => {
     expect(result.items[1].isWithdrawn).toBe(false);
   });
 
+  it('filters admin tech managers by withdrawn status', async () => {
+    prisma.userVerification.findMany.mockResolvedValueOnce([]);
+    prisma.userVerification.count.mockResolvedValueOnce(0);
+
+    await service.listAdmin(
+      { auth: { isAdmin: true, userId: 'admin-1' } },
+      { withdrawnOnly: 'true', page: '1', pageSize: '20' },
+    );
+
+    expect(prisma.userVerification.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          verificationType: 'TECH_MANAGER',
+          verificationStatus: 'REJECTED',
+          AND: expect.arrayContaining([{ reviewComment: { startsWith: '[批次撤回]' } }]),
+        }),
+      }),
+    );
+  });
+
   it('supports admin filtering by active badge code', async () => {
     prisma.userVerification.findMany.mockResolvedValueOnce([]);
     prisma.userVerification.count.mockResolvedValueOnce(0);

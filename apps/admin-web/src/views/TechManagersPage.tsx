@@ -44,6 +44,7 @@ type TechManagerEditorSummary = TechManagerSummary & {
   featuredUntil?: string | null;
 };
 type MissingFilterValue = '' | 'true' | 'false';
+type TechManagerStatusFilter = VerificationStatus | 'WITHDRAWN' | '';
 
 const BADGE_OPTIONS = TECH_MANAGER_BADGE_DEFINITIONS.map((item) => ({
   value: item.code,
@@ -137,7 +138,7 @@ export function TechManagersPage() {
 
   const [q, setQ] = useState('');
   const [regionCode, setRegionCode] = useState('');
-  const [status, setStatus] = useState<VerificationStatus | ''>('');
+  const [status, setStatus] = useState<TechManagerStatusFilter>('');
   const [missingIntro, setMissingIntro] = useState<MissingFilterValue>('');
   const [missingContact, setMissingContact] = useState<MissingFilterValue>('');
   const [missingExperienceLabel, setMissingExperienceLabel] = useState<MissingFilterValue>('');
@@ -179,7 +180,8 @@ export function TechManagersPage() {
         const next = await apiGet<PagedTechManagerSummary>('/admin/tech-managers', {
           q: q.trim() || undefined,
           regionCode: regionCode.trim() || undefined,
-          verificationStatus: status || undefined,
+          verificationStatus: status && status !== 'WITHDRAWN' ? status : undefined,
+          withdrawnOnly: status === 'WITHDRAWN' ? true : undefined,
           missingIntro: missingIntro || undefined,
           missingContact: missingContact || undefined,
           missingExperienceLabel: missingExperienceLabel || undefined,
@@ -368,12 +370,13 @@ export function TechManagersPage() {
               value={status}
               style={{ width: 150 }}
               placeholder="认证状态"
-              onChange={(value) => setStatus((value as VerificationStatus) || '')}
+              onChange={(value) => setStatus((value as TechManagerStatusFilter) || '')}
               options={[
                 { value: '', label: '全部状态' },
                 { value: 'PENDING', label: '待审核' },
                 { value: 'APPROVED', label: '已通过' },
                 { value: 'REJECTED', label: '已驳回' },
+                { value: 'WITHDRAWN', label: '已撤回' },
               ]}
             />
           </FilterField>

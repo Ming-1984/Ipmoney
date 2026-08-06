@@ -752,6 +752,7 @@ export class TechManagersService {
       forceApproved?: boolean;
       allowCompletenessFilters?: boolean;
       ignoreSearch?: boolean;
+      withdrawnOnly?: boolean;
     },
   ): UserVerificationWhereInput {
     const searchText = String(query?.q || '').trim();
@@ -763,6 +764,7 @@ export class TechManagersService {
     const forceApproved = opts?.forceApproved ?? false;
     const allowCompletenessFilters = opts?.allowCompletenessFilters ?? false;
     const ignoreSearch = opts?.ignoreSearch ?? false;
+    const withdrawnOnly = opts?.withdrawnOnly ?? false;
 
     const where: UserVerificationWhereInput = {
       verificationType: VERIFICATION_TYPE.TECH_MANAGER,
@@ -770,6 +772,9 @@ export class TechManagersService {
     const andConditions: UserVerificationWhereInput[] = [];
     if (forceApproved) {
       where.verificationStatus = VERIFICATION_STATUS.APPROVED;
+    } else if (withdrawnOnly) {
+      where.verificationStatus = VERIFICATION_STATUS.REJECTED;
+      andConditions.push({ reviewComment: { startsWith: '[批次撤回]' } });
     } else if (hasVerificationStatus) {
       where.verificationStatus = this.parseVerificationStatusStrict(query?.verificationStatus, 'verificationStatus');
     }
@@ -930,10 +935,14 @@ export class TechManagersService {
     const suspectExperienceLabel = hasSuspectExperienceLabel
       ? this.parseBooleanStrict(query?.suspectExperienceLabel, 'suspectExperienceLabel')
       : null;
+    const withdrawnOnly = this.hasOwn(query, 'withdrawnOnly')
+      ? this.parseBooleanStrict(query?.withdrawnOnly, 'withdrawnOnly')
+      : false;
     const where = this.buildWhere(query, {
       forceApproved: false,
       allowCompletenessFilters: true,
       ignoreSearch: Boolean(searchText),
+      withdrawnOnly,
     });
 
     if (searchText || suspectExperienceLabel !== null) {

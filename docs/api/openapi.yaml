@@ -5764,6 +5764,7 @@ paths:
         - $ref: '#/components/parameters/Q'
         - $ref: '#/components/parameters/RegionCode'
         - $ref: '#/components/parameters/VerificationStatus'
+        - $ref: '#/components/parameters/TechManagerWithdrawnOnly'
         - $ref: '#/components/parameters/MissingIntro'
         - $ref: '#/components/parameters/MissingContact'
         - $ref: '#/components/parameters/MissingRating'
@@ -9286,6 +9287,13 @@ components:
       schema:
         $ref: '#/components/schemas/VerificationStatus'
       description: 鐠併倛鐦夐悩鑸碘偓浣界箖濠?
+    TechManagerWithdrawnOnly:
+      name: withdrawnOnly
+      in: query
+      required: false
+      schema:
+        type: boolean
+      description: 是否仅筛选批次撤回的技术经理人
     MissingIntro:
       name: missingIntro
       in: query
