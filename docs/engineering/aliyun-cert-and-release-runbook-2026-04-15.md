@@ -14,9 +14,8 @@
 - WeApp 上传包：`.tmp/deploy/weapp-release-latest.zip`
 
 证书源目录：
-- `docs/secret/笋嘢.com_SSL证书/api.笋嘢.com_nginx/`
-- `docs/secret/笋嘢.com_SSL证书/admin.笋嘢.com_nginx/`
-- `docs/secret/笋嘢.com_SSL证书/笋嘢.com_nginx/`
+- 使用运维受控的本机证书目录，不纳入代码仓库。
+- 证书文件路径通过下方环境变量传入，密钥、口令和证书文件不得写入文档或提交到仓库。
 
 ## 自动化脚本
 
@@ -32,16 +31,24 @@
 ## 执行命令（在可直连服务器的机器执行）
 
 ```powershell
+$env:IPMONEY_DEPLOY_PASSWORD = '<从受控密码库读取>'
+$env:IPMONEY_API_CERT = '<API 证书文件的本机绝对路径>'
+$env:IPMONEY_API_KEY = '<API 私钥文件的本机绝对路径>'
+$env:IPMONEY_ADMIN_CERT = '<Admin 证书文件的本机绝对路径>'
+$env:IPMONEY_ADMIN_KEY = '<Admin 私钥文件的本机绝对路径>'
+$env:IPMONEY_ROOT_CERT = '<主站证书文件的本机绝对路径>'
+$env:IPMONEY_ROOT_KEY = '<主站私钥文件的本机绝对路径>'
+
 python scripts/deploy_sunye_prod.py `
   --host 8.134.124.134 `
   --user root `
-  --password "Eifq168168168!" `
-  --api-cert "docs/secret/笋嘢.com_SSL证书/api.笋嘢.com_nginx/api.笋嘢.com_bundle.pem" `
-  --api-key "docs/secret/笋嘢.com_SSL证书/api.笋嘢.com_nginx/api.笋嘢.com.key" `
-  --admin-cert "docs/secret/笋嘢.com_SSL证书/admin.笋嘢.com_nginx/admin.笋嘢.com_bundle.pem" `
-  --admin-key "docs/secret/笋嘢.com_SSL证书/admin.笋嘢.com_nginx/admin.笋嘢.com.key" `
-  --root-cert "docs/secret/笋嘢.com_SSL证书/笋嘢.com_nginx/笋嘢.com_bundle.pem" `
-  --root-key "docs/secret/笋嘢.com_SSL证书/笋嘢.com_nginx/笋嘢.com.key"
+  --password $env:IPMONEY_DEPLOY_PASSWORD `
+  --api-cert $env:IPMONEY_API_CERT `
+  --api-key $env:IPMONEY_API_KEY `
+  --admin-cert $env:IPMONEY_ADMIN_CERT `
+  --admin-key $env:IPMONEY_ADMIN_KEY `
+  --root-cert $env:IPMONEY_ROOT_CERT `
+  --root-key $env:IPMONEY_ROOT_KEY
 ```
 
 只切证书（不发布）：
