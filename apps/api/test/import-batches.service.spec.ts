@@ -197,4 +197,35 @@ describe('ImportBatchesService change log backfill', () => {
       ]),
     );
   });
+
+  it('keeps rolled back changes terminal on later previews', async () => {
+    const prisma: any = {};
+    const service = new ImportBatchesService(prisma, audit as any, files as any);
+
+    const result = await (service as any).evaluateChanges(
+      { executedAt: new Date('2026-08-05T06:00:00.000Z') },
+      [
+        {
+          id: 'change-profile',
+          rowNo: 1,
+          entityType: 'TECH_MANAGER_PROFILE',
+          entityId: '11111111-1111-1111-1111-111111111111',
+          operation: 'CREATE',
+          rollbackStrategy: 'SOFT_OFF_SHELF',
+          rollbackStatus: 'CONFLICTED',
+          rolledBackAt: new Date('2026-08-05T06:08:00.000Z'),
+          afterJson: { displayName: '测试经理人' },
+        },
+      ],
+    );
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        changeId: 'change-profile',
+        rollbackStatus: 'ROLLED_BACK',
+        blockedReason: null,
+        entityLabel: '测试经理人',
+      }),
+    ]);
+  });
 });

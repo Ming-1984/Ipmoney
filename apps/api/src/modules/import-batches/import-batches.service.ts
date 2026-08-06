@@ -1128,6 +1128,13 @@ export class ImportBatchesService {
     };
   }
 
+  private changePreviewLabel(change: any): string | null {
+    const after = (change.afterJson || {}) as any;
+    const label = after.displayName || after.name || after.fullName || after.title || after.patentTitle || after.label || after.badgeCode;
+    const normalized = String(label || '').trim();
+    return normalized || null;
+  }
+
   private async evaluateDealRecords(batch: any, changes: any[]): Promise<RollbackChangePreview[]> {
     const ids = changes.map((item) => item.entityId).filter((id): id is string => !!id);
     const records = await this.prisma.dealRecord.findMany({ where: { id: { in: ids } } });
@@ -1336,12 +1343,20 @@ export class ImportBatchesService {
   }
 
   private async evaluateChanges(batch: any, changes: any[]): Promise<RollbackChangePreview[]> {
+    const evaluatedAlreadyRolledBack = changes
+      .filter((change) => change.rollbackStatus === 'ROLLED_BACK' || !!change.rolledBackAt)
+      .map((change) =>
+        this.basePreview(change, 'ROLLED_BACK', null, {
+          entityLabel: this.changePreviewLabel(change),
+        }),
+      );
+    const activeChanges = changes.filter((change) => change.rollbackStatus !== 'ROLLED_BACK' && !change.rolledBackAt);
     const groups = new Map<ImportEntityType, any[]>();
-    for (const change of changes) {
+    for (const change of activeChanges) {
       const key = change.entityType as ImportEntityType;
       groups.set(key, [...(groups.get(key) || []), change]);
     }
-    const out: RollbackChangePreview[] = [];
+    const out: RollbackChangePreview[] = [...evaluatedAlreadyRolledBack];
     for (const [entityType, items] of groups) {
       if (entityType === 'DEAL_RECORD') out.push(...(await this.evaluateDealRecords(batch, items)));
       else if (entityType === 'LISTING') out.push(...(await this.evaluateListings(batch, items)));
