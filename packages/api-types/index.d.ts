@@ -5650,6 +5650,8 @@ export interface components {
         AdminTechManagerSummary: components["schemas"]["TechManagerSummary"] & {
             verificationType: components["schemas"]["VerificationType"];
             verificationStatus: components["schemas"]["VerificationStatus"];
+            /** @description Whether the verification was rejected by an import batch rollback. */
+            isWithdrawn: boolean;
             contactName?: string;
             contactPhone?: string;
             featuredRank?: number;
@@ -6137,6 +6139,8 @@ export interface components {
             dependency?: {
                 [key: string]: unknown;
             } | null;
+            /** @description Whether this conflicted change can be manually confirmed and included in rollback. */
+            overrideable?: boolean;
         };
         ImportBatchRollbackPreview: {
             batch: components["schemas"]["ImportBatch"];
@@ -6149,6 +6153,10 @@ export interface components {
         ImportBatchRollbackRequest: {
             reason: string;
             confirmationText: string;
+            /** @description Conflicted changes manually confirmed to include in this rollback. */
+            overrideChangeIds?: components["schemas"]["Uuid"][];
+            /** @description Required when overrideChangeIds is not empty. */
+            overrideReason?: string;
         };
         DealRecordImportExecuteResponse: {
             job: components["schemas"]["DealRecordImportJob"];

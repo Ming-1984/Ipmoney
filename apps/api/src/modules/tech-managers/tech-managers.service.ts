@@ -21,6 +21,7 @@ import {
 
 const VERIFICATION_STATUS = {
   APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
 } as const;
 
 const VERIFICATION_STATUSES = ['PENDING', 'APPROVED', 'REJECTED'] as const;
@@ -643,6 +644,11 @@ export class TechManagersService {
     return this.toPublicSummary(verificationRecord, profile, opts);
   }
 
+  private isWithdrawnVerification(verificationRecord: any): boolean {
+    const reviewComment = String(verificationRecord?.reviewComment || '').trim();
+    return verificationRecord?.verificationStatus === VERIFICATION_STATUS.REJECTED && reviewComment.startsWith('[批次撤回]');
+  }
+
   private toAdminSummary(
     verificationRecord: any,
     profile?: any,
@@ -652,6 +658,7 @@ export class TechManagersService {
       ...this.toPublicDetail(verificationRecord, profile, opts),
       verificationType: verificationRecord.verificationType,
       verificationStatus: verificationRecord.verificationStatus,
+      isWithdrawn: this.isWithdrawnVerification(verificationRecord),
       contactName: this.pickFirstNonEmptyString(profile?.contactName, verificationRecord.contactName),
       contactPhone: this.pickFirstNonEmptyString(profile?.contactPhone, verificationRecord.contactPhone),
       featuredUntil: profile?.featuredUntil instanceof Date ? profile.featuredUntil.toISOString() : undefined,

@@ -361,6 +361,38 @@ describe('TechManagersService filter and sanitization suite', () => {
     expect(result.items[0].contactPhone).toBe('13800000000');
   });
 
+  it('marks import batch rollback rejections as withdrawn in admin responses', async () => {
+    prisma.userVerification.findMany.mockResolvedValueOnce([
+      {
+        userId: '11111111-1111-1111-1111-111111111111',
+        displayName: 'Withdrawn Tech Manager',
+        verificationType: 'TECH_MANAGER',
+        verificationStatus: 'REJECTED',
+        reviewComment: '[批次撤回] 测试批次撤回',
+        submittedAt: new Date('2026-08-05T00:00:00.000Z'),
+        user: { techManagerProfile: {} },
+      },
+      {
+        userId: '22222222-2222-4222-8222-222222222222',
+        displayName: 'Rejected Tech Manager',
+        verificationType: 'TECH_MANAGER',
+        verificationStatus: 'REJECTED',
+        reviewComment: '认证材料不完整',
+        submittedAt: new Date('2026-08-05T00:00:00.000Z'),
+        user: { techManagerProfile: {} },
+      },
+    ]);
+    prisma.userVerification.count.mockResolvedValueOnce(2);
+
+    const result = await service.listAdmin(
+      { auth: { isAdmin: true, userId: 'admin-1' } },
+      { page: '1', pageSize: '20' },
+    );
+
+    expect(result.items[0].isWithdrawn).toBe(true);
+    expect(result.items[1].isWithdrawn).toBe(false);
+  });
+
   it('supports admin filtering by active badge code', async () => {
     prisma.userVerification.findMany.mockResolvedValueOnce([]);
     prisma.userVerification.count.mockResolvedValueOnce(0);

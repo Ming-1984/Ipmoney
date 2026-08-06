@@ -13101,11 +13101,15 @@ components:
           required:
             - verificationType
             - verificationStatus
+            - isWithdrawn
           properties:
             verificationType:
               $ref: '#/components/schemas/VerificationType'
             verificationStatus:
               $ref: '#/components/schemas/VerificationStatus'
+            isWithdrawn:
+              type: boolean
+              description: Whether the verification was rejected by an import batch rollback.
             contactName:
               type: string
             contactPhone:

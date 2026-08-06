@@ -89,6 +89,17 @@ function renderMissingTag() {
   return <Tag color="orange">缺失</Tag>;
 }
 
+function renderManagementStatus(record: TechManagerEditorSummary) {
+  if (record.isWithdrawn) {
+    return (
+      <Tag style={{ backgroundColor: '#cf1322', borderColor: '#cf1322', color: '#fff' }}>
+        已撤回
+      </Tag>
+    );
+  }
+  return <Tag>{verificationStatusLabel(record.verificationStatus)}</Tag>;
+}
+
 function displayFieldText(value: unknown, fallback = '未设置'): string {
   return normalizeUserFacingText(value) || fallback;
 }
@@ -480,7 +491,7 @@ export function TechManagersPage() {
             {
               title: '认证状态',
               dataIndex: 'verificationStatus',
-              render: (value) => <Tag>{verificationStatusLabel(value)}</Tag>,
+              render: (_value, record) => renderManagementStatus(record),
             },
             { title: '机构', dataIndex: 'organization', render: (value) => (normalizeUserFacingText(value) ? value : renderMissingTag()) },
             { title: '职位', dataIndex: 'position', render: (value) => (normalizeUserFacingText(value) ? value : renderMissingTag()) },
@@ -544,7 +555,7 @@ export function TechManagersPage() {
             <Descriptions size="small" column={1} bordered>
               <Descriptions.Item label="技术经理人">{displayFieldText(editTarget.displayName)}</Descriptions.Item>
               <Descriptions.Item label="认证类型">{verificationTypeLabel(editTarget.verificationType)}</Descriptions.Item>
-              <Descriptions.Item label="认证状态">{verificationStatusLabel(editTarget.verificationStatus)}</Descriptions.Item>
+              <Descriptions.Item label="认证状态">{renderManagementStatus(editTarget)}</Descriptions.Item>
               <Descriptions.Item label="地区">{formatRegionCodeDisplay(editTarget.regionCode)}</Descriptions.Item>
             </Descriptions>
 
