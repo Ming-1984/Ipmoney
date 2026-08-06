@@ -1493,6 +1493,8 @@ export class ImportBatchesService {
       targetType: 'IMPORT_BATCH',
       targetId: preview.batch.id,
       afterJson: {
+        batchSource: preview.batch.sourceBatch ?? null,
+        batchKind: preview.batch.kind,
         summary: preview.summary,
         groups: preview.groups,
       } as any,
@@ -1794,6 +1796,8 @@ export class ImportBatchesService {
       targetId: batch.id,
       beforeJson: { status: batch.status } as any,
       afterJson: {
+        batchSource: batch.sourceBatch ?? null,
+        batchKind: batch.kind,
         status: updatedBatch.status,
         reason: rollbackReason,
         manualOverride: overrideChanges.length

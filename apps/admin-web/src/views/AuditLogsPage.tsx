@@ -107,6 +107,8 @@ const ACTION_LABELS: Record<string, string> = {
   INVOICE_ISSUE: '标记发票已开具',
   INVOICE_REQUEST: '提交开票申请',
   INVOICE_UPSERT: '上传或替换发票',
+  IMPORT_BATCH_ROLLBACK_EXECUTE: '执行导入批次撤回',
+  IMPORT_BATCH_ROLLBACK_PREVIEW: '完成导入批次撤回预检',
   LISTING_APPROVE: '通过挂牌审核',
   LISTING_FEATURED_UPDATE: '更新挂牌推荐位',
   LISTING_PROOF_FILES_APPROVE: '通过挂牌材料审核',
@@ -161,6 +163,7 @@ const TARGET_TYPE_LABELS: Record<string, string> = {
   COMMENT: '评论',
   CONVERSATION: '会话',
   FILE: '文件',
+  IMPORT_BATCH: '导入批次',
   LISTING: '挂牌',
   ORDER: '订单',
   PATENT_MAINTENANCE_ORDER: '专利年费订单',
@@ -188,6 +191,8 @@ const FIELD_LABELS: Record<string, string> = {
   autoRefund: '自动退款',
   avatarUrl: '头像',
   badgeCodes: '标签',
+  batchKind: '导入类型',
+  batchSource: '批次名称',
   beforeJson: '变更前',
   buyerUserId: '买方账号',
   clearRanking: '清除上榜',
@@ -392,6 +397,8 @@ function isEnumFieldKey(key: string): boolean {
 
 function actionTagColor(value: string): string {
   const code = normalizeCode(value);
+  if (code === 'IMPORT_BATCH_ROLLBACK_PREVIEW') return 'blue';
+  if (code === 'IMPORT_BATCH_ROLLBACK_EXECUTE') return 'orange';
   if (/(APPROVE|PUBLISH|CREATE|ISSUE|CONFIRM|SUBMIT|UPLOAD|PREVIEW|DOWNLOAD)$/.test(code)) return 'green';
   if (/(REJECT|DELETE|CANCEL|OFFLINE)$/.test(code)) return 'red';
   if (/(UPDATE|QUOTE|ACK|RECONCILE)$/.test(code)) return 'blue';
@@ -419,6 +426,154 @@ function operatorDisplayName(name?: string, userId?: string, references?: AuditR
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isImportBatchAuditLog(log: AuditLog): boolean {
+  return normalizeCode(log.targetType) === 'IMPORT_BATCH' || normalizeCode(log.action).startsWith('IMPORT_BATCH_');
+}
+
+function importBatchCount(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 0;
+}
+
+function importBatchPayload(log: AuditLog): Record<string, unknown> {
+  return isPlainObject(log.afterJson) ? log.afterJson : {};
+}
+
+function importBatchSource(log: AuditLog): string {
+  const after = importBatchPayload(log);
+  const before = isPlainObject(log.beforeJson) ? log.beforeJson : {};
+  return normalizeUserFacingText(after.batchSource) || normalizeUserFacingText(before.batchSource);
+}
+
+function importBatchScope(log: AuditLog): string {
+  const groups = importBatchPayload(log).groups;
+  if (!Array.isArray(groups)) return '';
+
+  const labels: Record<string, string> = {
+    ACHIEVEMENT: '成果',
+    DEAL_RECORD: '成交记录',
+    LISTING: '挂牌',
+    PATENT: '专利主数据',
+    TECH_MANAGER_BADGE: '经理人标签',
+    TECH_MANAGER_PROFILE: '经理人资料',
+    USER: '用户账号',
+    USER_VERIFICATION: '认证资料',
+  };
+
+  return groups
+    .filter(isPlainObject)
+    .map((group) => {
+      const entityType = normalizeCode(String(group.entityType || ''));
+      const total = importBatchCount(group.total);
+      if (!entityType || !total) return '';
+      return `${labels[entityType] || entityType} ${total} 项`;
+    })
+    .filter(Boolean)
+    .join('、');
+}
+
+function buildImportBatchPreview(log: AuditLog): string {
+  const summary = importBatchPayload(log).summary;
+  if (!isPlainObject(summary)) return '已完成撤回预检，请进入批次明细查看处理建议。';
+
+  const total = importBatchCount(summary.totalCount);
+  const rollbackable = importBatchCount(summary.rollbackableCount);
+  const conflicted = importBatchCount(summary.conflictedCount);
+  const manualOnly = importBatchCount(summary.manualOnlyCount);
+  const blocked = Math.max(importBatchCount(summary.blockedCount) - manualOnly, 0);
+  const rolledBack = importBatchCount(summary.rolledBackCount);
+  const skipped = importBatchCount(summary.skippedCount);
+  const failed = importBatchCount(summary.failedCount);
+  const scope = importBatchScope(log);
+  const result: string[] = [];
+
+  if (rollbackable) result.push(`可自动撤回 ${rollbackable} 项`);
+  if (conflicted) result.push(`需人工确认 ${conflicted} 项`);
+  if (manualOnly) result.push(`需人工处理 ${manualOnly} 项`);
+  if (blocked) result.push(`阻断 ${blocked} 项`);
+  if (rolledBack) result.push(`已撤回 ${rolledBack} 项`);
+  if (skipped) result.push(`跳过 ${skipped} 项`);
+  if (failed) result.push(`失败 ${failed} 项`);
+
+  const scopeText = scope ? `涉及 ${scope}` : total ? `共检查 ${total} 项` : '';
+  return [scopeText, result.join('，')].filter(Boolean).join('；') || '已完成撤回预检，未发现可处理的变更。';
+}
+
+function buildImportBatchExecutePreview(log: AuditLog): string {
+  const after = importBatchPayload(log);
+  const rolledBack = importBatchCount(after.rolledBackCount);
+  const conflicted = importBatchCount(after.conflictedCount);
+  const blocked = importBatchCount(after.blockedCount);
+  const failed = importBatchCount(after.failedCount);
+  const reason = normalizeUserFacingText(after.reason);
+  const manualOverride = isPlainObject(after.manualOverride) ? after.manualOverride : null;
+  const manualOverrideCount = Array.isArray(manualOverride?.changeIds) ? manualOverride.changeIds.length : 0;
+  const result: string[] = [];
+
+  if (rolledBack) result.push(`已撤回 ${rolledBack} 项`);
+  if (manualOverrideCount) result.push(`已按人工确认纳入 ${manualOverrideCount} 项`);
+  if (conflicted) result.push(`仍有冲突 ${conflicted} 项`);
+  if (blocked) result.push(`仍有阻断 ${blocked} 项`);
+  if (failed) result.push(`失败 ${failed} 项`);
+  if (reason) result.push(`撤回原因：${reason}`);
+
+  return result.join('；') || '已执行批次撤回，请进入批次明细核对结果。';
+}
+
+function buildImportBatchFieldChanges(log: AuditLog): AuditFieldChange[] {
+  const action = normalizeCode(log.action);
+  const after = importBatchPayload(log);
+  const before = isPlainObject(log.beforeJson) ? log.beforeJson : {};
+  const changes: AuditFieldChange[] = [];
+  const add = (key: string, label: string, afterValue: string, mode: AuditFieldChange['mode'] = 'added', beforeValue = '未设置') => {
+    if (!afterValue) return;
+    changes.push({ key, label, before: beforeValue, after: afterValue, mode });
+  };
+
+  if (action === 'IMPORT_BATCH_ROLLBACK_PREVIEW') {
+    const summary = isPlainObject(after.summary) ? after.summary : {};
+    const scope = importBatchScope(log);
+    const total = importBatchCount(summary.totalCount);
+    const rollbackable = importBatchCount(summary.rollbackableCount);
+    const conflicted = importBatchCount(summary.conflictedCount);
+    const manualOnly = importBatchCount(summary.manualOnlyCount);
+    const blocked = Math.max(importBatchCount(summary.blockedCount) - manualOnly, 0);
+    const rolledBack = importBatchCount(summary.rolledBackCount);
+    const failed = importBatchCount(summary.failedCount);
+    add('scope', '检查对象', scope || (total ? `共 ${total} 项` : '本批次变更'));
+    if (rollbackable) add('rollbackableCount', '可自动撤回', `${rollbackable} 项`);
+    if (conflicted) add('conflictedCount', '需人工确认', `${conflicted} 项`);
+    if (manualOnly) add('manualOnlyCount', '需人工处理', `${manualOnly} 项`);
+    if (blocked) add('blockedCount', '阻断', `${blocked} 项`);
+    if (rolledBack) add('rolledBackCount', '已撤回', `${rolledBack} 项`);
+    if (failed) add('failedCount', '失败', `${failed} 项`);
+    return changes;
+  }
+
+  if (action === 'IMPORT_BATCH_ROLLBACK_EXECUTE') {
+    const emptyReferences = { roleNameById: {}, permissionNameById: {}, userNameById: {}, userContactById: {} };
+    const beforeStatus = before.status === undefined ? '' : formatAuditFieldValue('status', before.status, emptyReferences);
+    const afterStatus = after.status === undefined ? '' : formatAuditFieldValue('status', after.status, emptyReferences);
+    if (afterStatus) add('status', '批次状态', afterStatus, beforeStatus ? 'changed' : 'added', beforeStatus || '未设置');
+    const rolledBack = importBatchCount(after.rolledBackCount);
+    const conflicted = importBatchCount(after.conflictedCount);
+    const blocked = importBatchCount(after.blockedCount);
+    const failed = importBatchCount(after.failedCount);
+    if (rolledBack) add('rolledBackCount', '已撤回', `${rolledBack} 项`);
+    if (conflicted) add('conflictedCount', '冲突', `${conflicted} 项`);
+    if (blocked) add('blockedCount', '阻断', `${blocked} 项`);
+    if (failed) add('failedCount', '失败', `${failed} 项`);
+    const reason = normalizeUserFacingText(after.reason);
+    if (reason) add('reason', '撤回原因', reason);
+    const manualOverride = isPlainObject(after.manualOverride) ? after.manualOverride : null;
+    const manualOverrideCount = Array.isArray(manualOverride?.changeIds) ? manualOverride.changeIds.length : 0;
+    if (manualOverrideCount) add('manualOverride', '人工确认纳入', `${manualOverrideCount} 项`);
+    return changes;
+  }
+
+  return changes;
 }
 
 function stringifyForCompare(value: unknown): string {
@@ -524,6 +679,8 @@ function formatAuditFieldValue(key: string, value: unknown, references: AuditRef
 }
 
 function buildFieldChanges(log: AuditLog, references: AuditReferenceData): AuditFieldChange[] {
+  if (isImportBatchAuditLog(log)) return buildImportBatchFieldChanges(log);
+
   const before = isPlainObject(log.beforeJson) ? log.beforeJson : {};
   const after = isPlainObject(log.afterJson) ? log.afterJson : {};
   const keys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)]));
@@ -549,6 +706,11 @@ function pickTargetTitle(log: AuditLog, references: AuditReferenceData): string 
   const before = isPlainObject(log.beforeJson) ? log.beforeJson : {};
   const after = isPlainObject(log.afterJson) ? log.afterJson : {};
   const targetTypeLabel = auditTargetTypeLabel(log.targetType);
+
+  if (isImportBatchAuditLog(log)) {
+    const source = importBatchSource(log);
+    return source ? `${targetTypeLabel} ${source}` : `${targetTypeLabel} #${shortId(log.targetId)}`;
+  }
 
   if (normalizeCode(log.targetType) === 'RBAC_ROLE') {
     const roleName =
@@ -585,6 +747,10 @@ function pickTargetTitle(log: AuditLog, references: AuditReferenceData): string 
 }
 
 function buildChangePreview(log: AuditLog, references: AuditReferenceData): string {
+  const action = normalizeCode(log.action);
+  if (action === 'IMPORT_BATCH_ROLLBACK_PREVIEW') return buildImportBatchPreview(log);
+  if (action === 'IMPORT_BATCH_ROLLBACK_EXECUTE') return buildImportBatchExecutePreview(log);
+
   const changes = buildFieldChanges(log, references);
   if (!changes.length) {
     return '这条记录没有附带可读的字段变更，需进入详情查看原始信息。';

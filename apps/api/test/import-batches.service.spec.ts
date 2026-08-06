@@ -228,4 +228,37 @@ describe('ImportBatchesService change log backfill', () => {
       }),
     ]);
   });
+
+  it('records the batch name and kind when creating a rollback precheck audit log', async () => {
+    const service = new ImportBatchesService({} as any, audit as any, files as any);
+    const preview = {
+      batch: {
+        id: '44444444-4444-4444-8444-444444444444',
+        kind: 'PEOPLE_ACHIEVEMENTS',
+        sourceBatch: 'achievement-rollback-test',
+      },
+      summary: { totalCount: 2, rollbackableCount: 2 },
+      groups: [{ entityType: 'ACHIEVEMENT', total: 2, rollbackable: 2 }],
+    };
+    vi.spyOn(service as any, 'buildRollbackPreview').mockResolvedValue(preview);
+
+    await service.rollbackPreview(
+      { auth: { isAdmin: true, userId: '11111111-1111-1111-1111-111111111111' } },
+      preview.batch.id,
+    );
+
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'IMPORT_BATCH_ROLLBACK_PREVIEW',
+        targetType: 'IMPORT_BATCH',
+        targetId: preview.batch.id,
+        afterJson: expect.objectContaining({
+          batchSource: 'achievement-rollback-test',
+          batchKind: 'PEOPLE_ACHIEVEMENTS',
+          summary: preview.summary,
+          groups: preview.groups,
+        }),
+      }),
+    );
+  });
 });
