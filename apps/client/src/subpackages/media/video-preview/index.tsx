@@ -1,4 +1,4 @@
-﻿import { View, Video, Swiper, SwiperItem, Text, Image } from '@tarojs/components';
+﻿import { View, Swiper, SwiperItem, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import './index.scss';
@@ -6,6 +6,7 @@ import './index.scss';
 import { apiGet } from '../../../lib/api';
 import { buildHomeBannerItems, clampBannerIndex, type BannerConfig, type HomeBannerItem } from '../../../lib/homeBannerConfig';
 import { useRouteNumberParam } from '../../../lib/routeParams';
+import { VideoPlayer } from '../../../ui/VideoPlayer';
 
 export default function VideoPreviewPage() {
   const routeIndex = useRouteNumberParam('i');
@@ -99,7 +100,7 @@ export default function VideoPreviewPage() {
           return (
             <SwiperItem key={item.id} className="video-preview-item">
               {src ? (
-                <Video
+                <VideoPlayer
                   id={`video-preview-${index}`}
                   className="video-preview-player"
                   src={src}

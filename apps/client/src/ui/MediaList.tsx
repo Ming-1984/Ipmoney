@@ -1,10 +1,11 @@
-import { View, Text, Image, Video } from '@tarojs/components';
+import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 
 import { createFileTemporaryAccess } from '../lib/files';
 import { resolveLocalAsset, resolveLocalAssetList } from '../lib/localAssets';
 import { Button, toast } from './nutui';
+import { VideoPlayer } from './VideoPlayer';
 
 export type MediaKind = 'IMAGE' | 'VIDEO' | 'FILE';
 
@@ -144,7 +145,7 @@ export function MediaList(props: { media: MediaItem[]; coverUrl?: string | null 
           const poster = isHttpUrl(coverUrl) ? coverUrl || undefined : undefined;
           return (
             <View key={key} className="media-item">
-              <Video className="media-thumb" src={url} controls autoplay={false} poster={poster} onError={onVideoError} />
+              <VideoPlayer className="media-thumb" src={url} controls autoplay={false} poster={poster} onError={onVideoError} />
               <View className="row-between" style={{ gap: '12rpx', marginTop: '10rpx' }}>
                 <Text className="muted clamp-1">{name}</Text>
                 <Button block={false} size="small" variant="ghost" onClick={() => void copyLink(url)}>
@@ -162,7 +163,7 @@ export function MediaList(props: { media: MediaItem[]; coverUrl?: string | null 
           return (
             <View key={key} className="media-item">
               {activeUrl ? (
-                <Video className="media-thumb" src={activeUrl} controls autoplay={false} poster={poster} onError={onVideoError} />
+                <VideoPlayer className="media-thumb" src={activeUrl} controls autoplay={false} poster={poster} onError={onVideoError} />
               ) : (
                 <View className="media-thumb">
                   <Text className="muted">视频待加载</Text>

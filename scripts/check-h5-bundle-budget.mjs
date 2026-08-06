@@ -35,14 +35,8 @@ if (!existsSync(h5Root)) {
 const checks = [
   { name: 'vendors.js', file: 'js/vendors.js', maxBytes: 760 * 1024, required: true },
   { name: 'app.css', file: 'css/app.css', maxBytes: 180 * 1024, required: true },
-  { name: 'logo.optim2.gif', file: 'static/images/assets/brand/logo.optim2.gif', maxBytes: 1000 * 1024, required: true },
-  // Legacy promotional asset is optional now. Missing file should not fail budget gate.
-  {
-    name: 'promo-certificate.optim3.gif',
-    file: 'static/images/assets/home/promo-certificate.optim3.gif',
-    maxBytes: 1050 * 1024,
-    required: false,
-  },
+  { name: 'logo.png', file: 'static/images/assets/brand/logo.png', maxBytes: 100 * 1024, required: true },
+  { name: 'promo-certificate.png', file: 'static/images/assets/home/promo-certificate.png', maxBytes: 100 * 1024, required: true },
 ];
 
 const results = checks.map((check) => {

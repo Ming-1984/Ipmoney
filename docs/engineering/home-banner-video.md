@@ -1,7 +1,7 @@
 ﻿# 首页 GIF 替换为后端配置视频方案（小程序 | 对象存储直链）
 
 ## 背景与现状
-- 首页动图位于 `apps/client/src/pages/home/index.tsx` 的 `HomeBanner`，当前使用 `GifImage` 渲染本地 `promo-certificate.optim3.gif`。
+- 首页 Banner 由配置中心下发视频或图片，未配置或加载失败时使用本地 `promo-certificate.png` 兜底。
 - 已有管理后台配置入口 `GET/PUT /admin/config/banner`，当前仅支持 `imageUrl`。
 - 小程序首页存在未登录访问场景，媒体 URL 必须公开可访问。
 - **本方案明确采用阿里云对象存储提供媒体文件，不走应用服务中转。**
@@ -108,18 +108,14 @@
 ## 本地模拟（开发环境，无 URL）
 用于无对象存储资源时的演示，**仅开发环境**生效。
 
-- 本地资源：
-  - `apps/client/src/assets/home/banner-local-1.mp4`
-  - `apps/client/src/assets/home/banner-local-2.mp4`
+- 本地资源：开发脚本下载到未纳入版本控制的本机媒体缓存，文件名为 `banner-local-1.mp4` 与 `banner-local-2.mp4`。
 - 启动前自动下载（临时公开视频）：
   - 脚本：`scripts/download-local-banner.ps1`
   - 环境变量覆盖：
     - `BANNER_VIDEO_URL_1`
     - `BANNER_VIDEO_URL_2`
-- 小程序构建拷贝：
-  - `apps/client/config/index.ts` 使用 `mini.copy.patterns` 将 mp4 拷贝到 `dist/weapp/assets/home/`
-- 小程序运行时拷贝（wxfile）：
-  - `apps/client/src/lib/localMedia.ts` 将包内资源拷贝到 `wx.env.USER_DATA_PATH` 并返回 `wxfile://` 路径
+- 小程序构建会将本机缓存的 mp4 拷贝到上传包的媒体目录。
+- 小程序运行时会将包内资源拷贝到 `wx.env.USER_DATA_PATH` 并返回 `wxfile://` 路径。
 - 注意：
   - 小程序 `Video` 的 `poster` 仅支持网络 URL，本地模拟不设置 `poster`，由首帧作为封面。
 
@@ -159,7 +155,5 @@
   - `/files` 当前返回的是鉴权 URL（`/files/{id}`），首页不可直接用；需返回 `https://media.ipmoney.cn/...` 这类直链。
   - 后台上传完成后自动写入 `videoUrl/posterUrl`（使用 CDN 公网 URL）。
   - 确保 OSS Bucket 公共读 + CDN 域名生效（支持 Range 与 Referer 白名单/空 Referer）。
-
-
 
 
