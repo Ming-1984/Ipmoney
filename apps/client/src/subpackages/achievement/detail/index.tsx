@@ -1,5 +1,4 @@
 import { View, Text, Image } from '@tarojs/components';
-import { useShareAppMessage } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
@@ -18,6 +17,7 @@ import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
 import { achievementMaturityLabel } from '../../../lib/labels';
 import { regionDisplayName } from '../../../lib/regions';
 import { useRouteUuidParam } from '../../../lib/routeParams';
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 import { CommentsSection } from '../../../ui/CommentsSection';
 import { MediaList } from '../../../ui/MediaList';
 import { PageHeader, SectionHeader, Spacer, StickyBar, Surface } from '../../../ui/layout';
@@ -44,11 +44,12 @@ export default function AchievementDetailPage() {
 
   const achievementTitleText = displayTitleOrFallback(data?.title, '专利产品详情');
 
-  useShareAppMessage(() => ({
+  useGlobalShareAppMessage({
     title: `专利产品详情：${achievementTitleText}`,
-    path: achievementId ? `/subpackages/achievement/detail/index?achievementId=${achievementId}` : '/pages/home/index',
+    path: achievementId ? `/subpackages/achievement/detail/index?achievementId=${encodeURIComponent(achievementId)}` : '/pages/home/index',
     imageUrl: data?.coverUrl || undefined,
-  }));
+    visibility: 'public',
+  });
 
   useEffect(() => {
     achievementIdRef.current = achievementId;

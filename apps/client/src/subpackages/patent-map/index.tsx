@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 ﻿import { Map as TaroMap, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -115,6 +116,7 @@ const DATA_SCOPE_OPTIONS: Array<{ value: PatentMapDataScope; label: string }> = 
 ];
 
 export default function PatentMapPage() {
+  useGlobalShareAppMessage();
   const [overviewLoading, setOverviewLoading] = useState(true);
   const [overviewError, setOverviewError] = useState<string | null>(null);
   const [overview, setOverview] = useState<PatentMapOverviewResponse | null>(null);

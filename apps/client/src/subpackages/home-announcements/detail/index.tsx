@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -16,6 +17,7 @@ import { PageHeader, Spacer, Surface } from '../../../ui/layout';
 import { toast } from '../../../ui/nutui';
 
 export default function HomeAnnouncementDetailPage() {
+  useGlobalShareAppMessage();
   const access = usePageAccess('public');
   const id = useRouteStringParam('id');
   const [item, setItem] = useState<PublicHomeAnnouncementItem | null>(null);

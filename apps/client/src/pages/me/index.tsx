@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 import { View, Text, Image, Button as TaroButton } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow, useUnload } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -103,6 +104,7 @@ function readAuthState(): AuthState {
 }
 
 export default function MePage() {
+  useGlobalShareAppMessage();
   const authTokenRef = useRef<string | null>(null);
   const pageVisibleRef = useRef(true);
   const phoneAuthPromptActiveRef = useRef(false);

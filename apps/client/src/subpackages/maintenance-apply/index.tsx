@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 import { Input as NativeInput, Picker, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -67,6 +68,7 @@ function dateDisplay(value: string): string {
 }
 
 export default function MaintenanceApplyPage() {
+  useGlobalShareAppMessage();
   const routeListingId = useRouteUuidParam('listingId') || '';
   const routeTitle = useRouteStringParam('title') || '';
   const routeApplicationNo = useRouteStringParam('applicationNo') || '';

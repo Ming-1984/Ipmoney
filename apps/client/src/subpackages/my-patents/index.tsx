@@ -1,9 +1,11 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 import { View, Text } from '@tarojs/components';
 import Taro, { useDidShow } from '@tarojs/taro';
 import React from 'react';
 import './index.scss';
 
 export default function MyPatentsCompatPage() {
+  useGlobalShareAppMessage();
   useDidShow(() => {
     Taro.redirectTo({ url: '/subpackages/my-listings/index' });
   });

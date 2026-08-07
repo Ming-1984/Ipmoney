@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../../../lib/wechatShare';
 ﻿import { Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useMemo } from 'react';
@@ -10,6 +11,7 @@ import { MissingParamCard } from '../../../../ui/StateCards';
 import { FAQS } from '../data';
 
 export default function SupportFaqDetailPage() {
+  useGlobalShareAppMessage();
   const id = useRouteStringParam('id');
   const item = useMemo(() => FAQS.find((it) => it.id === id) || null, [id]);
 

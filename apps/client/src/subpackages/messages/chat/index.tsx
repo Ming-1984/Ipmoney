@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 import { Image, ScrollView, Text, Textarea, View } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -182,6 +183,7 @@ function resolveAvatarFallbackText(value: unknown, fallback: string): string {
 }
 
 export default function ChatPage() {
+  useGlobalShareAppMessage();
   const rawConversationId = useRouteStringParam('conversationId') || '';
   const conversationId = useRouteUuidParam('conversationId') || '';
   const conversationIdRef = useRef(conversationId);

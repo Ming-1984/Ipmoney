@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 ﻿import { ScrollView, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useDeferredValue, useMemo, useState } from 'react';
@@ -10,6 +11,7 @@ import './index.scss';
 const MAX_SEARCH_RESULTS = 200;
 
 export default function IpcPickerPage() {
+  useGlobalShareAppMessage();
   const data = getIpcDataset();
   const [activeSectionCode, setActiveSectionCode] = useState(data.sections[0]?.code || '');
   const [keyword, setKeyword] = useState('');

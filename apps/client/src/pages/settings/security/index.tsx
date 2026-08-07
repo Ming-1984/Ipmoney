@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 ﻿import { Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback } from 'react';
@@ -7,6 +8,7 @@ import { PageHeader, Spacer, Surface, TipBanner } from '../../../ui/layout';
 import { Cell } from '../../../ui/nutui';
 
 export default function SecurityPage() {
+  useGlobalShareAppMessage();
   const handleCloseAccount = useCallback(() => {
     Taro.showModal({
       title: '注销账号',

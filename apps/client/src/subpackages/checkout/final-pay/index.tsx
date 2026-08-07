@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 ﻿import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -41,6 +42,7 @@ type MiniProgramPayGuideComponent = React.ComponentType<MiniProgramPayGuideProps
 const ORDER_DETAIL_CACHE_SCOPE = 'order-detail';
 
 export default function FinalPayPage() {
+  useGlobalShareAppMessage();
   const orderId = useRouteStringParam('orderId') || '';
   const orderIdRef = useRef(orderId);
   const loadSeqRef = useRef(0);

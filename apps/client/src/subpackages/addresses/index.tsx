@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 ﻿import { View, Text } from '@tarojs/components';
 import Taro, { useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -33,6 +34,7 @@ function AddressAddButton(props: { onClick: () => void }) {
 }
 
 export default function AddressManagePage() {
+  useGlobalShareAppMessage();
   const access = usePageAccess('login-required');
   const loadedOnceRef = useRef(false);
   const initialCachedAddresses = getDetailCache<Address[]>(ADDRESS_CACHE_SCOPE, ADDRESS_CACHE_KEY);

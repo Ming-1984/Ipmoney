@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 import { View, Text } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow, useUnload } from '@tarojs/taro';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -141,6 +142,7 @@ function ContractInfoRow(props: { label: string; value: React.ReactNode; valueCl
 }
 
 export default function ContractCenterPage() {
+  useGlobalShareAppMessage();
   const loadedOnceRef = useRef(false);
   const listKeyRef = useRef('WAIT_UPLOAD:');
   const pageVisibleRef = useRef(true);

@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 ﻿import { View, Text, Image } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -79,6 +80,7 @@ function scoreConversationSearch(item: {
 }
 
 export default function MessagesPage() {
+  useGlobalShareAppMessage();
   const [latestNoticeTime, setLatestNoticeTime] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');

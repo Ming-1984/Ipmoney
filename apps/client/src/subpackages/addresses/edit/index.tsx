@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 import { Picker, Switch, Text, View } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -72,6 +73,7 @@ function resetAddressForm(setters: {
 }
 
 export default function AddressEditPage() {
+  useGlobalShareAppMessage();
   const access = usePageAccess('login-required');
   const addressId = useRouteStringParam('id') || '';
   const isEdit = Boolean(addressId);

@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 import { Picker, View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -84,6 +85,7 @@ function asOrganizationVerificationType(value: OrganizationSummary['verification
 }
 
 export default function OrganizationsPage() {
+  useGlobalShareAppMessage();
   const [qInput, setQInput] = useState('');
   const [q, setQ] = useState('');
   const [filters, setFilters] = useState<OrgFilters>(ORG_FILTER_DEFAULT);

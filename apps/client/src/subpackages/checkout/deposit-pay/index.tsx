@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 ﻿import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -86,6 +87,7 @@ function readCachedPayTarget(listingId: string): PayTarget | null {
 }
 
 export default function DepositPayPage() {
+  useGlobalShareAppMessage();
   const listingId = useRouteUuidParam('listingId') || '';
   const env = useMemo(() => Taro.getEnv(), []);
   const isH5 = env === Taro.ENV_TYPE.WEB;

@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useRef } from 'react';
@@ -27,6 +28,7 @@ const TEXT = {
 } as const;
 
 export default function NotificationsPage() {
+  useGlobalShareAppMessage();
   const loadedOnceRef = useRef(false);
 
   const fetcher = useCallback(

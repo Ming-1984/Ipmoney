@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 ﻿import { Text, View } from '@tarojs/components';
 import React, { useState } from 'react';
 import './index.scss';
@@ -13,6 +14,7 @@ const TOGGLE_OPTIONS = [
 type ToggleValue = 'on' | 'off';
 
 export default function NotificationSettingsPage() {
+  useGlobalShareAppMessage();
   const [orderNotify, setOrderNotify] = useState<ToggleValue>('on');
   const [auditNotify, setAuditNotify] = useState<ToggleValue>('on');
   const [replyNotify, setReplyNotify] = useState<ToggleValue>('on');

@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 ﻿import { View, Text, Image } from '@tarojs/components';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
@@ -14,6 +15,7 @@ import {
 } from '../../lib/homeLandingFeatured';
 
 export default function PatentSquarePage() {
+  useGlobalShareAppMessage();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<HomeLandingConfig>(() => normalizeHomeLandingConfig(null));

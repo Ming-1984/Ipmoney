@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -119,6 +120,7 @@ function hasViewableContract(order: Order): boolean {
 }
 
 export default function OrdersPage() {
+  useGlobalShareAppMessage();
   const loadedOnceRef = useRef(false);
   const filterKeyRef = useRef('');
   const routeRole = useRouteStringParam('role');

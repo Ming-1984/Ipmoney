@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 import { Text, View } from '@tarojs/components';
 import ArrowRight from '@nutui/icons-react-taro/dist/es/icons/ArrowRight';
 import Link from '@nutui/icons-react-taro/dist/es/icons/Link';
@@ -30,6 +31,7 @@ type ServiceItem = {
 };
 
 export default function SupportPage() {
+  useGlobalShareAppMessage();
   const [contact, setContact] = useState('');
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);

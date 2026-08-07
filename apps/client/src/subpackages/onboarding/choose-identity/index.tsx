@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useRef } from 'react';
@@ -73,6 +74,7 @@ function reportWeappDebug(title: string, detail?: unknown) {
 }
 
 export default function ChooseIdentityPage() {
+  useGlobalShareAppMessage();
   const navigatingRef = useRef(false);
 
   useEffect(() => {

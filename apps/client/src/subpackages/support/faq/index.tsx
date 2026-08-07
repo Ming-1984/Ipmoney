@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 ﻿import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useMemo, useState } from 'react';
@@ -8,6 +9,7 @@ import { PageHeader, Spacer, Surface } from '../../../ui/layout';
 import { Cell, Input } from '../../../ui/nutui';
 
 export default function SupportFaqPage() {
+  useGlobalShareAppMessage();
   const [q, setQ] = useState('');
 
   const trimmed = q.trim();

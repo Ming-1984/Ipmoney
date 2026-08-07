@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 import { View, Text } from '@tarojs/components';
 import React, { useCallback, useEffect, useState } from 'react';
 import './index.scss';
@@ -74,6 +75,7 @@ function payoutMethodLabel(v?: PayoutMethod): string {
 }
 
 export default function TradeRulesPage() {
+  useGlobalShareAppMessage();
   const initialCachedData = getDetailCache<TradeRulesConfig>(TRADE_RULES_CACHE_SCOPE, TRADE_RULES_CACHE_KEY);
   const [loading, setLoading] = useState(!initialCachedData);
   const [error, setError] = useState<string | null>(null);

@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -54,6 +55,7 @@ function FilterTabs<T extends string>(props: { value: T; options: FilterOption<T
 }
 
 export default function MyAchievementsPage() {
+  useGlobalShareAppMessage();
   const routeStatus = useRouteStringParam('status');
   const isDraftCenter = routeStatus?.toUpperCase() === 'DRAFT';
   const loadedOnceRef = useRef(false);

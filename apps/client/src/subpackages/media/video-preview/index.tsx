@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 ﻿import { View, Swiper, SwiperItem, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -9,6 +10,7 @@ import { useRouteNumberParam } from '../../../lib/routeParams';
 import { VideoPlayer } from '../../../ui/VideoPlayer';
 
 export default function VideoPreviewPage() {
+  useGlobalShareAppMessage();
   const routeIndex = useRouteNumberParam('i');
   const [bannerItems, setBannerItems] = useState<HomeBannerItem[]>(() => buildHomeBannerItems());
   const [activeIndex, setActiveIndex] = useState(0);

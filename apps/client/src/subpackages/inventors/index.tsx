@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect } from 'react';
@@ -30,6 +31,7 @@ function inventorNameText(name: unknown): string {
 }
 
 export default function InventorsPage() {
+  useGlobalShareAppMessage();
   const openInventor = useCallback((inventorName: string) => {
     const name = String(inventorName || '').trim();
     if (!name) return;

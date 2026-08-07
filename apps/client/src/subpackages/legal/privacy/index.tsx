@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 import { Text, View } from '@tarojs/components';
 import React from 'react';
 import './index.scss';
@@ -89,6 +90,7 @@ const SECTIONS: Section[] = [
 ];
 
 export default function PrivacyPage() {
+  useGlobalShareAppMessage();
   return (
     <View className="container legal-page">
       <PageHeader weapp back title="隐私政策" subtitle={`版本发布日期：${VERSION}`} />

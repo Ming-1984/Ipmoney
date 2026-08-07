@@ -34,4 +34,5 @@ docs/patent
 
 # API local upload temp artifacts from smoke/verify
 apps/api/uploads/*.csv
+apps/api/uploads/*.xlsx
 *.mp4

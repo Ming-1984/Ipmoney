@@ -1,5 +1,5 @@
 ﻿import { View, Text, Image, Button as TaroButton } from '@tarojs/components';
-import Taro, { useDidHide, useDidShow, usePageScroll, useShareAppMessage } from '@tarojs/taro';
+import Taro, { useDidHide, useDidShow, usePageScroll } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
@@ -23,6 +23,7 @@ import { parseUuidParam } from '../../../lib/params';
 import { getPatentCache, setPatentCache } from '../../../lib/patentCache';
 import { regionDisplayName } from '../../../lib/regions';
 import { useRouteUuidParam } from '../../../lib/routeParams';
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 import { CommentsSection } from '../../../ui/CommentsSection';
 import { PageHeader, SectionHeader, Spacer, StickyBar, Surface } from '../../../ui/layout';
 import { MediaList } from '../../../ui/MediaList';
@@ -362,11 +363,12 @@ export default function ListingDetailPage() {
       .catch(() => {});
   }, [listingId]);
 
-  useShareAppMessage(() => ({
+  useGlobalShareAppMessage({
     title: data?.title ? `专利挂牌：${data.title}` : '专利挂牌详情',
-    path: listingId ? `/subpackages/listing/detail/index?listingId=${listingId}` : '/pages/home/index',
+    path: listingId ? `/subpackages/listing/detail/index?listingId=${encodeURIComponent(listingId)}` : '/pages/home/index',
     imageUrl: data?.coverUrl || undefined,
-  }));
+    visibility: 'public',
+  });
 
   const startConsult = useCallback(async () => {
     if (!listingId) return;

@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 import { View, Text, Image, Button as TaroButton } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow, useUnload } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -38,6 +39,7 @@ function getPageUrl(page: any): string {
 }
 
 export default function LoginPage() {
+  useGlobalShareAppMessage();
   const env = useMemo(() => Taro.getEnv(), []);
   const canWechatLogin = env === Taro.ENV_TYPE.WEAPP;
   const showDemoLogin = DEMO_LOGIN_ENABLED && !canWechatLogin;

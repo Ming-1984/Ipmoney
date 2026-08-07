@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 ﻿import { View, Text, Image } from '@tarojs/components';
 import { useDidShow } from '@tarojs/taro';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -71,6 +72,7 @@ async function openPublishPage(url: string, title: string) {
 }
 
 export default function PublishPage() {
+  useGlobalShareAppMessage();
   const access = usePageAccess('approved-required');
   const [listingDraftCount, setListingDraftCount] = useState(0);
   const [achievementDraftCount, setAchievementDraftCount] = useState(0);

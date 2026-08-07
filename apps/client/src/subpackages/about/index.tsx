@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useMemo } from 'react';
@@ -15,6 +16,7 @@ function envLabel(env?: string): string {
 }
 
 export default function AboutPage() {
+  useGlobalShareAppMessage();
   const versionLabel = useMemo(() => {
     if (Taro.getEnv() !== Taro.ENV_TYPE.WEAPP) {
       return '非小程序环境';

@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 import { View, Text } from '@tarojs/components';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import './index.scss';
@@ -33,6 +34,7 @@ const TEXT = {
 } as const;
 
 export default function NotificationDetailPage() {
+  useGlobalShareAppMessage();
   const id = useRouteStringParam('id');
   const loadedOnceRef = useRef(false);
   const notificationIdRef = useRef(id);

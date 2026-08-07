@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 ﻿import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -150,6 +151,7 @@ function InvoiceInfoField(props: {
 }
 
 export default function InvoiceCenterPage() {
+  useGlobalShareAppMessage();
   const loadedOnceRef = useRef(false);
   const filterKeyRef = useRef('');
   const tabParam = useRouteStringParam('tab');

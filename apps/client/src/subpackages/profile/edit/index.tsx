@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 import { Button as TaroButton, Picker, Text, View } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -64,6 +65,7 @@ function normalizeNicknameInput(value: string | null | undefined): string {
 }
 
 export default function ProfileEditPage() {
+  useGlobalShareAppMessage();
   const env = useMemo(() => Taro.getEnv(), []);
   const isWeapp = env === Taro.ENV_TYPE.WEAPP;
   const canChooseAvatar = useMemo(

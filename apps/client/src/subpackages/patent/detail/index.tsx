@@ -1,5 +1,5 @@
 import { View, Text, Image, Button as TaroButton } from '@tarojs/components';
-import Taro, { useDidHide, useDidShow, useShareAppMessage } from '@tarojs/taro';
+import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
@@ -18,6 +18,7 @@ import { safeNavigateBack } from '../../../lib/navigation';
 import { getPatentCache, setPatentCache } from '../../../lib/patentCache';
 import { parseUuidParam } from '../../../lib/params';
 import { useRouteUuidParam } from '../../../lib/routeParams';
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 import { CommentsSection } from '../../../ui/CommentsSection';
 import { PageHeader, SectionHeader, Spacer, StickyBar, Surface, TipBanner } from '../../../ui/layout';
 import { MediaList } from '../../../ui/MediaList';
@@ -384,11 +385,12 @@ const tradeSnapshot = data?.tradeSnapshot ?? null;
     Taro.navigateTo({ url: `/subpackages/organizations/detail/index?orgUserId=${sellerId}` });
   }, [tradeSnapshot?.seller?.id]);
 
-  useShareAppMessage(() => ({
+  useGlobalShareAppMessage({
     title: `专利：${patentTitleText}`,
-    path: patentId ? `/subpackages/patent/detail/index?patentId=${patentId}` : '/pages/home/index',
+    path: patentId ? `/subpackages/patent/detail/index?patentId=${encodeURIComponent(patentId)}` : '/pages/home/index',
     imageUrl: coverUrl || undefined,
-  }));
+    visibility: 'public',
+  });
 
   if (!patentId) {
     return (

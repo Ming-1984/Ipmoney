@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 ﻿import { View, Text, Image } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -39,6 +40,7 @@ function resolveAvatarFallbackText(value: unknown, fallback: string): string {
 }
 
 export default function TechManagerDetailPage() {
+  useGlobalShareAppMessage();
   const techManagerId = useRouteUuidParam('techManagerId') || '';
   const techManagerIdRef = useRef(techManagerId);
   const pageVisibleRef = useRef(true);

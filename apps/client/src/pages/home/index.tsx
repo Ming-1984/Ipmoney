@@ -1,4 +1,5 @@
-﻿import { View, Text, Image, Input } from '@tarojs/components';
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
+import { View, Text, Image, Input } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow, usePullDownRefresh, useReachBottom } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
@@ -147,6 +148,7 @@ const HomeHeroSpotlight = React.memo(function HomeHeroSpotlight({ config }: { co
   );
 });
 export default function HomePage() {
+  useGlobalShareAppMessage({ title: '发现专利、成果与知识产权服务', path: '/pages/home/index', visibility: 'public' });
   const initialAuthed = Boolean(getToken());
   const initialRecommendListings = getDetailCache<PagedListingSummary>(HOME_LISTINGS_CACHE_SCOPE, 'recommend');
   const initialNewestListings = getDetailCache<PagedListingSummary>(HOME_LISTINGS_CACHE_SCOPE, 'newest');

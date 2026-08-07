@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 ﻿import { Text, View } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -448,6 +449,7 @@ function normalizeRouteTab(value?: string | null): MaintenanceTab | undefined {
 }
 
 export default function MaintenancePage() {
+  useGlobalShareAppMessage();
   const routeOrderId = useRouteUuidParam('orderId') || '';
   const routePatentId = useRouteUuidParam('patentId') || '';
   const routeTab = useRouteStringParam('tab');

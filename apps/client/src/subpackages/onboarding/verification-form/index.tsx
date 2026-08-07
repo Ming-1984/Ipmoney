@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 import { Picker, View, Text, Image } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
@@ -101,6 +102,7 @@ function FormTextArea(props: React.ComponentProps<typeof TextArea>) {
 }
 
 export default function VerificationFormPage() {
+  useGlobalShareAppMessage();
   const type = useMemo(() => getVerificationType() as VerificationType | null, []);
   const pageVisibleRef = useRef(true);
   const logoUploadSeqRef = useRef(0);

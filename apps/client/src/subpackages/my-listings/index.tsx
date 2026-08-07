@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 ﻿import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -71,6 +72,7 @@ function listingCardStatusClass(status: ListingStatus, auditStatus: AuditStatus)
 }
 
 export default function MyListingsPage() {
+  useGlobalShareAppMessage();
   const routeStatus = useRouteStringParam('status');
   const routeMixed = useRouteStringParam('mixed');
   const isDraftCenter = routeStatus?.toUpperCase() === 'DRAFT';

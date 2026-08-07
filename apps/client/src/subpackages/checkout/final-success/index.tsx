@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 ﻿import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -32,6 +33,7 @@ const FINAL_PAYMENT_SUCCESS_STATUS_VALUES = [
 const FINAL_PAYMENT_SUCCESS_STATUSES = new Set<string>(FINAL_PAYMENT_SUCCESS_STATUS_VALUES);
 
 export default function FinalSuccessPage() {
+  useGlobalShareAppMessage();
   const orderId = useRouteStringParam('orderId') || '';
   const paymentId = useRouteStringParam('paymentId') || '';
   const orderIdRef = useRef(orderId);

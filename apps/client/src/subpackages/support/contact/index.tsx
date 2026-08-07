@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 ﻿import { Text, View } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -23,6 +24,7 @@ const CS_CONFIG_CACHE_SCOPE = 'public-config';
 const CS_CONFIG_CACHE_KEY = 'customer-service';
 
 export default function SupportContactPage() {
+  useGlobalShareAppMessage();
   const [phone, setPhone] = useState(FALLBACK_PHONE);
   const [openingChat, setOpeningChat] = useState(false);
   const pageVisibleRef = useRef(true);

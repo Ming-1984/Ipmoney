@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 import { View, Text, Input, Picker } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -262,6 +263,7 @@ function transferCountSummary(min?: number, max?: number): string | null {
 }
 
 export default function SearchPage() {
+  useGlobalShareAppMessage();
   const [qInput, setQInput] = useState('');
   const [q, setQ] = useState('');
   const [qType, setQType] = useState<'AUTO' | 'NUMBER' | 'KEYWORD' | 'APPLICANT' | 'INVENTOR'>('AUTO');

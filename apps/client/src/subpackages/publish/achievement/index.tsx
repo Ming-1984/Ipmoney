@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 import { Button as NativeButton, Image, Picker, Text, View } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow, useUnload } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -184,6 +185,7 @@ function formatUploadedFileSize(file: UploadedFile): string {
 }
 
 export default function PublishAchievementPage() {
+  useGlobalShareAppMessage();
   const access = usePageAccess('approved-required');
   const initialAchievementId = useRouteUuidParam('achievementId') || '';
   const achievementRouteIdRef = useRef(initialAchievementId);

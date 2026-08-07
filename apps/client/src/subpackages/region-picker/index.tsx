@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 import { Picker, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -25,6 +26,7 @@ function readInitialSelection(): RegionPickerSelection | null {
 }
 
 export default function RegionPickerPage() {
+  useGlobalShareAppMessage();
   const [selectedRegion, setSelectedRegion] = useState<RegionPickerSelection | null>(() => readInitialSelection());
 
   const selectedPathLabel = useMemo(() => {

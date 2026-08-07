@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 ﻿import { Picker, View, Text } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow, useUnload } from '@tarojs/taro';
 import { Button as NativeButton } from '@tarojs/components';
@@ -276,6 +277,7 @@ function PublishTextArea(props: React.ComponentProps<typeof TextArea>) {
 }
 
 export default function PublishPatentPage() {
+  useGlobalShareAppMessage();
   const initialListingId = useRouteStringParam('listingId') || '';
   const listingRouteIdRef = useRef(initialListingId);
   const pageVisibleRef = useRef(true);

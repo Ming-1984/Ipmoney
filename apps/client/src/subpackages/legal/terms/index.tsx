@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 import { Text, View } from '@tarojs/components';
 import React from 'react';
 import './index.scss';
@@ -88,6 +89,7 @@ const SECTIONS: Section[] = [
 ];
 
 export default function TermsPage() {
+  useGlobalShareAppMessage();
   return (
     <View className="container legal-page">
       <PageHeader weapp back title="用户服务协议" subtitle={`版本发布日期：${VERSION}`} />

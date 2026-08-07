@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 ﻿import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -33,6 +34,7 @@ function resolveAvatarFallbackText(value: unknown, fallback: string): string {
 }
 
 export default function TechManagersPage() {
+  useGlobalShareAppMessage();
   const [activeTab, setActiveTab] = useState<ConsultTab>('TECH');
   const techQueryKeyRef = useRef<string | null>(null);
   const orgQueryKeyRef = useRef<string | null>(null);

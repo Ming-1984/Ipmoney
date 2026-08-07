@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 import { Image, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -101,6 +102,7 @@ function getClaimDisabledReason(patent?: Patent | null, platformOwnerId?: string
 }
 
 export default function PatentClaimsPage() {
+  useGlobalShareAppMessage();
   const patentId = useRouteUuidParam('patentId') || '';
   const patentTitleFromRoute = useRouteStringParam('title') || '';
   const platformOwnerId = parseUuidParam(useRouteStringParam('platformOwnerId')) || '';

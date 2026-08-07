@@ -1,5 +1,5 @@
 import { View, Text, Button as TaroButton } from '@tarojs/components';
-import Taro, { useShareAppMessage } from '@tarojs/taro';
+import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
@@ -12,6 +12,7 @@ import { verificationTypeLabel } from '../../../lib/labels';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { regionDisplayName } from '../../../lib/regions';
 import { useRouteUuidParam } from '../../../lib/routeParams';
+import { useGlobalShareAppMessage } from '../../../lib/wechatShare';
 import { PageHeader, Spacer, Surface, TipBanner } from '../../../ui/layout';
 import { Avatar } from '../../../ui/nutui';
 import { Heart, Share2 } from '../../../ui/icons';
@@ -79,11 +80,12 @@ export default function OrganizationDetailPage() {
     void load();
   }, [load]);
 
-  useShareAppMessage(() => ({
+  useGlobalShareAppMessage({
     title: displayTitleOrFallback(data?.displayName, '机构资料详情'),
-    path: orgUserId ? `/subpackages/organizations/detail/index?orgUserId=${orgUserId}` : '/pages/home/index',
+    path: orgUserId ? `/subpackages/organizations/detail/index?orgUserId=${encodeURIComponent(orgUserId)}` : '/pages/home/index',
     imageUrl: data?.logoUrl || undefined,
-  }));
+    visibility: 'public',
+  });
 
   const tabs = useMemo(
     () => [

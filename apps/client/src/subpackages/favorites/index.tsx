@@ -1,3 +1,4 @@
+import { useGlobalShareAppMessage } from '../../lib/wechatShare';
 ﻿import { View } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -25,6 +26,7 @@ type AchievementSummary = components['schemas']['AchievementSummary'];
 type Conversation = { id: string };
 
 export default function FavoritesPage() {
+  useGlobalShareAppMessage();
   const loadedOnceRef = useRef(false);
   const initialLoadRef = useRef({ LISTING: false, ACHIEVEMENT: false });
   const pageVisibleRef = useRef(true);
