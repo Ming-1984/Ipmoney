@@ -40,7 +40,7 @@ export class DealRecordsController {
   @Post('/admin/deal-records/import/execute')
   async executeImport(@Req() req: any, @Body() body: any) {
     requirePermission(req, 'dealRecord.import');
-    return await this.dealRecords.executeImport(req, body || {});
+    return await this.dealRecords.executeImportBatched(req, body || {});
   }
 
   @UseGuards(BearerAuthGuard)

@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import path from 'node:path';
 
@@ -26,6 +26,17 @@ type NormalizedDealImportRow = {
   warningCode?: string;
   warningMessage?: string;
   existingDealRecordId?: string | null;
+};
+
+type ImportRowProcessStatus = 'SUCCEEDED' | 'SKIPPED' | 'FAILED' | 'INVALID';
+
+type ImportRowProcessResult = {
+  status: ImportRowProcessStatus;
+};
+
+type ImportBatchProcessResult = {
+  results: ImportRowProcessResult[];
+  fatalErrors: number;
 };
 
 type DealRecordPayload = {
@@ -68,6 +79,10 @@ type DealRecordDto = {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_IMPORT_ROWS = 10000;
 const SAMPLE_LIMIT = 30;
+const IMPORT_TRANSACTION_BATCH_SIZE = 100;
+const IMPORT_BATCH_CONCURRENCY = 4;
+const IMPORT_TRANSACTION_MAX_WAIT_MS = 10000;
+const IMPORT_TRANSACTION_TIMEOUT_MS = 15000;
 const DEAL_RECORD_STATUSES = ['ACTIVE', 'VOIDED'] as const;
 const DEAL_RECORD_SOURCES = ['ONLINE_ORDER', 'ADMIN_IMPORT'] as const;
 const DEAL_TRADE_TYPES = ['LICENSE', 'TRANSFER', 'UNKNOWN'] as const;
@@ -76,6 +91,8 @@ const IMPORT_ROW_STATUSES = ['VALID', 'INVALID', 'SUCCEEDED', 'FAILED', 'SKIPPED
 
 @Injectable()
 export class DealRecordsService {
+  private readonly logger = new Logger(DealRecordsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly files: FilesService,
@@ -425,6 +442,241 @@ export class DealRecordsService {
     return { totalRows, validRows, invalidRows, duplicateRows, warningRows };
   }
 
+  private buildImportBatches(rows: NormalizedDealImportRow[]): NormalizedDealImportRow[][] {
+    const grouped = new Map<string, NormalizedDealImportRow[]>();
+    for (const row of rows) {
+      const dedupeKey = row.status === 'VALID' ? row.normalizedJson?.dedupeKey : undefined;
+      const groupKey = dedupeKey ? `dedupe:${dedupeKey}` : `row:${row.rowNo}`;
+      const group = grouped.get(groupKey) || [];
+      group.push(row);
+      grouped.set(groupKey, group);
+    }
+
+    const batches: NormalizedDealImportRow[][] = [];
+    let batch: NormalizedDealImportRow[] = [];
+    for (const group of grouped.values()) {
+      if (batch.length > 0 && batch.length + group.length > IMPORT_TRANSACTION_BATCH_SIZE) {
+        batches.push(batch);
+        batch = [];
+      }
+      batch.push(...group);
+    }
+    if (batch.length > 0) batches.push(batch);
+    return batches;
+  }
+
+  private async writeInvalidImportRow(jobId: string, row: NormalizedDealImportRow): Promise<ImportRowProcessResult> {
+    await this.prisma.dealRecordImportJobRow.create({
+      data: {
+        jobId,
+        rowNo: row.rowNo,
+        status: 'INVALID' as any,
+        rawJson: row.rawJson as any,
+        normalizedJson: row.normalizedJson as any,
+        errorCode: row.errorCode ?? null,
+        errorMessage: row.errorMessage ?? null,
+        processedAt: new Date(),
+      },
+    });
+    return { status: 'INVALID' };
+  }
+
+  private async writeFailedImportRow(jobId: string, row: NormalizedDealImportRow, error: any): Promise<ImportRowProcessResult> {
+    await this.prisma.dealRecordImportJobRow.create({
+      data: {
+        jobId,
+        rowNo: row.rowNo,
+        status: 'FAILED' as any,
+        rawJson: row.rawJson as any,
+        normalizedJson: row.normalizedJson as any,
+        errorCode: this.truncateText(error?.code || 'IMPORT_ROW_FAILED', 100),
+        errorMessage: this.truncateText(error?.message || 'import row failed', 500),
+        processedAt: new Date(),
+      },
+    });
+    return { status: 'FAILED' };
+  }
+
+  private async writeValidImportRow(params: {
+    jobId: string;
+    row: NormalizedDealImportRow;
+    duplicatePolicy: DealRecordImportDuplicatePolicy;
+    operatorUserId: string;
+  }): Promise<ImportRowProcessResult> {
+    const { jobId, row, duplicatePolicy, operatorUserId } = params;
+    const payload = row.normalizedJson;
+    if (!payload) return await this.writeInvalidImportRow(jobId, row);
+
+    return await this.prisma.$transaction(
+      async (tx) => {
+        const patent = await this.findPatentForPayload(tx, payload.patentNoNorm, payload.patentNoDisplay);
+        const data = {
+          source: 'ADMIN_IMPORT' as any,
+          status: 'ACTIVE' as any,
+          importJobId: jobId,
+          patentId: patent?.id ?? null,
+          patentNoNorm: payload.patentNoNorm,
+          patentNoDisplay: payload.patentNoDisplay,
+          patentTitle: payload.patentTitle,
+          tradeType: payload.tradeType as any,
+          sellerPartyName: payload.sellerPartyName,
+          buyerPartyName: payload.buyerPartyName,
+          dealAt: new Date(payload.dealAt),
+          priceFen: payload.priceFen,
+          dedupeKey: payload.dedupeKey,
+          rawJson: row.rawJson as any,
+          note: payload.note ?? null,
+          updatedByUserId: operatorUserId,
+        };
+        const existing = await tx.dealRecord.findUnique({ where: { dedupeKey: payload.dedupeKey } });
+
+        if (existing && duplicatePolicy === 'SKIP') {
+          await tx.dealRecordImportJobRow.create({
+            data: {
+              jobId,
+              rowNo: row.rowNo,
+              status: 'SKIPPED' as any,
+              rawJson: row.rawJson as any,
+              normalizedJson: payload as any,
+              dealRecordId: existing.id,
+              errorCode: 'DUPLICATE_SKIPPED',
+              errorMessage: 'duplicate deal record skipped',
+              processedAt: new Date(),
+            },
+          });
+          return { status: 'SKIPPED' };
+        }
+
+        const dealRecord = existing
+          ? await tx.dealRecord.update({ where: { id: existing.id }, data })
+          : await tx.dealRecord.create({ data: { ...data, createdByUserId: operatorUserId } });
+        await tx.dealRecordImportJobRow.create({
+          data: {
+            jobId,
+            rowNo: row.rowNo,
+            status: 'SUCCEEDED' as any,
+            rawJson: row.rawJson as any,
+            normalizedJson: payload as any,
+            dealRecordId: dealRecord.id,
+            processedAt: new Date(),
+          },
+        });
+        return { status: 'SUCCEEDED' };
+      },
+      { maxWait: IMPORT_TRANSACTION_MAX_WAIT_MS, timeout: IMPORT_TRANSACTION_TIMEOUT_MS },
+    );
+  }
+
+  private isUniqueConstraintError(error: any): boolean {
+    return String(error?.code || '') === 'P2002';
+  }
+
+  private async processImportRow(params: {
+    jobId: string;
+    row: NormalizedDealImportRow;
+    duplicatePolicy: DealRecordImportDuplicatePolicy;
+    operatorUserId: string;
+  }): Promise<ImportRowProcessResult> {
+    const { jobId, row } = params;
+    if (row.status === 'INVALID' || !row.normalizedJson) return await this.writeInvalidImportRow(jobId, row);
+
+    try {
+      return await this.writeValidImportRow(params);
+    } catch (error: any) {
+      let rowError = error;
+      if (this.isUniqueConstraintError(error)) {
+        try {
+          // A concurrent task may have created the same key after this row read it.
+          return await this.writeValidImportRow(params);
+        } catch (retryError: any) {
+          rowError = retryError;
+        }
+      }
+      return await this.writeFailedImportRow(jobId, row, rowError);
+    }
+  }
+
+  private async processImportBatch(params: {
+    jobId: string;
+    requestId?: string;
+    batchIndex: number;
+    rows: NormalizedDealImportRow[];
+    duplicatePolicy: DealRecordImportDuplicatePolicy;
+    operatorUserId: string;
+  }): Promise<ImportBatchProcessResult> {
+    const startedAt = Date.now();
+    const results: ImportRowProcessResult[] = [];
+    let fatalErrors = 0;
+
+    for (const row of params.rows) {
+      try {
+        results.push(
+          await this.processImportRow({
+            jobId: params.jobId,
+            row,
+            duplicatePolicy: params.duplicatePolicy,
+            operatorUserId: params.operatorUserId,
+          }),
+        );
+      } catch (error: any) {
+        // The row outcome could not be persisted, so preserve the task-level failure signal.
+        fatalErrors += 1;
+        results.push({ status: 'FAILED' });
+        this.logger.error(
+          JSON.stringify({
+            event: 'deal_record_import_row_persist_failed',
+            jobId: params.jobId,
+            requestId: params.requestId,
+            rowNo: row.rowNo,
+            errorCode: String(error?.code || error?.name || 'IMPORT_ROW_PERSIST_FAILED'),
+          }),
+        );
+      }
+    }
+
+    const durationMs = Date.now() - startedAt;
+    const summary = results.reduce(
+      (acc, result) => {
+        acc[result.status] += 1;
+        return acc;
+      },
+      { SUCCEEDED: 0, SKIPPED: 0, FAILED: 0, INVALID: 0 } as Record<ImportRowProcessStatus, number>,
+    );
+    const logPayload = JSON.stringify({
+      event: 'deal_record_import_batch_completed',
+      jobId: params.jobId,
+      requestId: params.requestId,
+      batchIndex: params.batchIndex,
+      rowCount: params.rows.length,
+      durationMs,
+      fatalErrors,
+      ...summary,
+    });
+    if (durationMs > 30000) this.logger.warn(logPayload);
+    else this.logger.log(logPayload);
+
+    return { results, fatalErrors };
+  }
+
+  private async processImportBatches<T>(
+    batches: NormalizedDealImportRow[][],
+    handler: (rows: NormalizedDealImportRow[], batchIndex: number) => Promise<T>,
+  ): Promise<T[]> {
+    const results = new Array<T>(batches.length);
+    let nextIndex = 0;
+    const workerCount = Math.min(IMPORT_BATCH_CONCURRENCY, batches.length);
+    await Promise.all(
+      Array.from({ length: workerCount }, async () => {
+        while (nextIndex < batches.length) {
+          const batchIndex = nextIndex;
+          nextIndex += 1;
+          results[batchIndex] = await handler(batches[batchIndex], batchIndex);
+        }
+      }),
+    );
+    return results;
+  }
+
   private toDealRecordDto(row: any): DealRecordDto {
     return {
       id: row.id,
@@ -507,7 +759,7 @@ export class DealRecordsService {
     };
   }
 
-  async executeImport(req: any, body: any) {
+  async executeImportBatched(req: any, body: any) {
     this.ensureAdmin(req);
     const operatorUserId = this.parseUuidStrict(req?.auth?.userId, 'operatorUserId');
     const fileId = this.parseUuidStrict(body?.fileId, 'fileId');
@@ -517,158 +769,79 @@ export class DealRecordsService {
     const rows = await this.readWorkbookRows(fileId);
     const normalizedRows = await this.normalizeImportRows(this.prisma, rows);
     const summary = this.summarizeRows(normalizedRows);
-
-    const result = await this.prisma.$transaction(async (tx) => {
-      const job = await tx.dealRecordImportJob.create({
-        data: {
-          operatorUserId,
-          fileId,
-          duplicatePolicy: duplicatePolicy as any,
-          status: 'PENDING' as any,
-          totalCount: summary.totalRows,
-          validCount: summary.validRows,
-          invalidCount: summary.invalidRows,
-        },
-      });
-
-      let successCount = 0;
-      let skippedCount = 0;
-      let failedCount = summary.invalidRows;
-
-      for (const row of normalizedRows) {
-        if (row.status === 'INVALID' || !row.normalizedJson) {
-          await tx.dealRecordImportJobRow.create({
-            data: {
-              jobId: job.id,
-              rowNo: row.rowNo,
-              status: 'INVALID' as any,
-              rawJson: row.rawJson as any,
-              normalizedJson: row.normalizedJson as any,
-              errorCode: row.errorCode ?? null,
-              errorMessage: row.errorMessage ?? null,
-              processedAt: new Date(),
-            },
-          });
-          continue;
-        }
-
-        try {
-          const payload = row.normalizedJson;
-          const patent = await this.findPatentForPayload(tx, payload.patentNoNorm, payload.patentNoDisplay);
-          const data = {
-            source: 'ADMIN_IMPORT' as any,
-            status: 'ACTIVE' as any,
-            importJobId: job.id,
-            patentId: patent?.id ?? null,
-            patentNoNorm: payload.patentNoNorm,
-            patentNoDisplay: payload.patentNoDisplay,
-            patentTitle: payload.patentTitle,
-            tradeType: payload.tradeType as any,
-            sellerPartyName: payload.sellerPartyName,
-            buyerPartyName: payload.buyerPartyName,
-            dealAt: new Date(payload.dealAt),
-            priceFen: payload.priceFen,
-            dedupeKey: payload.dedupeKey,
-            rawJson: row.rawJson as any,
-            note: payload.note ?? null,
-            updatedByUserId: operatorUserId,
-          };
-          const existing = await tx.dealRecord.findUnique({ where: { dedupeKey: payload.dedupeKey } });
-
-          if (existing && duplicatePolicy === 'SKIP') {
-            skippedCount += 1;
-            await tx.dealRecordImportJobRow.create({
-              data: {
-                jobId: job.id,
-                rowNo: row.rowNo,
-                status: 'SKIPPED' as any,
-                rawJson: row.rawJson as any,
-                normalizedJson: payload as any,
-                dealRecordId: existing.id,
-                errorCode: 'DUPLICATE_SKIPPED',
-                errorMessage: '系统中已存在相同成交记录',
-                processedAt: new Date(),
-              },
-            });
-            continue;
-          }
-
-          const dealRecord = existing
-            ? await tx.dealRecord.update({
-                where: { id: existing.id },
-                data,
-              })
-            : await tx.dealRecord.create({
-                data: {
-                  ...data,
-                  createdByUserId: operatorUserId,
-                },
-              });
-
-          successCount += 1;
-          await tx.dealRecordImportJobRow.create({
-            data: {
-              jobId: job.id,
-              rowNo: row.rowNo,
-              status: 'SUCCEEDED' as any,
-              rawJson: row.rawJson as any,
-              normalizedJson: payload as any,
-              dealRecordId: dealRecord.id,
-              processedAt: new Date(),
-            },
-          });
-        } catch (error: any) {
-          failedCount += 1;
-          await tx.dealRecordImportJobRow.create({
-            data: {
-              jobId: job.id,
-              rowNo: row.rowNo,
-              status: 'FAILED' as any,
-              rawJson: row.rawJson as any,
-              normalizedJson: row.normalizedJson as any,
-              errorCode: error?.code || 'IMPORT_ROW_FAILED',
-              errorMessage: error?.message || 'import row failed',
-              processedAt: new Date(),
-            },
-          });
-        }
-      }
-
-      const status: DealRecordImportJobStatus =
-        failedCount > 0 && successCount > 0 ? 'PARTIAL_FAILED' : failedCount > 0 ? 'FAILED' : 'SUCCEEDED';
-      const updatedJob = await tx.dealRecordImportJob.update({
-        where: { id: job.id },
-        data: {
-          status: status as any,
-          successCount,
-          skippedCount,
-          failedCount,
-          finishedAt: new Date(),
-        },
-      });
-
-      return {
-        job: updatedJob,
-        summary: {
-          totalRows: summary.totalRows,
-          validRows: summary.validRows,
-          invalidRows: summary.invalidRows,
-          successCount,
-          skippedCount,
-          failedCount,
-        },
-      };
+    const requestId = String(req?.requestId || '').trim() || undefined;
+    const job = await this.prisma.dealRecordImportJob.create({
+      data: {
+        operatorUserId,
+        fileId,
+        duplicatePolicy: duplicatePolicy as any,
+        status: 'PENDING' as any,
+        totalCount: summary.totalRows,
+        validCount: summary.validRows,
+        invalidCount: summary.invalidRows,
+      },
     });
 
-    await this.audit.log({
-      actorUserId: operatorUserId,
-      action: 'DEAL_RECORD_IMPORT_EXECUTE',
-      targetType: 'DEAL_RECORD_IMPORT_JOB',
-      targetId: result.job.id,
-      afterJson: result as any,
+    const batches = this.buildImportBatches(normalizedRows);
+    const batchResults = await this.processImportBatches(batches, async (batchRows, batchIndex) =>
+      await this.processImportBatch({
+        jobId: job.id,
+        requestId,
+        batchIndex,
+        rows: batchRows,
+        duplicatePolicy,
+        operatorUserId,
+      }),
+    );
+    const outcomes = batchResults.flatMap((batch) => batch.results);
+    const successCount = outcomes.filter((result) => result.status === 'SUCCEEDED').length;
+    const skippedCount = outcomes.filter((result) => result.status === 'SKIPPED').length;
+    const failedCount = outcomes.filter((result) => result.status === 'FAILED' || result.status === 'INVALID').length;
+    const status: DealRecordImportJobStatus =
+      failedCount > 0 && successCount > 0 ? 'PARTIAL_FAILED' : failedCount > 0 ? 'FAILED' : 'SUCCEEDED';
+    const updatedJob = await this.prisma.dealRecordImportJob.update({
+      where: { id: job.id },
+      data: {
+        status: status as any,
+        successCount,
+        skippedCount,
+        failedCount,
+        finishedAt: new Date(),
+      },
     });
+    const result = {
+      job: updatedJob,
+      summary: {
+        totalRows: summary.totalRows,
+        validRows: summary.validRows,
+        invalidRows: summary.invalidRows,
+        successCount,
+        skippedCount,
+        failedCount,
+      },
+    };
 
-    return { job: this.toImportJobDto(result.job), summary: result.summary };
+    try {
+      await this.audit.log({
+        actorUserId: operatorUserId,
+        action: 'DEAL_RECORD_IMPORT_EXECUTE',
+        targetType: 'DEAL_RECORD_IMPORT_JOB',
+        targetId: job.id,
+        afterJson: result as any,
+      });
+    } catch (error: any) {
+      // Auditing must not turn an already finalized import into a client-visible failure.
+      this.logger.error(
+        JSON.stringify({
+          event: 'deal_record_import_audit_failed',
+          jobId: job.id,
+          requestId,
+          errorCode: String(error?.code || error?.name || 'AUDIT_FAILED'),
+        }),
+      );
+    }
+
+    return { job: this.toImportJobDto(updatedJob), summary: result.summary };
   }
 
   async listDealRecords(req: any, query: any) {

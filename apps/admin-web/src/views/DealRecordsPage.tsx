@@ -362,7 +362,13 @@ export function DealRecordsPage() {
       );
       setLastImport(result);
       setPreview(null);
-      message.success('导入完成');
+      if (result.job.status === 'SUCCEEDED') {
+        message.success('导入完成');
+      } else if (result.job.status === 'PARTIAL_FAILED') {
+        message.warning(`导入完成，${result.summary.failedCount} 行失败，请查看导入明细`);
+      } else {
+        message.error('导入失败，请查看导入明细');
+      }
       void loadData();
       void loadImportJobs();
     } catch (e: any) {
@@ -642,6 +648,7 @@ export function DealRecordsPage() {
           <Space wrap>
             <Upload
               maxCount={1}
+              disabled={importing}
               beforeUpload={(file) => {
                 setImportFile(file);
                 setUploadedFileId('');
@@ -661,16 +668,17 @@ export function DealRecordsPage() {
             <Select
               value={duplicatePolicy}
               style={{ width: 190 }}
+              disabled={importing}
               onChange={(value) => setDuplicatePolicy(value)}
               options={[
                 { value: 'SKIP', label: '重复跳过' },
                 { value: 'UPSERT', label: '重复更新' },
               ]}
             />
-            <Button loading={importing} onClick={() => void handlePreview()}>
+            <Button loading={importing} disabled={importing} onClick={() => void handlePreview()}>
               预览
             </Button>
-            <Button type="primary" loading={importing} onClick={() => void handleExecute()}>
+            <Button type="primary" loading={importing} disabled={importing} onClick={() => void handleExecute()}>
               执行导入
             </Button>
           </Space>
@@ -699,10 +707,19 @@ export function DealRecordsPage() {
 
           {lastImport ? (
             <Alert
-              type={lastImport.summary.failedCount > 0 ? 'warning' : 'success'}
+              type={lastImport.job.status === 'FAILED' ? 'error' : lastImport.summary.failedCount > 0 ? 'warning' : 'success'}
               showIcon
               message={`导入批次 ${lastImport.job.id}`}
-              description={`成功 ${lastImport.summary.successCount} 行，跳过 ${lastImport.summary.skippedCount} 行，失败 ${lastImport.summary.failedCount} 行`}
+              description={
+                <Space wrap>
+                  <Typography.Text>
+                    成功 {lastImport.summary.successCount} 行，跳过 {lastImport.summary.skippedCount} 行，失败 {lastImport.summary.failedCount} 行
+                  </Typography.Text>
+                  <Button size="small" icon={<EyeOutlined />} onClick={() => void openImportRows(lastImport.job)}>
+                    查看导入明细
+                  </Button>
+                </Space>
+              }
             />
           ) : null}
         </Space>

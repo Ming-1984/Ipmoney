@@ -17,6 +17,15 @@ function buildCsvBuffer() {
   );
 }
 
+function buildLargeCsvBuffer(rowCount: number) {
+  const rows = ['patentNo,patentTitle,tradeType,seller,buyer,dealAt,price,note'];
+  for (let index = 0; index < rowCount; index += 1) {
+    const patentNo = `CN2024${String(index + 1).padStart(8, '0')}.1`;
+    rows.push(`${patentNo},Patent ${index + 1},TRANSFER,Seller ${index + 1},Buyer ${index + 1},2026-07-27,100,`);
+  }
+  return Buffer.from(rows.join('\n'), 'utf8');
+}
+
 describe('DealRecordsService', () => {
   let prisma: any;
   let files: any;
@@ -114,7 +123,7 @@ describe('DealRecordsService', () => {
       finishedAt: new Date('2026-07-27T00:01:00.000Z'),
     });
 
-    const result = await service.executeImport(
+    const result = await service.executeImportBatched(
       { auth: { isAdmin: true, userId: USER_ID } },
       { fileId: FILE_ID, duplicatePolicy: 'SKIP' },
     );
@@ -129,6 +138,114 @@ describe('DealRecordsService', () => {
       }),
     });
     expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'DEAL_RECORD_IMPORT_EXECUTE' }));
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), { maxWait: 10000, timeout: 15000 });
+  });
+
+  it('processes 1256 rows in independent short transactions', async () => {
+    const rowCount = 1256;
+    files.getFileBuffer.mockResolvedValueOnce(buildLargeCsvBuffer(rowCount));
+    prisma.dealRecord.findMany.mockResolvedValueOnce([]);
+    prisma.dealRecordImportJob.create.mockResolvedValueOnce({
+      id: JOB_ID,
+      operatorUserId: USER_ID,
+      fileId: FILE_ID,
+      status: 'PENDING',
+      duplicatePolicy: 'SKIP',
+      totalCount: rowCount,
+      validCount: rowCount,
+      invalidCount: 0,
+      successCount: 0,
+      skippedCount: 0,
+      failedCount: 0,
+      createdAt: new Date('2026-07-27T00:00:00.000Z'),
+      updatedAt: new Date('2026-07-27T00:00:00.000Z'),
+      finishedAt: null,
+    });
+    prisma.dealRecord.create.mockImplementation(async (_args: any) => ({ id: `deal-${prisma.dealRecord.create.mock.calls.length}` }));
+    prisma.dealRecordImportJobRow.create.mockResolvedValue({});
+    prisma.dealRecordImportJob.update.mockResolvedValueOnce({
+      id: JOB_ID,
+      operatorUserId: USER_ID,
+      fileId: FILE_ID,
+      status: 'SUCCEEDED',
+      duplicatePolicy: 'SKIP',
+      totalCount: rowCount,
+      validCount: rowCount,
+      invalidCount: 0,
+      successCount: rowCount,
+      skippedCount: 0,
+      failedCount: 0,
+      createdAt: new Date('2026-07-27T00:00:00.000Z'),
+      updatedAt: new Date('2026-07-27T00:00:00.000Z'),
+      finishedAt: new Date('2026-07-27T00:01:00.000Z'),
+    });
+
+    const result = await service.executeImportBatched(
+      { auth: { isAdmin: true, userId: USER_ID } },
+      { fileId: FILE_ID, duplicatePolicy: 'SKIP' },
+    );
+
+    expect(result.summary).toMatchObject({ totalRows: rowCount, successCount: rowCount, skippedCount: 0, failedCount: 0 });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(rowCount);
+    expect(prisma.$transaction.mock.calls.every((call: any[]) => call[1]?.maxWait === 10000 && call[1]?.timeout === 15000)).toBe(true);
+    expect(prisma.dealRecordImportJobRow.create).toHaveBeenCalledTimes(rowCount);
+  });
+
+  it('records a failed row without rolling back the rest of its batch', async () => {
+    files.getFileBuffer.mockResolvedValueOnce(buildLargeCsvBuffer(2));
+    prisma.dealRecord.findMany.mockResolvedValueOnce([]);
+    prisma.dealRecordImportJob.create.mockResolvedValueOnce({
+      id: JOB_ID,
+      operatorUserId: USER_ID,
+      fileId: FILE_ID,
+      status: 'PENDING',
+      duplicatePolicy: 'SKIP',
+      totalCount: 2,
+      validCount: 2,
+      invalidCount: 0,
+      successCount: 0,
+      skippedCount: 0,
+      failedCount: 0,
+      createdAt: new Date('2026-07-27T00:00:00.000Z'),
+      updatedAt: new Date('2026-07-27T00:00:00.000Z'),
+      finishedAt: null,
+    });
+    prisma.patent.findFirst.mockRejectedValueOnce(Object.assign(new Error('patent lookup failed'), { code: 'TEST_LOOKUP_FAILED' }));
+    prisma.patent.findFirst.mockResolvedValueOnce(null);
+    prisma.dealRecord.findUnique.mockResolvedValueOnce(null);
+    prisma.dealRecord.create.mockResolvedValueOnce({ id: DEAL_RECORD_ID });
+    prisma.dealRecordImportJobRow.create.mockResolvedValue({});
+    prisma.dealRecordImportJob.update.mockResolvedValueOnce({
+      id: JOB_ID,
+      operatorUserId: USER_ID,
+      fileId: FILE_ID,
+      status: 'PARTIAL_FAILED',
+      duplicatePolicy: 'SKIP',
+      totalCount: 2,
+      validCount: 2,
+      invalidCount: 0,
+      successCount: 1,
+      skippedCount: 0,
+      failedCount: 1,
+      createdAt: new Date('2026-07-27T00:00:00.000Z'),
+      updatedAt: new Date('2026-07-27T00:00:00.000Z'),
+      finishedAt: new Date('2026-07-27T00:01:00.000Z'),
+    });
+
+    const result = await service.executeImportBatched(
+      { auth: { isAdmin: true, userId: USER_ID } },
+      { fileId: FILE_ID, duplicatePolicy: 'SKIP' },
+    );
+
+    expect(result.job.status).toBe('PARTIAL_FAILED');
+    expect(result.summary).toMatchObject({ successCount: 1, failedCount: 1 });
+    expect(prisma.dealRecord.create).toHaveBeenCalledTimes(1);
+    expect(prisma.dealRecordImportJobRow.create).toHaveBeenCalledTimes(2);
+    expect(prisma.dealRecordImportJobRow.create.mock.calls[0][0].data).toMatchObject({
+      rowNo: 2,
+      status: 'FAILED',
+      errorCode: 'TEST_LOOKUP_FAILED',
+    });
   });
 
   it('upserts an online order deal record with a stable order dedupe key', async () => {
